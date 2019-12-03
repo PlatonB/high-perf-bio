@@ -1,10 +1,10 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 print('''
 Модуль пересечения и вычитания.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2019.
-Версия: V1.0.
+Версия: V1.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -266,9 +266,8 @@ for left_coll_name in left_coll_names:
                                 if right_coll_name == left_coll_name:
                                         continue
                                 right_coll_alias = right_coll_name.replace('.', '_')
-                                if action == 'int' and doc[right_coll_alias] != []:
-                                        depth_meter += 1
-                                elif action == 'sub' and doc[right_coll_alias] == []:
+                                if (action == 'int' and doc[right_coll_alias] != []) or \
+                                   (action == 'sub' and doc[right_coll_alias] == []):
                                         depth_meter += 1
                                 if depth_meter == depth:
                                         row = [str(val) for val in list(doc.values())[1:] if type(val).__name__ != 'list']
