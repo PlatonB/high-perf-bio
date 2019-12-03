@@ -1,9 +1,14 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 import os, sys, gzip, re
 from pymongo import MongoClient, IndexModel, ASCENDING
 from bson.decimal128 import Decimal128
 
+def print_db_info(db_name, coll_names, indexed):
+        print(f'''\nИмена всех коллекций базы {db_name}:\n''', coll_names)
+        print(f'''\nПроиндексированные поля коллекций и
+соответствующие типы данных базы {db_name}:\n''', indexed)
+        
 def remove_database(client, db_name):
         '''
         Функция, дающая возможность
@@ -54,9 +59,12 @@ def create_database(client, db_names):
                 #выход из функции создания БД.
                 remove = remove_database(client, db_name)
                 if remove in ['no', 'n', '']:
-                        coll_names = db_obj.list_collection_names()
+                        coll_names = sorted(db_obj.list_collection_names())
                         coll_names.remove('indexed')
                         indexed = db_obj.indexed.find_one()['act']
+                        
+                        print_db_info(db_name, coll_names, indexed)
+                        
                         return db_name, coll_names, indexed
                 
         detect_headers = input('''\nРаспознавать хэдеры VCF (##) и UCSC (track_name=)
@@ -197,7 +205,7 @@ https://github.com/PlatonB/bioinformatic-python-scripts)
                                                                            {'configString':
                                                                             'block_compressor=zstd'}})
                         
-                        print(f'\nКоллекция {arc_file_name} новой базы данных пополняется')
+                        print(f'\nКоллекция {arc_file_name} БД {db_name} пополняется')
                         
                         #Данные будут поступать в базу
                         #одним или более фрагментами.
@@ -263,7 +271,7 @@ https://github.com/PlatonB/bioinformatic-python-scripts)
                         if fragment_len > 0:
                                 coll_obj.insert_many(fragment)
                                 
-                print(f'Коллекция {arc_file_name} новой базы данных индексируется')
+                print(f'Коллекция {arc_file_name} БД {db_name} индексируется')
                 
                 #Генерируем список объектов, обеспечивающих
                 #создание одиночных индексов заданных исследователем
@@ -293,8 +301,12 @@ https://github.com/PlatonB/bioinformatic-python-scripts)
         indexed = {col_name: col_ann[0] for col_name, col_ann in col_info.items()}
         db_obj.indexed.insert_one({'ref': indexed, 'act': indexed})
         
-        print('\nИмя новой БД:\n', db_name)
-        print(f'\nКоллекции {db_name}:\n', coll_names)
+        #Сортируем список коллекций
+        #для повышения удобочитаемости
+        #соответствующих принтов.
+        coll_names.sort()
+        
+        print_db_info(db_name, coll_names, indexed)
         
         return db_name, coll_names, indexed
 
@@ -311,7 +323,7 @@ def reindex_collections(client, db_name):
         #проиндексированных полей, а
         #также списка имён индексов.
         db_obj = client[db_name]
-        coll_names = db_obj.list_collection_names()
+        coll_names = sorted(db_obj.list_collection_names())
         coll_names.remove('indexed')
         index_names = list(db_obj[coll_names[0]].index_information().keys())[1:]
         
@@ -388,5 +400,7 @@ def reindex_collections(client, db_name):
         #Сохраняем актуальную информацию о проиндексированных
         #полях в соответствующее поле специальной коллекции.
         db_obj.indexed.update_one({}, {'$set': {'act': indexed_act}})
+        
+        print_db_info(db_name, coll_names, indexed_act)
         
         return db_name, coll_names, indexed_act
