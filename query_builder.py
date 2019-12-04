@@ -1,11 +1,11 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 print('''
 Модуль, позволяющий формировать и
 выполнять простые запросы к MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2019.
-Версия: V1.0.
+Версия: V1.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -76,9 +76,6 @@ else:
         db_name, coll_names, indexed = reindex_collections(client, db_choice)
         
 trg_dir_path = input('\nПуть к папке для результатов: ')
-
-print(f'''\nПроиндексированные поля коллекций и
-соответствующие типы данных базы {db_name}:\n''', indexed)
 
 str_operators, num_operators = {'!=': '$nin',
                                 '=': '$in',

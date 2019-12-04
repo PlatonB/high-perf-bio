@@ -1,11 +1,11 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 print('''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2019.
-Версия: V1.0.
+Версия: V1.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -55,9 +55,6 @@ else:
 ann_dir_path = os.path.normpath(input('\nПуть к папке с аннотируемыми таблицами: '))
 
 trg_top_dir_path = input('\nПуть к папке для результатов: ')
-
-print(f'''\nПроиндексированные поля коллекций и
-соответствующие типы данных базы {db_name}:\n''', indexed)
 
 if len(indexed) > 1:
         field_name = input(f'''\nИмя поля, по которому аннотируем

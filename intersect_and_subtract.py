@@ -1,10 +1,10 @@
-__version__ = 'V1.1'
+__version__ = 'V1.2'
 
 print('''
 Модуль пересечения и вычитания.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2019.
-Версия: V1.1.
+Версия: V1.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -89,20 +89,6 @@ if len(coll_names) == 1:
         
 trg_dir_path = input('\nПуть к папке для результатов: ')
 
-print(f'''\nПроиндексированные поля коллекций и
-соответствующие типы данных базы {db_name}:\n''', indexed)
-
-if len(indexed) > 1:
-        col_name = input(f'''\nИмя поля, по которому пересекаем или вычитаем
-[{"|".join(indexed.keys())}]: ''')
-        if col_name not in indexed:
-                print(f'{col_name} - недопустимая опция')
-                sys.exit()
-else:
-        col_name = list(indexed.keys())[0]
-        
-print(f'''\nИмена всех коллекций базы {db_name}:\n''', coll_names)
-
 left_coll_names = input(f'''\nИмена "левых" коллекций {db_name}
 (через запятую с пробелом)
 (игнорирование ввода ==> все коллекции БД сделать "левыми")
@@ -121,6 +107,15 @@ right_coll_names.sort()
 right_coll_names_quan = len(right_coll_names)
 if len(set(right_coll_names) & set(left_coll_names)) > 0:
         right_coll_names_quan -= 1
+        
+if len(indexed) > 1:
+        col_name = input(f'''\nИмя поля, по которому пересекаем или вычитаем
+[{"|".join(indexed.keys())}]: ''')
+        if col_name not in indexed:
+                print(f'{col_name} - недопустимая опция')
+                sys.exit()
+else:
+        col_name = list(indexed.keys())[0]
         
 action = input('''\nПересекать или вычитать?
 [intersect(|i)|subtract(|s)]: ''')
