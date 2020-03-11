@@ -1,11 +1,11 @@
-__version__ = 'V1.1'
+__version__ = 'V1.2'
 
 print('''
 Программа, создающая базу данных
 MongoDB в несколько процессов.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.1.
+Версия: V1.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -40,7 +40,6 @@ def add_main_args():
         '''
         Работа с аргументами командной строки.
         '''
-        
         argparser = ArgumentParser(description='''
 Краткая форма с большой буквы - обязательный аргумент.
 В квадратных скобках - значение по умолчанию.
@@ -59,7 +58,7 @@ def add_main_args():
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
                                help='Имена индексируемых полей (через запятую без пробела)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                               help='Максимальное количество параллельно загружаемых в БД таблиц')
+                               help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
         
         return args
@@ -69,7 +68,6 @@ def remove_database(db_name):
         Функция, дающая возможность
         полного удаления базы данных.
         '''
-        
         client = MongoClient()
         if db_name in client.list_database_names():
                 print(f'\nБаза данных {db_name} уже существует')
@@ -153,7 +151,6 @@ class PrepSingleProc():
         Класс, спроектированный под безопасное
         параллельное создание базы данных.
         '''
-        
         def __init__(self, args):
                 '''
                 Получение атрибутов, необходимых
