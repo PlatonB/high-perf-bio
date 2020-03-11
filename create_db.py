@@ -1,11 +1,11 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 print('''
 Программа, создающая базу данных
 MongoDB в несколько процессов.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.0.
+Версия: V1.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -18,6 +18,9 @@ MongoDB и PyMongo (см. документацию).
 Формат исходных таблиц:
 - Должен быть одинаковым для всех.
 - Определяется программой по расширению.
+
+TSV: так будет условно обозначаться
+неопределённый табличный формат.
 
 Требование к наличию табличной шапки:
 - VCF: шапка обязательна.
@@ -40,23 +43,23 @@ def add_main_args():
         
         argparser = ArgumentParser(description='''
 Краткая форма с большой буквы - обязательный аргумент.
-В фигурных скобках - перечисление возможных значений.
 В квадратных скобках - значение по умолчанию.
+В фигурных скобках - перечисление возможных значений.
 ''')
         argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
-                               help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB')
+                               help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
         argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
                                help='Имя создаваемой базы данных (по умолчанию - имя папки со сжатыми таблицами)')
         argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                               help='Количество строк метаинформации (не применяется к VCF)')
+                               help='Количество строк метаинформации (VCF: опция не применяется; TSV: нельзя включать шапку)')
         argparser.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знаки препинания для разбиения ячейки на список (не применяется к VCF/BED)')
+                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (VCF, BED: опция не применяется)')
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                                help='Максимальное количество строк фрагмента заливаемой в БД таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
                                help='Имена индексируемых полей (через запятую без пробела)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                               help='Максимальное количество параллельно обрабатываемых файлов')
+                               help='Максимальное количество параллельно загружаемых в БД таблиц')
         args = argparser.parse_args()
         
         return args
@@ -382,7 +385,7 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
-import sys, os, gzip, re
+import sys, os, gzip
 from argparse import ArgumentParser
 from pymongo import MongoClient, IndexModel, ASCENDING
 from bson.decimal128 import Decimal128
@@ -408,7 +411,8 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nБД {prep_single_proc.db_name} пополняется в {proc_quan} процесс(-а/-ов)')
+print(f'\nБД {prep_single_proc.db_name} пополняется')
+print(f'\tколичество процессов: {proc_quan}')
 
 #Параллельный запуск создания коллекций.
 with Pool(proc_quan) as pool_obj:
