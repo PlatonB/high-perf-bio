@@ -1,4 +1,4 @@
-__version__ = 'V2.0'
+__version__ = 'V2.1'
 
 print('''
 Программа, производящая индексацию
@@ -6,7 +6,7 @@ MongoDB-базы в несколько процессов
 и удаляющая старые индексы.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.0.
+Версия: V2.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -132,11 +132,16 @@ client.close()
 #сейчас будет произведена
 #подготовка к параллельному
 #выполнению этой процедуры.
+#Количество процессов будет
+#определено по заданному
+#исследователем максимуму
+#этого значения и количеству
+#коллекций переиндексируемой БД.
 if prep_single_proc.ind_field_names != None:
-        inds_quan = len(prep_single_proc.ind_field_names)
+        colls_quan = len(coll_names)
         max_proc_quan = args.max_proc_quan
-        if max_proc_quan > inds_quan <= 8:
-                proc_quan = inds_quan
+        if max_proc_quan > colls_quan <= 8:
+                proc_quan = colls_quan
         elif max_proc_quan > 8:
                 proc_quan = 8
         else:
