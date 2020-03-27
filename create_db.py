@@ -1,11 +1,11 @@
-__version__ = 'V1.2'
+__version__ = 'V1.3'
 
 print('''
 Программа, создающая базу данных
 MongoDB в несколько процессов.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.2.
+Версия: V1.3.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -56,11 +56,10 @@ def add_main_args():
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                                help='Максимальное количество строк фрагмента заливаемой в БД таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела)')
+                               help='Имена индексируемых полей (через запятую без пробела; VCF: по умолчанию - #CHROM,POS,ID; BED: по умолчанию - chrom,start,end)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
-        
         return args
 
 def remove_database(db_name):
