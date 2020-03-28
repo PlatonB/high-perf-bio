@@ -1,11 +1,11 @@
-__version__ = 'V2.0'
+__version__ = 'V2.1'
 
 print('''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.0.
+Версия: V2.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -20,6 +20,12 @@ MongoDB и PyMongo (см. документацию).
 положение во всех исходных таблицах;
 - целиком размещается в оперативную память,
 что может замедлить работу компьютера.
+
+Каждая аннотируемая таблица
+должна быть сжата с помощью GZIP.
+
+Источником характеристик должна быть
+база данных, созданная с помощью create_db.
 ''')
 
 def add_main_args():
@@ -81,9 +87,7 @@ class PrepSingleProc():
                         self.ann_col_index = args.ann_col_num - 1
                 self.ann_field_name = args.ann_field_name
                 self.meta_lines_quan = args.meta_lines_quan
-                if args.sec_delimiter == None:
-                        self.sec_delimiter = args.sec_delimiter
-                elif args.sec_delimiter == 'comma':
+                if args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
