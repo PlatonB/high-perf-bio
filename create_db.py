@@ -1,11 +1,10 @@
-__version__ = 'V1.3'
+__version__ = 'V1.4'
 
 print('''
-Программа, создающая базу данных
-MongoDB в несколько процессов.
+Программа, создающая MongoDB-базу данных.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.3.
+Версия: V1.4.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -69,12 +68,12 @@ def remove_database(db_name):
         '''
         client = MongoClient()
         if db_name in client.list_database_names():
-                print(f'\nБаза данных {db_name} уже существует')
-                db_to_remove = input('\nДля пересоздания введите имя этой базы данных: ')
+                db_to_remove = input(f'''\nБаза данных {db_name} уже существует.
+Для пересоздания введите её имя: ''')
                 if db_to_remove == db_name:
                         client.drop_database(db_name)
                 else:
-                        print(f'\n{db_to_remove} останется. Работа программы завершена.')
+                        print(f'\nБаза данных {db_name} останется')
                         client.close()
                         sys.exit()
                         
@@ -293,8 +292,7 @@ class PrepSingleProc():
                                                 row[2] = row[2].split(';')
                                         if row[4].find(',') != -1:
                                                 row[4] = row[4].split(',')
-                                        if row[5] != '.':
-                                                row[5] = Decimal128(row[5])
+                                        row[5] = def_data_type(row[5])
                                         row[7] = process_info_cell(row[7])
                                         if len(row) > 8:
                                                 gt_objs = [process_gt_cell(row[8], gt_cell) for gt_cell in row[9:]]
@@ -384,9 +382,9 @@ class PrepSingleProc():
 import sys, os, gzip
 from argparse import ArgumentParser
 from pymongo import MongoClient, IndexModel, ASCENDING
+from multiprocessing import Pool
 from bson.decimal128 import Decimal128
 from decimal import InvalidOperation
-from multiprocessing import Pool
 
 #Подготовительный этап: обработка
 #аргументов командной строки,
@@ -407,8 +405,8 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nБД {prep_single_proc.db_name} пополняется')
-print(f'\tколичество процессов: {proc_quan}')
+print(f'\nПополнение БД {prep_single_proc.db_name}')
+print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск создания коллекций.
 with Pool(proc_quan) as pool_obj:
