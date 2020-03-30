@@ -1,4 +1,4 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 def restore_info_cell(info_obj):
         '''
@@ -76,7 +76,7 @@ def restore_line(doc, trg_file_format, sec_delimiter):
                         doc['ID'] = ';'.join(doc['ID'])
                 if type(doc['ALT']).__name__ == 'list':
                         doc['ALT'] = ','.join(doc['ALT'])
-                if type(doc['QUAL']).__name__ == 'Decimal128':
+                if type(doc['QUAL']).__name__ in ['int', 'Decimal128']:
                         doc['QUAL'] = str(doc['QUAL'])
                 doc['INFO'] = restore_info_cell(doc['INFO'])
                 if len(field_names) > 8:
