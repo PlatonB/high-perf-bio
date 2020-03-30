@@ -1,11 +1,11 @@
-__version__ = 'V2.1'
+__version__ = 'V2.2'
 
 print('''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.1.
+Версия: V2.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -188,13 +188,13 @@ class PrepSingleProc():
                 #Проигнорируем их.
                 if ann_list != []:
                         
-                        #В именах коллекций предусмотрительно
-                        #сохранены расширения тех таблиц,
-                        #по которым коллекции создавались.
-                        #Расширения помогут далее
-                        #определить, по какому
-                        #столбцу парсить базу и как
-                        #форматировать конечные строки.
+                        #В имени коллекции предусмотрительно
+                        #сохранено расширение того файла,
+                        #по которому коллекция создавалась.
+                        #Расширение поможет далее определить,
+                        #вставлять ли в шапку элемент FORMAT,
+                        #по какому столбцу парсить базу и
+                        #как форматировать конечные строки.
                         trg_file_format = coll_names[0].split('.')[-1]
                         
                         #Исследователь может не выбрать
@@ -238,6 +238,11 @@ class PrepSingleProc():
                                 #хоть какой-то результат.
                                 #Если да, то этот запрос
                                 #выполнится по-настоящему.
+                                #В аннотируемый список
+                                #затесались одинаковые элементы?
+                                #Ничего страшного - MongoDB
+                                #выдаст результат только
+                                #по одному из них.
                                 coll_obj = db_obj[coll_name]
                                 if coll_obj.count_documents({ann_field_name: {'$in': ann_list}}) == 0:
                                         continue
@@ -247,7 +252,12 @@ class PrepSingleProc():
                                 #той таблицы, по которой делалась
                                 #коллекция, создадим её из имён полей.
                                 #Сугубо техническое поле _id проигнорируется.
-                                header_line = '\t'.join(list(db_obj[coll_name].find_one())[1:])
+                                #Если в ex-VCF-коллекции есть поля с генотипами,
+                                #то шапка дополнится элементом FORMAT.
+                                header_row = list(coll_obj.find_one())[1:]
+                                if trg_file_format == 'vcf' and len(header_row) > 8:
+                                        header_row.insert(8, 'FORMAT')
+                                header_line = '\t'.join(header_row)
                                 
                                 #Когда ясно, что результаты
                                 #запроса имеются, можно смело
@@ -316,8 +326,8 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nАннотация по БД {prep_single_proc.db_name}')
-print(f'\tколичество процессов: {proc_quan}')
+print(f'\nАннотирование по БД {prep_single_proc.db_name}')
+print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск аннотирования.
 with Pool(proc_quan) as pool_obj:

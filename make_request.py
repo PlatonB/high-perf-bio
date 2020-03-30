@@ -1,11 +1,11 @@
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 print('''
 Программа, позволяющая выполнить
 запрос по всем коллекциям MongoDB-базы.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.0.
+Версия: V1.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -100,18 +100,25 @@ class PrepSingleProc():
                 if coll_obj.count_documents(self.pymongo_query) != 0:
                         curs_obj = coll_obj.find(self.pymongo_query)
                         
+                        #В имени коллекции предусмотрительно
+                        #сохранено расширение того файла,
+                        #по которому коллекция создавалась.
+                        #Расширение поможет далее принять
+                        #решение о необходимости коррекции
+                        #шапки, а также определить, как
+                        #форматировать конечные строки.
+                        trg_file_format = coll_name.split('.')[-1]
+                        
                         #Чтобы шапка повторяла шапку
                         #той таблицы, по которой делалась
                         #коллекция, создадим её из имён полей.
                         #Сугубо техническое поле _id проигнорируется.
-                        header_line = '\t'.join(list(coll_obj.find_one())[1:])
-                        
-                        #В имени коллекции предусмотрительно
-                        #сохранено расширение того файла,
-                        #по которому коллекция создавалась.
-                        #Расширение поможет далее определить,
-                        #как форматировать конечные строки.
-                        trg_file_format = coll_name.split('.')[-1]
+                        #Если в ex-VCF-коллекции есть поля с генотипами,
+                        #то шапка дополнится элементом FORMAT.
+                        header_row = list(coll_obj.find_one())[1:]
+                        if trg_file_format == 'vcf' and len(header_row) > 8:
+                                header_row.insert(8, 'FORMAT')
+                        header_line = '\t'.join(header_row)
                         
                         #Конструируем имя конечного файла
                         #и абсолютный путь к этому файлу.
@@ -174,7 +181,7 @@ else:
         proc_quan = max_proc_quan
         
 print(f'\nПоиск по БД {prep_single_proc.db_name}')
-print(f'\tколичество процессов: {proc_quan}')
+print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск поиска.
 with Pool(proc_quan) as pool_obj:
