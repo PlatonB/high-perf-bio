@@ -1,11 +1,11 @@
-__version__ = 'V1.1'
+__version__ = 'V1.2'
 
 print('''
 Программа, позволяющая выполнить
 запрос по всем коллекциям MongoDB-базы.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.1.
+Версия: V1.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -17,6 +17,9 @@ MongoDB и PyMongo (см. README).
 
 Источником отбираемых данных должна быть
 база, созданная с помощью create_db.
+
+Желательно, чтобы поля БД, по которым
+надо искать, были проиндексированы.
 
 Поддерживается только Python-диалект
 языка запросов MongoDB (см. вкладку Python):
@@ -76,8 +79,7 @@ class PrepSingleProc():
                         self.sec_delimiter = ':'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
-                self.max_proc_quan = args.max_proc_quan
-                
+                        
         def search(self, coll_name):
                 '''
                 Функция поиска по одной коллекции.
@@ -97,7 +99,7 @@ class PrepSingleProc():
                 #Тогда реально выполним для
                 #этой коллекции составленный
                 #исследователем запрос.
-                if coll_obj.count_documents(self.pymongo_query) != 0:
+                if coll_obj.count_documents(self.pymongo_query) > 0:
                         curs_obj = coll_obj.find(self.pymongo_query)
                         
                         #В имени коллекции предусмотрительно
@@ -132,9 +134,9 @@ class PrepSingleProc():
                                 #метастроки, повествующие о
                                 #происхождении конечного файла.
                                 #Прописываем также табличную шапку.
-                                trg_file_opened.write(f'##Query: {self.pymongo_query}\n')
                                 trg_file_opened.write(f'##Database: {self.db_name}\n')
                                 trg_file_opened.write(f'##Collection: {coll_name}\n')
+                                trg_file_opened.write(f'##Query: {self.pymongo_query}\n')
                                 trg_file_opened.write(header_line + '\n')
                                 
                                 #Извлечение из объекта курсора
@@ -169,9 +171,10 @@ from backend.doc_to_line import restore_line
 #парсимых коллекций, определение
 #оптимального числа процессов.
 args, client = add_main_args(), MongoClient()
-prep_single_proc = PrepSingleProc(args)
 max_proc_quan = args.max_proc_quan
-coll_names = client[prep_single_proc.db_name].list_collection_names()
+prep_single_proc = PrepSingleProc(args)
+db_name = prep_single_proc.db_name
+coll_names = client[db_name].list_collection_names()
 colls_quan = len(coll_names)
 if max_proc_quan > colls_quan <= 8:
         proc_quan = colls_quan
@@ -180,7 +183,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nПоиск по БД {prep_single_proc.db_name}')
+print(f'\nПоиск по БД {db_name}')
 print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск поиска.

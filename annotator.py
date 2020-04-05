@@ -1,11 +1,11 @@
-__version__ = 'V2.2'
+__version__ = 'V2.3'
 
 print('''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.2.
+Версия: V2.3.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -26,6 +26,9 @@ MongoDB и PyMongo (см. документацию).
 
 Источником характеристик должна быть
 база данных, созданная с помощью create_db.
+
+Желательно, чтобы поле БД, по которому
+надо аннотировать, было проиндексировано.
 ''')
 
 def add_main_args():
@@ -95,8 +98,7 @@ class PrepSingleProc():
                         self.sec_delimiter = ':'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
-                self.max_proc_quan = args.max_proc_quan
-                
+                        
         def annotate(self, arc_file_name):
                 '''
                 Функция аннотирования
@@ -175,13 +177,14 @@ class PrepSingleProc():
                         #высокопроизводительные запросы.
                         ann_list = []
                         for line in arc_file_opened:
+                                ann_cell = line.rstrip().split('\t')[ann_col_index]
                                 try:
-                                        ann_list.append(int(line.rstrip().split('\t')[ann_col_index]))
+                                        ann_list.append(int(ann_cell))
                                 except ValueError:
                                         try:
-                                                ann_list.append(Decimal128(line.rstrip().split('\t')[ann_col_index]))
+                                                ann_list.append(Decimal128(ann_cell))
                                         except InvalidOperation:
-                                                ann_list.append(line.rstrip().split('\t')[ann_col_index])
+                                                ann_list.append(ann_cell)
                                                 
                 #Среди аннотируемых файлов
                 #могут затесаться пустые.
@@ -277,9 +280,10 @@ class PrepSingleProc():
                                         #метастроки, повествующие о
                                         #происхождении конечного файла.
                                         #Прописываем также табличную шапку.
-                                        trg_file_opened.write(f'##Annotated file: {arc_file_name}\n')
+                                        trg_file_opened.write(f'##Annotated: {arc_file_name}\n')
                                         trg_file_opened.write(f'##Database: {self.db_name}\n')
                                         trg_file_opened.write(f'##Collection: {coll_name}\n')
+                                        trg_file_opened.write(f'##Field: {ann_field_name}\n')
                                         trg_file_opened.write(header_line + '\n')
                                         
                                         #Извлечение из объекта курсора
@@ -315,8 +319,8 @@ from backend.doc_to_line import restore_line
 #аннотируемых файлов, определение
 #оптимального числа процессов.
 args = add_main_args()
-prep_single_proc = PrepSingleProc(args)
 max_proc_quan = args.max_proc_quan
+prep_single_proc = PrepSingleProc(args)
 arc_file_names = os.listdir(prep_single_proc.arc_dir_path)
 arc_files_quan = len(arc_file_names)
 if max_proc_quan > arc_files_quan <= 8:

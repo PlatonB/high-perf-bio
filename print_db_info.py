@@ -1,4 +1,4 @@
-__version__ = 'V2.1'
+__version__ = 'V2.2'
 
 print('''
 Программа, позволяющая вывести
@@ -6,7 +6,7 @@ print('''
 информацию об определённой БД.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.1.
+Версия: V2.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -65,7 +65,7 @@ def print_db_info(db_name):
                 storage_size = f'{round(storage_byte_size/1000000000, 1)} ГБ'
         else:
                 storage_size = f'{round(storage_byte_size/1000000000000, 1)} ТБ'
-        coll_names = db_obj.list_collection_names()
+        coll_names = sorted(db_obj.list_collection_names())
         min_fields_quan = len(db_obj[coll_names[0]].find_one())
         thin_coll_name = coll_names[0]
         if len(coll_names) > 1:
@@ -111,6 +111,6 @@ args = add_main_args()
 #Если же он указал имя конкретной
 #базы, появятся её характеристики.
 if args.db_name == None:
-        print('\nИмена всех MongoDB-баз:\n', ', '.join(MongoClient().list_database_names()))
+        print('\nИмена всех MongoDB-баз:\n', ', '.join(sorted(MongoClient().list_database_names())))
 else:
         print_db_info(args.db_name)

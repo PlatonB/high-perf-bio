@@ -1,4 +1,4 @@
-__version__ = 'V2.1'
+__version__ = 'V2.2'
 
 print('''
 Программа, производящая индексацию
@@ -6,7 +6,7 @@ MongoDB-базы в несколько процессов
 и удаляющая старые индексы.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.1.
+Версия: V2.2.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -16,9 +16,8 @@ MongoDB-базы в несколько процессов
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
 
-Для вывода имён баз данных, индексов
-и полей можете использовать программу
-print_db_info проекта high-perf-bio.
+Для вывода имён баз данных, индексов и
+полей можете использовать print_db_info.
 ''')
 
 def add_main_args():
@@ -86,7 +85,6 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
-import copy
 from argparse import ArgumentParser
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
@@ -99,10 +97,9 @@ from multiprocessing import Pool
 #и MongoDB-объектов,
 #получение имён
 #всех коллекций.
-args = add_main_args()
+args, client = add_main_args(), MongoClient()
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
-client = MongoClient()
 db_obj = client[db_name]
 coll_names = db_obj.list_collection_names()
 
@@ -117,8 +114,8 @@ if args.del_ind_names != None:
         print(f'\nУдаляются индексы БД {db_name}')
         remove_indices(coll_names, del_ind_names, db_obj)
         
-#Необходимости в клиенте
-#MongoDB больше нет,
+#Необходимости в подключении
+#к серверу MongoDB больше нет,
 #поэтому дисконнектимся.
 #Если дальше последует
 #этап многопроцессовой
@@ -138,8 +135,8 @@ client.close()
 #этого значения и количеству
 #коллекций переиндексируемой БД.
 if prep_single_proc.ind_field_names != None:
-        colls_quan = len(coll_names)
         max_proc_quan = args.max_proc_quan
+        colls_quan = len(coll_names)
         if max_proc_quan > colls_quan <= 8:
                 proc_quan = colls_quan
         elif max_proc_quan > 8:
@@ -147,8 +144,8 @@ if prep_single_proc.ind_field_names != None:
         else:
                 proc_quan = max_proc_quan
                 
-        print(f'\nБД {db_name} индексируется')
-        print(f'\tколичество процессов: {proc_quan}')
+        print(f'\nИндексируется БД {db_name}')
+        print(f'\tколичество параллельных процессов: {proc_quan}')
         
         #Параллельный запуск индексации коллекций.
         with Pool(proc_quan) as pool_obj:
