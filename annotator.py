@@ -1,16 +1,19 @@
-__version__ = 'V2.3'
+__version__ = 'V2.4'
 
-print('''
+def add_args():
+        '''
+        Работа с аргументами командной строки.
+        '''
+        argparser = ArgumentParser(description='''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.3.
+Версия: V2.4.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-Справка по CLI: python3 annotator.py -h
 
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
@@ -29,17 +32,13 @@ MongoDB и PyMongo (см. документацию).
 
 Желательно, чтобы поле БД, по которому
 надо аннотировать, было проиндексировано.
-''')
 
-def add_main_args():
-        '''
-        Работа с аргументами командной строки.
-        '''
-        argparser = ArgumentParser(description='''
-Краткая форма с большой буквы - обязательный аргумент.
-В квадратных скобках - значение по умолчанию.
-В фигурных скобках - перечисление возможных значений.
-''')
+Условные обозначения в справке по CLI:
+- краткая форма с большой буквы - обязательный аргумент;
+- в квадратных скобках - значение по умолчанию;
+- в фигурных скобках - перечисление возможных значений.
+''',
+                                   formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
                                help='Путь к папке со сжатыми аннотируемыми таблицами')
         argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
@@ -304,7 +303,7 @@ import sys, os, gzip
 #целью предотвращения искажения результатов.
 sys.dont_write_bytecode = True
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from multiprocessing import Pool
 from pymongo import MongoClient
 from bson.decimal128 import Decimal128
@@ -318,7 +317,7 @@ from backend.doc_to_line import restore_line
 #получение имён и количества
 #аннотируемых файлов, определение
 #оптимального числа процессов.
-args = add_main_args()
+args = add_args()
 max_proc_quan = args.max_proc_quan
 prep_single_proc = PrepSingleProc(args)
 arc_file_names = os.listdir(prep_single_proc.arc_dir_path)

@@ -1,16 +1,19 @@
-__version__ = 'V2.0'
+__version__ = 'V2.1'
 
-print('''
+def add_args():
+        '''
+        Работа с аргументами командной строки.
+        '''
+        argparser = ArgumentParser(description='''
 Программа, выполняющая пересечение или
 вычитание коллекций по выбранному полю.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.0.
+Версия: V2.1.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-Справка по CLI: python3 intersect_subtract.py -h
 
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. README).
@@ -51,17 +54,13 @@ MongoDB и PyMongo (см. README).
 Больше глубина - меньше результатов.
 
 --------------------------------------------------
-''')
 
-def add_main_args():
-        '''
-        Работа с аргументами командной строки.
-        '''
-        argparser = ArgumentParser(description='''
-Краткая форма с большой буквы - обязательный аргумент.
-В квадратных скобках - значение по умолчанию.
-В фигурных скобках - перечисление возможных значений.
-''')
+Условные обозначения в справке по CLI:
+- краткая форма с большой буквы - обязательный аргумент;
+- в квадратных скобках - значение по умолчанию;
+- в фигурных скобках - перечисление возможных значений.
+''',
+                                   formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
                                help='Имя БД, по которой выполнять работу')
         argparser.add_argument('-T', '--trg-dir-path', metavar='str', dest='trg_dir_path', type=str,
@@ -308,7 +307,7 @@ import sys, os
 #целью предотвращения искажения результатов.
 sys.dont_write_bytecode = True
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient
 from multiprocessing import Pool
 from backend.doc_to_line import restore_line
@@ -320,7 +319,7 @@ from backend.doc_to_line import restore_line
 #имён всех и только левых коллекций,
 #определение количества левых коллекций
 #и оптимального числа процессов.
-args, client = add_main_args(), MongoClient()
+args, client = add_args(), MongoClient()
 coll_names = client[args.db_name].list_collection_names()
 if len(coll_names) < 2:
         print('''Для пересечения или вычитания

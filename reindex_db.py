@@ -1,34 +1,33 @@
-__version__ = 'V2.2'
+__version__ = 'V2.3'
 
-print('''
+def add_args():
+        '''
+        Работа с аргументами командной строки.
+        '''
+        argparser = ArgumentParser(description='''
 Программа, производящая индексацию
 MongoDB-базы в несколько процессов
 и удаляющая старые индексы.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.2.
+Версия: V2.3.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-Справка по CLI: python3 reindex_db.py -h
 
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
 
 Для вывода имён баз данных, индексов и
 полей можете использовать print_db_info.
-''')
 
-def add_main_args():
-        '''
-        Работа с аргументами командной строки.
-        '''
-        argparser = ArgumentParser(description='''
-Краткая форма с большой буквы - обязательный аргумент.
-В квадратных скобках - значение по умолчанию.
-В фигурных скобках - перечисление возможных значений.
-''')
+Условные обозначения в справке по CLI:
+- краткая форма с большой буквы - обязательный аргумент;
+- в квадратных скобках - значение по умолчанию;
+- в фигурных скобках - перечисление возможных значений.
+''',
+                                   formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
                                help='Имя переиндексируемой БД')
         argparser.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
@@ -85,7 +84,7 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 
@@ -97,7 +96,7 @@ from multiprocessing import Pool
 #и MongoDB-объектов,
 #получение имён
 #всех коллекций.
-args, client = add_main_args(), MongoClient()
+args, client = add_args(), MongoClient()
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
 db_obj = client[db_name]

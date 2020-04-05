@@ -1,15 +1,18 @@
-__version__ = 'V1.4'
+__version__ = 'V1.5'
 
-print('''
+def add_args():
+        '''
+        Работа с аргументами командной строки.
+        '''
+        argparser = ArgumentParser(description='''
 Программа, создающая MongoDB-базу данных.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.4.
+Версия: V1.5.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-Справка по CLI: python3 create_db.py -h
 
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
@@ -33,17 +36,13 @@ TSV: так будет условно обозначаться
 
 Каждая исходная таблица должна
 быть сжата с помощью GZIP.
-''')
 
-def add_main_args():
-        '''
-        Работа с аргументами командной строки.
-        '''
-        argparser = ArgumentParser(description='''
-Краткая форма с большой буквы - обязательный аргумент.
-В квадратных скобках - значение по умолчанию.
-В фигурных скобках - перечисление возможных значений.
-''')
+Условные обозначения в справке по CLI:
+- краткая форма с большой буквы - обязательный аргумент;
+- в квадратных скобках - значение по умолчанию;
+- в фигурных скобках - перечисление возможных значений.
+''',
+                                   formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
                                help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
         argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
@@ -380,7 +379,7 @@ class PrepSingleProc():
 ####################################################################################################
 
 import sys, os, gzip
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 from bson.decimal128 import Decimal128
@@ -392,7 +391,7 @@ from decimal import InvalidOperation
 #ключевую функцию класса,
 #удаление старой базы, определение
 #оптимального количества процессов.
-args = add_main_args()
+args = add_args()
 prep_single_proc = PrepSingleProc(args)
 remove_database(prep_single_proc.db_name)
 max_proc_quan = args.max_proc_quan

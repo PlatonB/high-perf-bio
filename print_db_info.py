@@ -1,34 +1,33 @@
-__version__ = 'V2.2'
+__version__ = 'V2.3'
 
-print('''
+def add_args():
+        '''
+        Работа с аргументами командной строки.
+        '''
+        argparser = ArgumentParser(description='''
 Программа, позволяющая вывести
 имена всех баз данных или ключевую
 информацию об определённой БД.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.2.
+Версия: V2.3.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-Справка по CLI: python3 print_db_info.py -h
 
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
 
 Всё, что имеет отношение к полю
 _id, в результаты попадать не будет.
-''')
 
-def add_main_args():
-        '''
-        Работа с аргументами командной строки.
-        '''
-        argparser = ArgumentParser(description='''
-Краткая форма с большой буквы - обязательный аргумент.
-В квадратных скобках - значение по умолчанию.
-В фигурных скобках - перечисление возможных значений.
-''')
+Условные обозначения в справке по CLI:
+- краткая форма с большой буквы - обязательный аргумент;
+- в квадратных скобках - значение по умолчанию;
+- в фигурных скобках - перечисление возможных значений.
+''',
+                                   formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
                                help='Имя БД, для которой надо вывести информацию (если не указать - выведутся имена всех БД)')
         args = argparser.parse_args()
@@ -98,12 +97,12 @@ def print_db_info(db_name):
 ####################################################################################################
 
 import copy
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient
 
 #Обработка аргументов
 #командной строки.
-args = add_main_args()
+args = add_args()
 
 #Если исследователь не задал ни
 #одного аргумента, выведутся имена
