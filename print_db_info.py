@@ -1,17 +1,17 @@
-__version__ = 'V2.3'
+__version__ = 'V3.0'
 
 def add_args():
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description='''
+        argparser = ArgumentParser(description=f'''
 Программа, позволяющая вывести
 имена всех баз данных или ключевую
 информацию об определённой БД.
 
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.3.
-Лицензия: GNU General Public License version 3.
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Версия: {__version__}
+Лицензия: GNU General Public License version 3
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
@@ -77,11 +77,14 @@ def print_db_info(db_name):
         first_doc = thin_coll_obj.find_one()
         del first_doc['_id']
         field_names = first_doc.keys()
-        indices = list(thin_coll_obj.list_indexes())[1:]
+        ind_info = thin_coll_obj.index_information()
+        del ind_info['_id_']
         ind_field_names, ind_names = [], []
-        for dct in indices:
-                ind_field_names.append(dct.values()[1].keys()[0])
-                ind_names.append(dct['name'])
+        for ind_name, ind_details in ind_info.items():
+                for tup in ind_details['key']:
+                        if tup[0] not in ind_field_names:
+                                ind_field_names.append(tup[0])
+                ind_names.append(ind_name)
         print('\nОбщие характеристики БД:')
         print('\n\tИмя:\n\t', db_name)
         print('\n\tРазмер (storageSize):\n\t', storage_size)
