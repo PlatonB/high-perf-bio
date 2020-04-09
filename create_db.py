@@ -1,14 +1,14 @@
-__version__ = 'V1.5'
+__version__ = 'V2.0'
 
 def add_args():
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description='''
+        argparser = ArgumentParser(description=f'''
 Программа, создающая MongoDB-базу данных.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.5.
+Версия: {__version__}.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -40,7 +40,8 @@ TSV: так будет условно обозначаться
 Условные обозначения в справке по CLI:
 - краткая форма с большой буквы - обязательный аргумент;
 - в квадратных скобках - значение по умолчанию;
-- в фигурных скобках - перечисление возможных значений.
+- в фигурных скобках - перечисление возможных значений;
+- через плюс - перечисление будущих полей с составным индексом.
 ''',
                                    formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
@@ -54,7 +55,7 @@ TSV: так будет условно обозначаться
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                                help='Максимальное количество строк фрагмента заливаемой в БД таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; VCF: по умолчанию - #CHROM,POS,ID; BED: по умолчанию - chrom,start,end)')
+                               help='Имена индексируемых полей (через запятую без пробела; VCF: проиндексируются #CHROM+POS и ID; BED: проиндексируются chrom+start+end)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
@@ -352,27 +353,36 @@ class PrepSingleProc():
                 if fragment_len > 0:
                         coll_obj.insert_many(fragment)
                         
-                #Если исследователь не указал
-                #имена индексируемых полей, то
-                #для VCF и BED индексация будет
+                #Независимо от того, указал
+                #исследователь имена индексируемых
+                #полей или нет, для ex-VCF
+                #и ex-BED индексация будет
                 #произведена по первым трём полям.
-                #По ним в вычислительной генетике
-                #наиболее востребован быстрый поиск.
-                #Если же исследователем обозначены
-                #индексируемые поля, такая настройка
-                #будет в приоритете для любого исходного
-                #формата: проиндексируются только они.
-                if self.ind_col_names == None:
-                        if src_file_format == 'vcf':
-                                coll_obj.create_indexes([IndexModel([(col_name, ASCENDING)]) for col_name in ['#CHROM',
-                                                                                                              'POS',
-                                                                                                              'ID']])
-                        elif src_file_format == 'bed':
-                                coll_obj.create_indexes([IndexModel([(col_name, ASCENDING)]) for col_name in ['chrom',
-                                                                                                              'start',
-                                                                                                              'end']])
+                #Притом индексы хромосом и
+                #позиций построятся составные,
+                #что потом позволит парсерам
+                #эффективно сортировать по
+                #этим полям свои результаты.
+                #Для обозначенных исследователем
+                #полей появятся раздельные индексы.
+                #Если они придутся на хромосому
+                #или позицию ex-VCF/ex-BED,
+                #то будут сосуществовать с
+                #обязательным компаундным индексом.
+                if src_file_format == 'vcf':
+                        index_models = [IndexModel([('#CHROM', ASCENDING),
+                                                    ('POS', ASCENDING)]),
+                                        IndexModel([('ID', ASCENDING)])]
+                elif src_file_format == 'bed':
+                        index_models = [IndexModel([('chrom', ASCENDING),
+                                                    ('start', ASCENDING),
+                                                    ('end', ASCENDING)])]
                 else:
-                        coll_obj.create_indexes([IndexModel([(col_name, ASCENDING)]) for col_name in self.ind_col_names])
+                        index_models = []
+                if self.ind_col_names != None:
+                        index_models += [IndexModel([(ind_col_name, ASCENDING)]) for ind_col_name in self.ind_col_names]
+                if index_models != []:
+                        coll_obj.create_indexes(index_models)
                         
                 client.close()
                 
@@ -393,7 +403,8 @@ from decimal import InvalidOperation
 #оптимального количества процессов.
 args = add_args()
 prep_single_proc = PrepSingleProc(args)
-remove_database(prep_single_proc.db_name)
+db_name = prep_single_proc.db_name
+remove_database(db_name)
 max_proc_quan = args.max_proc_quan
 arc_file_names = os.listdir(prep_single_proc.arc_dir_path)
 arc_files_quan = len(arc_file_names)
@@ -404,7 +415,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nПополнение БД {prep_single_proc.db_name}')
+print(f'\nПополнение и индексация БД {db_name}')
 print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск создания коллекций.
