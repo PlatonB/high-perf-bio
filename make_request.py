@@ -1,4 +1,4 @@
-__version__ = 'V2.0'
+__version__ = 'V2.1'
 
 def add_args():
         '''
@@ -43,7 +43,7 @@ https://docs.mongodb.com/manual/reference/operator/query/
                                help='Путь к папке для результатов')
         argparser.add_argument('-q', '--pymongo-query', metavar="['{}']", default='{}', dest='pymongo_query', type=str,
                                help='Запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; указание типов данных: "str", Decimal128("str"))')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', default='comma', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
+        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
                                help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (trg-VCF, trg-BED: опция не применяется)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно парсимых коллекций')

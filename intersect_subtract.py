@@ -1,4 +1,4 @@
-__version__ = 'V3.0'
+__version__ = 'V3.1'
 
 def add_args():
         '''
@@ -71,11 +71,11 @@ MongoDB и PyMongo (см. README).
                                help='Имена "правых" коллекций (через запятую без пробела; по умолчанию "правыми" считаются все коллекции БД)')
         argparser.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
                                help='Имя поля, по которому пересекать или вычитать (trg-VCF: ID по умолчанию; trg-BED: name по умолчанию; trg-TSV: ID по умолчанию)')
-        argparser.add_argument('-a', '--action', metavar='[intersect]', default='intersect', choices=['intersect', 'subtract'], dest='action', type=str,
+        argparser.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                                help='{intersect, subtract} Пересекать или вычитать')
         argparser.add_argument('-d', '--depth', metavar='[1]', default=1, dest='depth', type=int,
                                help='Глубина (см. описание этой опции выше)')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', default='comma', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
+        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
                                help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (trg-VCF, trg-BED: опция не применяется)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно обрабатываемых "левых" коллекций')

@@ -1,4 +1,4 @@
-__version__ = 'V3.0'
+__version__ = 'V3.1'
 
 def add_args():
         '''
@@ -45,13 +45,13 @@ MongoDB и PyMongo (см. документацию).
                                help='Имя БД, по которой аннотировать')
         argparser.add_argument('-t', '--trg-top-dir-path', metavar='[None]', dest='trg_top_dir_path', type=str,
                                help='Путь к папке для результатов (по умолчанию - путь к исходной папке)')
+        argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
+                               help='Количество строк метаинформации аннотируемых таблиц (src-VCF: опция не применяется; src-BED, src-TSV: следует включать шапку)')
         argparser.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
                                help='Номер аннотируемого столбца (src-VCF: 3 по умолчанию; src-BED: 4 по умолчанию; src-TSV: 1 по умолчанию)')
         argparser.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
                                help='Имя поля БД, по которому аннотировать (trg-VCF: ID по умолчанию; trg-BED: name по умолчанию; trg-TSV: ID по умолчанию)')
-        argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                               help='Количество строк метаинформации аннотируемых таблиц (src-VCF: опция не применяется; src-BED, src-TSV: следует включать шапку)')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', default='comma', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
+        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
                                help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (trg-VCF, trg-BED: опция не применяется)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно аннотируемых таблиц')
@@ -83,12 +83,12 @@ class PrepSingleProc():
                         self.trg_top_dir_path = self.arc_dir_path
                 else:
                         self.trg_top_dir_path = os.path.normpath(args.trg_top_dir_path)
+                self.meta_lines_quan = args.meta_lines_quan
                 if args.ann_col_num == None:
                         self.ann_col_index = args.ann_col_num
                 else:
                         self.ann_col_index = args.ann_col_num - 1
                 self.ann_field_name = args.ann_field_name
-                self.meta_lines_quan = args.meta_lines_quan
                 if args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
                 elif args.sec_delimiter == 'semicolon':
