@@ -1,16 +1,16 @@
-__version__ = 'V1.3'
+__version__ = 'V2.0'
 
 def add_args():
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description='''
+        argparser = ArgumentParser(description=f'''
 Программа, позволяющая выполнить
 запрос по всем коллекциям MongoDB-базы.
 
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V1.3.
-Лицензия: GNU General Public License version 3.
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Версия: {__version__}
+Лицензия: GNU General Public License version 3
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
@@ -104,12 +104,27 @@ class PrepSingleProc():
                         #В имени коллекции предусмотрительно
                         #сохранено расширение того файла,
                         #по которому коллекция создавалась.
-                        #Расширение поможет далее принять
+                        #Расширение поможет далее разобраться
+                        #с сортировкой результатов, принять
                         #решение о необходимости коррекции
                         #шапки, а также определить, как
                         #форматировать конечные строки.
                         trg_file_format = coll_name.split('.')[-1]
                         
+                        #Таблицы биоинформатических
+                        #форматов нужно сортировать
+                        #по хромосомам и позициям.
+                        #Задаём правило сортировки
+                        #будущего VCF или BED
+                        #на уровне MongoDB-курсора.
+                        if trg_file_format == 'vcf':
+                                curs_obj.sort([('#CHROM', ASCENDING),
+                                               ('POS', ASCENDING)])
+                        elif trg_file_format == 'bed':
+                                curs_obj.sort([('chrom', ASCENDING),
+                                               ('start', ASCENDING),
+                                               ('end', ASCENDING)])
+                                
                         #Чтобы шапка повторяла шапку
                         #той таблицы, по которой делалась
                         #коллекция, создадим её из имён полей.
@@ -157,7 +172,7 @@ import sys, os
 sys.dont_write_bytecode = True
 
 from argparse import ArgumentParser, RawTextHelpFormatter
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 from bson.decimal128 import Decimal128
 from multiprocessing import Pool
 from backend.doc_to_line import restore_line
