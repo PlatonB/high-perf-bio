@@ -1,4 +1,4 @@
-__version__ = 'V4.0'
+__version__ = 'V4.1'
 
 def add_args():
         '''
@@ -57,9 +57,10 @@ MongoDB и PyMongo (см. README).
 --------------------------------------------------
 
 Пересечение и вычитание по координатным интервалам.
+- ЭКСПЕРИМЕНТАЛЬНАЯ ФИЧА;
 - CLI: вместо имени поля
-пишите зарезервированное
-слово startend: -f startend;
+пишите квазизначение
+startend: -f startend;
 - актуальны все написанные
 выше разъяснения, касающиеся
 работы с единичным полем;
@@ -241,18 +242,19 @@ class PrepSingleProc():
                 #будущего VCF или BED на
                 #уровне aggregation-пайплайна.
                 #Оператор сортировки должен
-                #располагаться в начале пайплайна,
-                #иначе потом при её выполнении
-                #может проигнорироваться индекс,
-                #что опасно появлением ошибки
-                #"Sort exceeded memory limit".
+                #располагаться после всех
+                #$lookup, иначе впоследствии
+                #при выполнении $lookup-стадий
+                #будет игнорироваться индекс,
+                #что приведёт к ужасающему
+                #падению производительности.
                 if trg_file_format == 'vcf':
-                        pipeline.insert(0, {"$sort": SON([('#CHROM', ASCENDING),
-                                                          ('POS', ASCENDING)])})
+                        pipeline.append({"$sort": SON([('#CHROM', ASCENDING),
+                                                       ('POS', ASCENDING)])})
                 elif trg_file_format == 'bed':
-                        pipeline.insert(0, {"$sort": SON([('chrom', ASCENDING),
-                                                          ('start', ASCENDING),
-                                                          ('end', ASCENDING)])})
+                        pipeline.append({"$sort": SON([('chrom', ASCENDING),
+                                                       ('start', ASCENDING),
+                                                       ('end', ASCENDING)])})
                         
                 #Конструируем имя конечного файла
                 #и абсолютный путь к этому файлу.
@@ -281,11 +283,16 @@ class PrepSingleProc():
                         trg_file_opened.write(f'##Depth: {self.depth}\n')
                         trg_file_opened.write(header_line + '\n')
                         
-                        #Выполняем подробно описанный
-                        #выше пайплайн из левостороннего
-                        #объединения и, возможно, ещё
-                        #сортировки, ему предшествующей.
-                        curs_obj = left_coll_obj.aggregate(pipeline)
+                        #Выполняем описанный выше пайплайн
+                        #из левостороннего объединения и
+                        #(для BED/VCF-форматов) сортировки.
+                        #MongoDB не может использовать
+                        #индекс для оптимизации сортировки
+                        #уже объединённых документов.
+                        #Поэтому во избежание превышения
+                        #лимита RAM разрешаем СУБД
+                        #применять внешнюю сортировку.
+                        curs_obj = left_coll_obj.aggregate(pipeline, allowDiskUse=True)
                         
                         #Создаём флаг, по которому далее будет
                         #определено, оказались ли в конечном
