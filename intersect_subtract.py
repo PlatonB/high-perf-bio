@@ -1,4 +1,4 @@
-__version__ = 'V4.1'
+__version__ = 'V4.2'
 
 def add_args():
         '''
@@ -226,8 +226,8 @@ class PrepSingleProc():
                         pipeline = [{'$lookup': {'from': right_coll_name,
                                                  'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
                                                  'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$$chrom', '$chrom']},
-                                                                                             {'$lt': [{'$max': ['$$start', '$start']},
-                                                                                                      {'$min': ['$$end', '$end']}]}]}}}],
+                                                                                             {'$lt': ['$$start', '$end']},
+                                                                                             {'$lt': ['$start', '$$end']}]}}}],
                                                  'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                 else:
                         pipeline = [{'$lookup': {'from': right_coll_name,
