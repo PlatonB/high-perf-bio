@@ -1,4 +1,14 @@
 # Синопсис.
+## Компоненты.
+| Программа | Предназначение |
+| --------- | -------------- |
+| print_db_info | выводит имена или основные свойства имеющихся БД |
+| create_db | создаёт новую БД по VCF, BED и нестандартным таблицам; производит её индексацию |
+| reindex_db | удаляет и строит индексы ранее созданной БД |
+| make_request | выполняет ваш запрос сразу по всей БД |
+| annotate | получает характеристики табличного столбца по всей БД |
+| intersect_subtract | фильтрует одни коллекции БД по наличию/отсутствию элементов в других |
+
 ## Преимущества.
 - Высокая скорость работы:
     - вплоть до 8 процессов одновременно;
@@ -22,6 +32,7 @@ Clone or download
 
 3. Распакуйте его в любую папку.
 4. Освойте [запуск программ из терминала](https://github.com/PlatonB/ngs-pipelines#преодолеваем-страх-командной-строки-linux).
+5. `cd /path/to/high-perf-bio-master`
 
 ## Установка сторонних компонентов.
 ### MongoDB.
@@ -94,7 +105,7 @@ ls
 python3 create_db.py -h
 ```
 ```
-python3 annotator.py -h
+python3 annotate.py -h
 ```
 и т.д..
 
@@ -122,7 +133,7 @@ python3 make_request.py -D dbSNP_common -T $HOME/Биоинформатика/р
 
 Давайте найдём характеристики SNPs папки `high-perf-bio-master/test_data/TSV`. С расположением rsID-столбца повезло - он первый. С базой dbSNP_common тоже всё ок - есть поле ID. Значит, обойдёмся минимумом аргументов: путь к игрушечным таблицам, имя базы и исключение табличной шапки. Результаты в этом примере попадут в исходную папку.
 ```
-python3 annotator.py -S $HOME/Биоинформатика/high-perf-bio-master/test_data/TSV -D dbSNP_common -m 1
+python3 annotate.py -S $HOME/Биоинформатика/high-perf-bio-master/test_data/TSV -D dbSNP_common -m 1
 ```
 
 Интересно, а есть на свете снипы, являющиеся eQTL сразу во всех тканях? Сейчас посмотрим. Скачаем [таблицы значимых пар eQTL-eGene](https://storage.googleapis.com/gtex_analysis_v8/single_tissue_qtl_data/GTEx_Analysis_v8_eQTL.tar). Нам понадобятся только `*.egenes.txt.gz`-файлы. `*.signif_variant_gene_pairs.txt.gz`-файлы можете быстро удалить каким-нибудь продвинутым файлменеджером (типа _Double Commander_) или этим незамысловатым _Python_-скриптом:
