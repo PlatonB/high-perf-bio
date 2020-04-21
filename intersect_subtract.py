@@ -1,4 +1,4 @@
-__version__ = 'V4.2'
+__version__ = 'V5.0'
 
 def add_args():
         '''
@@ -6,8 +6,8 @@ def add_args():
         '''
         argparser = ArgumentParser(description=f'''
 Программа, выполняющая пересечение
-или вычитание коллекций по какому-то
-одному полю или интервалам координат.
+или вычитание коллекций по одному
+выбранному полю или геномным координатам.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020
 Версия: {__version__}
@@ -56,21 +56,23 @@ MongoDB и PyMongo (см. README).
 
 --------------------------------------------------
 
-Пересечение и вычитание по координатным интервалам.
-- ЭКСПЕРИМЕНТАЛЬНАЯ ФИЧА;
-- CLI: вместо имени поля
-пишите квазизначение
-startend: -f startend;
+Пересечение и вычитание по геномным координатам.
 - актуальны все написанные
 выше разъяснения, касающиеся
 работы с единичным полем;
-- поддерживаются только
-ex-BED-коллекции;
-- два интервала считаются
-пересёкшимися при вхождении
-двух и более нуклеотидов;
-- левые интервалы попадают в
+- вместо имени поля
+подаётся квазизначение:
+ex-VCF: #CHROM-POS,
+ex-BED/TSV: chrom-start-end;
+- ex-BED/TSV: два интервала
+считаются пересёкшимися
+при перекрытии двух
+и более нуклеотидов;
+- ex-BED/TSV: левые
+интервалы попадают в
 результаты в неизменном виде.
+- ex-BED/TSV: баг - крайне
+низкая скорость (Issue #7);
 
 Условные обозначения в справке по CLI:
 - краткая форма с большой буквы - обязательный аргумент;
@@ -87,11 +89,11 @@ ex-BED-коллекции;
         argparser.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                                help='Имена "правых" коллекций (через запятую без пробела; по умолчанию "правыми" считаются все коллекции БД)')
         argparser.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                               help='Имя поля, по которому пересекать или вычитать (trg-VCF: ID по умолчанию; trg-BED: startend по умолчанию; trg-TSV: ID по умолчанию)')
+                               help='Имя поля, по которому пересекать или вычитать (trg-VCF: #CHROM-POS по умолчанию; trg-BED, trg-TSV: chrom-start-end по умолчанию')
         argparser.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                                help='{intersect, subtract} Пересекать или вычитать')
         argparser.add_argument('-d', '--depth', metavar='[1]', default=1, dest='depth', type=int,
-                               help='Глубина (см. описание этой опции выше)')
+                               help='Глубина (0 - приравнять к количеству правых коллекций)')
         argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
                                help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (trg-VCF, trg-BED: опция не применяется)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
@@ -137,10 +139,8 @@ class PrepSingleProc():
                         self.sign = '&'
                 elif self.action == 'subtract':
                         self.sign = '-'
-                if args.depth >= self.right_colls_quan:
+                if args.depth == 0 or args.depth >= self.right_colls_quan:
                         self.depth = self.right_colls_quan
-                elif args.depth < 1:
-                        self.depth = 1
                 else:
                         self.depth = args.depth
                 if args.sec_delimiter == 'comma':
@@ -199,14 +199,12 @@ class PrepSingleProc():
                 #поле, по которому пересекать/вычитать.
                 #Поскольку программа заточена в первую
                 #очередь под генетику, дефолтом считаются
-                #rsID-поле или поля с координатами.
+                #поля с хромосомами и координатами.
                 if self.field_name == None:
                         if trg_file_format == 'vcf':
-                                field_name = 'ID'
-                        elif trg_file_format == 'bed':
-                                field_name = 'startend'
+                                field_name = '#CHROM-POS'
                         else:
-                                field_name = 'ID'
+                                field_name = 'chrom-start-end'
                 else:
                         field_name = self.field_name
                         
@@ -214,15 +212,20 @@ class PrepSingleProc():
                 #агрегационные пайплайны
                 #здесь не стану - смотрите,
                 #пожалуйста, документацию.
-                #Если кратко, то эти
+                #Если совсем кратко, то эти
                 #пайплайны могут выполнять
                 #только объединение, но не
                 #пересечение или вычитание.
                 #Конкретное действие будет
                 #потом произведено путём
                 #фильтрации продукта объединения.
-                if field_name == 'startend':
-                        field_name = '(coordinates)'
+                if field_name == '#CHROM-POS':
+                        pipeline = [{'$lookup': {'from': right_coll_name,
+                                                 'let': {'chrom': '$#CHROM', 'pos': '$POS'},
+                                                 'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$$chrom', '$#CHROM']},
+                                                                                             {'$eq': ['$$pos', '$POS']}]}}}],
+                                                 'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                elif field_name == 'chrom-start-end':
                         pipeline = [{'$lookup': {'from': right_coll_name,
                                                  'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
                                                  'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$$chrom', '$chrom']},
@@ -375,6 +378,7 @@ else:
         proc_quan = max_proc_quan
         
 print(f'\nРабота с БД {prep_single_proc.db_name}')
+print(f'\tглубина: {prep_single_proc.depth}')
 print(f'\tколичество параллельных процессов: {proc_quan}')
 
 #Параллельный запуск поиска.
