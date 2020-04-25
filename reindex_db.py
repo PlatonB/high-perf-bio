@@ -1,16 +1,15 @@
-__version__ = 'V2.3'
+__version__ = 'V3.0'
 
 def add_args():
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description='''
-Программа, производящая индексацию
-MongoDB-базы в несколько процессов
-и удаляющая старые индексы.
+        argparser = ArgumentParser(description=f'''
+Программа, способная удалять имеющиеся
+индексы MongoDB-базы и добавлять новые.
 
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: V2.3.
+Версия: {__version__}.
 Лицензия: GNU General Public License version 3.
 Поддержать проект: https://money.yandex.ru/to/41001832285976
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -19,8 +18,12 @@ MongoDB-базы в несколько процессов
 Перед запуском программы нужно установить
 MongoDB и PyMongo (см. документацию).
 
-Для вывода имён баз данных, индексов и
-полей можете использовать print_db_info.
+Для вывода имён баз данных, индексов
+и полей рекомендую использовать
+программу print_db_info.
+
+Поддерживается создание/удаление как
+одиночных, так и составных индексов.
 
 Условные обозначения в справке по CLI:
 - краткая форма с большой буквы - обязательный аргумент;
@@ -33,7 +36,7 @@ MongoDB и PyMongo (см. документацию).
         argparser.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
                                help='Имена удаляемых индексов (через запятую без пробела)')
         argparser.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела)')
+                               help='Имена индексируемых полей (через запятую без пробела; для составного индекса: через плюс без пробелов)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно индексируемых коллекций')
         args = argparser.parse_args()
@@ -78,7 +81,8 @@ class PrepSingleProc():
                 '''
                 client = MongoClient()
                 db_obj = client[self.db_name]
-                ind_objs = [IndexModel([(ind_field_name, ASCENDING)]) for ind_field_name in self.ind_field_names]
+                ind_objs = [IndexModel([(ind_field_name, ASCENDING) for ind_field_name in element.split('+')]) \
+                            for element in self.ind_field_names]
                 db_obj[coll_name].create_indexes(ind_objs)
                 client.close()
                 
