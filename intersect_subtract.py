@@ -1,4 +1,4 @@
-__version__ = 'V5.0'
+__version__ = 'V5.1'
 
 def add_args():
         '''
@@ -62,8 +62,8 @@ MongoDB и PyMongo (см. README).
 работы с единичным полем;
 - вместо имени поля
 подаётся квазизначение:
-ex-VCF: #CHROM-POS,
-ex-BED/TSV: chrom-start-end;
+ex-VCF: #CHROM+POS,
+ex-BED/TSV: chrom+start+end;
 - ex-BED/TSV: два интервала
 считаются пересёкшимися
 при перекрытии двух
@@ -89,7 +89,7 @@ ex-BED/TSV: chrom-start-end;
         argparser.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                                help='Имена "правых" коллекций (через запятую без пробела; по умолчанию "правыми" считаются все коллекции БД)')
         argparser.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                               help='Имя поля, по которому пересекать или вычитать (trg-VCF: #CHROM-POS по умолчанию; trg-BED, trg-TSV: chrom-start-end по умолчанию')
+                               help='Имя поля, по которому пересекать или вычитать (trg-VCF: #CHROM+POS по умолчанию; trg-BED, trg-TSV: chrom+start+end по умолчанию')
         argparser.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                                help='{intersect, subtract} Пересекать или вычитать')
         argparser.add_argument('-d', '--depth', metavar='[1]', default=1, dest='depth', type=int,
@@ -202,9 +202,9 @@ class PrepSingleProc():
                 #поля с хромосомами и координатами.
                 if self.field_name == None:
                         if trg_file_format == 'vcf':
-                                field_name = '#CHROM-POS'
+                                field_name = '#CHROM+POS'
                         else:
-                                field_name = 'chrom-start-end'
+                                field_name = 'chrom+start+end'
                 else:
                         field_name = self.field_name
                         
@@ -219,13 +219,13 @@ class PrepSingleProc():
                 #Конкретное действие будет
                 #потом произведено путём
                 #фильтрации продукта объединения.
-                if field_name == '#CHROM-POS':
+                if field_name == '#CHROM+POS':
                         pipeline = [{'$lookup': {'from': right_coll_name,
                                                  'let': {'chrom': '$#CHROM', 'pos': '$POS'},
                                                  'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$$chrom', '$#CHROM']},
                                                                                              {'$eq': ['$$pos', '$POS']}]}}}],
                                                  'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
-                elif field_name == 'chrom-start-end':
+                elif field_name == 'chrom+start+end':
                         pipeline = [{'$lookup': {'from': right_coll_name,
                                                  'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
                                                  'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$$chrom', '$chrom']},
