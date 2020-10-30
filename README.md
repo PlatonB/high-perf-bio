@@ -1,6 +1,6 @@
 # Синопсис.
 ## Компоненты.
-| Программа | Предназначение |
+| Программа | Основная функциональность |
 | --------- | -------------- |
 | print_db_info | выводит имена или основные свойства имеющихся БД |
 | create_db | создаёт новую БД по VCF, BED или нестандартным таблицам; производит её индексацию |
@@ -26,7 +26,7 @@
 1. Разрешите [зависимости](https://github.com/PlatonB/high-perf-bio#установка-сторонних-компонентов).
 2. [Скачайте](https://github.com/PlatonB/high-perf-bio/archive/master.zip) архив с инструментарием.
 3. Распакуйте его в любую папку.
-4. Освойте [запуск программ из терминала](https://github.com/PlatonB/ngs-pipelines#преодолеваем-страх-командной-строки-linux).
+4. Освойте [запуск программ из терминала](https://github.com/PlatonB/ngs-pipelines#преодолеваем-страх-командной-строки-linux), если ещё этого не сделали.
 5. В терминале перейдите в папку `high-perf-bio-master`.
 ```
 cd /path/to/high-perf-bio-master
@@ -34,17 +34,17 @@ cd /path/to/high-perf-bio-master
 
 ## Установка сторонних компонентов.
 ### MongoDB.
-Советую вначале ознакомиться с [основами работы в линуксовым терминале](https://github.com/PlatonB/ngs-pipelines#преодолеваем-страх-командной-строки-linux). Впрочем, если совсем лень, можете просто копировать, вставлять и запускать приведённые ниже команды. После установки настоятельно рекомендую перезагрузиться.
+Советую вначале ознакомиться с [основами работы в линуксовом терминале](https://github.com/PlatonB/ngs-pipelines#преодолеваем-страх-командной-строки-linux). Впрочем, если совсем лень, можете просто копировать, вставлять и запускать приведённые ниже команды.
 
 #### Ubuntu Linux.
 (_[elementary OS](https://elementary.io/ru/)_/_KDE neon_/_Linux Mint_)
 
 Подключение официального репозитория _MongoDB_.
 ```
-wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
 ```
 ```
-echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
 ```
 
 Обновление индекса пакетов ОС.
@@ -57,14 +57,30 @@ sudo apt update
 sudo apt install -y mongodb-org
 ```
 
-Перманентный запуск _MongoDB_. Лучше так сделать, если планируете использовать _high-perf-bio_ и [_ld-tools_](https://github.com/PlatonB/ld-tools) часто.
+Перманентный запуск _MongoDB_. Лучше так сделать, если планируете использовать _high-perf-bio_ часто.
 ```
-systemctl enable mongod.service
+sudo systemctl enable mongod.service
 ```
 
 Если вам не нужно эксплуатировать _MongoDB_-решения каждый день, то рекомендую команду, активирующую _MongoDB_ до ближайшей перезагрузки.
 ```
 sudo service mongod start
+```
+
+После инсталляции настоятельно рекомендую перезагрузиться.
+```
+sudo systemctl reboot
+```
+
+Обязательно проверьте, успешно ли СУБД установилась.
+```
+mongo --version
+```
+
+Если да, то первой строкой выведется номер версии интерактивной консоли _MongoDB_.
+```
+MongoDB shell version v4.4.1
+<...>
 ```
 
 #### Fedora Linux.
