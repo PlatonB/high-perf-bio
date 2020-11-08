@@ -1,21 +1,20 @@
-__version__ = 'V2.0'
+__version__ = 'V2.1'
 
-def add_args():
+def add_args(ver):
         '''
         Работа с аргументами командной строки.
         '''
         argparser = ArgumentParser(description=f'''
-Программа, создающая MongoDB-базу данных.
+Программа, создающая MongoDB-базу данных
+по VCF, BED или любым другим таблицам.
 
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: {__version__}.
-Лицензия: GNU General Public License version 3.
-Поддержать проект: https://money.yandex.ru/to/41001832285976
+Версия: {ver}
+Требуемые сторонние компоненты: MongoDB, pymongo
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Лицензия: GNU General Public License version 3
+Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Перед запуском программы нужно установить
-MongoDB и PyMongo (см. документацию).
 
 Формат исходных таблиц:
 - Должен быть одинаковым для всех.
@@ -49,13 +48,15 @@ TSV: так будет условно обозначаться
         argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
                                help='Имя создаваемой базы данных (по умолчанию - имя папки со сжатыми таблицами)')
         argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                               help='Количество строк метаинформации (VCF: опция не применяется; TSV: нельзя включать шапку)')
+                               help='Количество строк метаинформации (src-VCF: опция не применяется; src-TSV: нельзя включать шапку)')
         argparser.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (VCF, BED: опция не применяется)')
+                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: опция не применяется)')
+        argparser.add_argument('-r', '--minimal', dest='minimal', action='store_true',
+                               help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: опция не применяется)')
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
-                               help='Максимальное количество строк фрагмента заливаемой в БД таблицы')
+                               help='Максимальное количество строк фрагмента заливаемой таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; VCF: проиндексируются #CHROM+POS и ID; BED: проиндексируются chrom+start+end)')
+                               help='Имена индексируемых полей (через запятую без пробела; src-VCF: проиндексируются #CHROM+POS и ID; src-BED: проиндексируются chrom+start+end)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
@@ -116,9 +117,9 @@ def process_info_cell(info_cell):
         '''
         info_row, info_obj = info_cell.split(';'), [{}, []]
         for info_subcell in info_row:
-                if info_subcell.find('=') != -1:
+                if '=' in info_subcell:
                         pair = info_subcell.split('=')
-                        if pair[1].find(',') != -1:
+                        if ',' in pair[1]:
                                 pair[1] = [def_data_type(val) for val in pair[1].split(',')]
                         else:
                                 pair[1] = def_data_type(pair[1])
@@ -137,7 +138,7 @@ def process_gt_cell(format_cell, gt_cell):
         '''
         format_row, gt_row, gt_two_dim = format_cell.split(':'), gt_cell.split(':'), []
         for gt_subcell in gt_row:
-                if gt_subcell.find(',') != -1:
+                if ',' in gt_subcell:
                         gt_two_dim.append([def_data_type(val) for val in gt_subcell.split(',')])
                 else:
                         gt_two_dim.append(def_data_type(gt_subcell))
@@ -162,12 +163,12 @@ class PrepSingleProc():
                 указанных исследователем опций.
                 '''
                 self.arc_dir_path = os.path.normpath(args.arc_dir_path)
-                if args.db_name == None:
+                if args.db_name is None:
                         self.db_name = os.path.basename(self.arc_dir_path)
                 else:
                         self.db_name = args.db_name
                 self.meta_lines_quan = args.meta_lines_quan
-                if args.sec_delimiter == None:
+                if args.sec_delimiter is None:
                         self.sec_delimiter = args.sec_delimiter
                 elif args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
@@ -177,8 +178,9 @@ class PrepSingleProc():
                         self.sec_delimiter = ':'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                self.minimal = args.minimal
                 self.max_fragment_len = args.max_fragment_len
-                if args.ind_col_names == None:
+                if args.ind_col_names is None:
                         self.ind_col_names = args.ind_col_names
                 else:
                         self.ind_col_names = args.ind_col_names.split(',')
@@ -226,7 +228,7 @@ class PrepSingleProc():
                         #прописывать референсную шапку.
                         if src_file_format == 'vcf':
                                 for line in arc_file_opened:
-                                        if line.startswith('##') == False:
+                                        if not line.startswith('##'):
                                                 header_row = line.rstrip().split('\t')
                                                 if len(header_row) > 8:
                                                         del header_row[8]
@@ -288,26 +290,30 @@ class PrepSingleProc():
                                 #исследователем разделителя.
                                 if src_file_format == 'vcf':
                                         row[1] = int(row[1])
-                                        if row[2].find(';') != -1:
+                                        if ';' in row[2]:
                                                 row[2] = row[2].split(';')
-                                        if row[4].find(',') != -1:
+                                        if ',' in row[4]:
                                                 row[4] = row[4].split(',')
                                         row[5] = def_data_type(row[5])
                                         row[7] = process_info_cell(row[7])
-                                        if len(row) > 8:
+                                        if self.minimal:
+                                                row = row[:8]
+                                        elif len(row) > 8:
                                                 gt_objs = [process_gt_cell(row[8], gt_cell) for gt_cell in row[9:]]
                                                 row = row[:8] + gt_objs
                                 elif src_file_format == 'bed':
                                         row[1], row[2] = int(row[1]), int(row[2])
-                                        if len(row) > 4:
+                                        if self.minimal:
+                                                row = row[:3]
+                                        elif len(row) > 4:
                                                 row[4] = int(row[4])
-                                        if len(row) > 6:
-                                                row[6], row[7], row[9] = int(row[6]), int(row[7]), int(row[9])
-                                                row[10] = list(map(int, row[10].rstrip(',').split(',')))
-                                                row[11] = list(map(int, row[11].rstrip(',').split(',')))
+                                                if len(row) > 6:
+                                                        row[6], row[7], row[9] = int(row[6]), int(row[7]), int(row[9])
+                                                        row[10] = list(map(int, row[10].rstrip(',').split(',')))
+                                                        row[11] = list(map(int, row[11].rstrip(',').split(',')))
                                 else:
                                         for cell_index in range(len(row)):
-                                                if self.sec_delimiter != None and row[cell_index].find(self.sec_delimiter) != -1:
+                                                if self.sec_delimiter is not None and self.sec_delimiter in row[cell_index]:
                                                         row[cell_index] = row[cell_index].split(self.sec_delimiter)
                                                         for subcell_index in range(len(row[cell_index])):
                                                                 row[cell_index][subcell_index] = def_data_type(row[cell_index][subcell_index])
@@ -315,20 +321,18 @@ class PrepSingleProc():
                                                         row[cell_index] = def_data_type(row[cell_index])
                                                         
                                 #MongoDB - документоориентированная СУБД.
-                                #Каджая коллекция строится из т.н.
-                                #документов, Python-предшественниками
-                                #которых могут быть только словари.
-                                #Поэтому для подготовки размещаемого
-                                #в базу фрагмента сшиваем из списка
-                                #элементов шапки и списка, созданного
-                                #из очередной строки, словарь,
-                                #добавляем его в список таких словарей.
-                                #Поскольку для BED мы готовили
-                                #стандартную 12-элементную шапку,
-                                #то если реальная шапка окажется
-                                #меньше, она будет срезана
-                                #до числа элементов списка,
-                                #сделанного из текущей строки.
+                                #Каждая коллекция строится из т.н. документов,
+                                #Python-предшественниками которых могут быть
+                                #только словари. Поэтому для подготовки размещаемого
+                                #в базу фрагмента сшиваем из списка элементов
+                                #шапки и списка, созданного из очередной строки,
+                                #словарь, затем добавляем его в список таких словарей.
+                                #Набор ключей любого словаря может получиться меньшим,
+                                #чем шапка. Есть две возможные причины срезания: 1.
+                                #Если реальный BED отстаёт по количеству элементов
+                                #от ранее подготовленной стандартной 12-элементной
+                                #шапки; 2. Когда по инициативе исследователя в коллекцию
+                                #направляются лишь основополагающие столбцы VCF или BED.
                                 fragment.append(dict(zip(header_row[:len(row)], row)))
                                 
                                 #Сразу после пополнения
@@ -379,7 +383,7 @@ class PrepSingleProc():
                                                     ('end', ASCENDING)])]
                 else:
                         index_models = []
-                if self.ind_col_names != None:
+                if self.ind_col_names is not None:
                         index_models += [IndexModel([(ind_col_name, ASCENDING)]) for ind_col_name in self.ind_col_names]
                 if index_models != []:
                         coll_obj.create_indexes(index_models)
@@ -401,7 +405,7 @@ from decimal import InvalidOperation
 #ключевую функцию класса,
 #удаление старой базы, определение
 #оптимального количества процессов.
-args = add_args()
+args = add_args(__version__)
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
 remove_database(db_name)
