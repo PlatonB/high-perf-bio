@@ -1,4 +1,4 @@
-__version__ = 'V2.1'
+__version__ = 'V3.0'
 
 def add_args(ver):
         '''
@@ -46,17 +46,17 @@ TSV: так будет условно обозначаться
         argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
                                help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
         argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
-                               help='Имя создаваемой базы данных (по умолчанию - имя папки со сжатыми таблицами)')
+                               help='Имя создаваемой базы данных ([имя папки со сжатыми таблицами])')
         argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                               help='Количество строк метаинформации (src-VCF: опция не применяется; src-TSV: нельзя включать шапку)')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: опция не применяется)')
+                               help='Количество строк метаинформации (src-VCF: не применяется; src-TSV: нельзя включать шапку)')
         argparser.add_argument('-r', '--minimal', dest='minimal', action='store_true',
-                               help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: опция не применяется)')
+                               help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
+        argparser.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
+                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                                help='Максимальное количество строк фрагмента заливаемой таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; src-VCF: проиндексируются #CHROM+POS и ID; src-BED: проиндексируются chrom+start+end)')
+                               help='Имена индексируемых полей (через запятую без пробела; db-VCF: в любом случае проинд. #CHROM+POS и ID; db-BED: в любом случае проинд. chrom+start+end)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
@@ -77,25 +77,8 @@ def remove_database(db_name):
                         print(f'\nБаза данных {db_name} останется')
                         client.close()
                         sys.exit()
-                        
         client.close()
         
-def def_data_type(string):
-        '''
-        Функция, подбирающая подходящий
-        тип данных какого-либо значения.
-        Если ничего не подходит, то
-        значение останется строкой.
-        '''
-        try:
-                result = int(string)
-        except ValueError:
-                try:
-                        result = Decimal128(string)
-                except InvalidOperation:
-                        result = string
-        return result
-
 def process_info_cell(info_cell):
         '''
         Функция преобразования ячейки
@@ -130,11 +113,9 @@ def process_info_cell(info_cell):
 
 def process_gt_cell(format_cell, gt_cell):
         '''
-        Функция объединения ячеек FORMAT-
-        и GT-столбца VCF-таблицы в словарь.
-        Из-за непредсказуемости состава
-        GT-столбца для каждого значения тип
-        данных будет определяться подбором.
+        Функция объединения ячеек FORMAT- и GT-столбца VCF-таблицы
+        в словарь. Из-за непредсказуемости состава GT-столбца для
+        каждого значения тип данных будет определяться подбором.
         '''
         format_row, gt_row, gt_two_dim = format_cell.split(':'), gt_cell.split(':'), []
         for gt_subcell in gt_row:
@@ -152,15 +133,10 @@ class PrepSingleProc():
         '''
         def __init__(self, args):
                 '''
-                Получение атрибутов, необходимых
-                заточенной под многопроцессовое
-                выполнение функции построения
-                коллекций MongoDB с нуля.
-                Атрибуты должны быть созданы
-                единожды и далее ни в
-                коем случае не изменяться.
-                Получаются они в основном из
-                указанных исследователем опций.
+                Получение атрибутов, необходимых заточенной под многопроцессовое
+                выполнение функции построения коллекций MongoDB с нуля. Атрибуты
+                должны быть созданы единожды и далее ни в коем случае не изменяться.
+                Получаются они в основном из указанных исследователем опций.
                 '''
                 self.arc_dir_path = os.path.normpath(args.arc_dir_path)
                 if args.db_name is None:
@@ -168,6 +144,7 @@ class PrepSingleProc():
                 else:
                         self.db_name = args.db_name
                 self.meta_lines_quan = args.meta_lines_quan
+                self.minimal = args.minimal
                 if args.sec_delimiter is None:
                         self.sec_delimiter = args.sec_delimiter
                 elif args.sec_delimiter == 'comma':
@@ -178,7 +155,6 @@ class PrepSingleProc():
                         self.sec_delimiter = ':'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
-                self.minimal = args.minimal
                 self.max_fragment_len = args.max_fragment_len
                 if args.ind_col_names is None:
                         self.ind_col_names = args.ind_col_names
@@ -210,22 +186,14 @@ class PrepSingleProc():
                 #Открытие исходной архивированной таблицы на чтение.
                 with gzip.open(os.path.join(self.arc_dir_path, arc_file_name), mode='rt') as arc_file_opened:
                         
-                        #Политика обработки метастрок
-                        #задаётся исследователем.
-                        #В любом случае, всё сводится
-                        #к их холостому прочтению.
-                        #Программа либо выявляет идущие
-                        #в игнор строки по характерным
-                        #для биоинформатических
-                        #форматов комментирующим
-                        #символам, либо скипает
-                        #фиксированное количество
-                        #строк начала файла.
-                        #После метастрок, по-хорошему,
-                        #должна следовать шапка, но
-                        #во многих BED-файлах её нет.
-                        #Для BED приходится искусственно
-                        #прописывать референсную шапку.
+                        #Политика обработки метастрок задаётся исследователем.
+                        #В любом случае, всё сводится к их холостому прочтению.
+                        #Программа либо выявляет идущие в игнор строки по
+                        #характерным для биоинформатических форматов комментирующим
+                        #символам, либо скипает фиксированное количество строк
+                        #начала файла. После метастрок, по-хорошему, должна
+                        #следовать шапка, но во многих BED-файлах её нет. Для BED
+                        #приходится вручную вписывать в код референсную шапку.
                         if src_file_format == 'vcf':
                                 for line in arc_file_opened:
                                         if not line.startswith('##'):
@@ -243,12 +211,9 @@ class PrepSingleProc():
                                 else:
                                         header_row = arc_file_opened.readline().rstrip().split('\t')
                                         
-                        #Создание коллекции.
-                        #Для оптимального соотношения
-                        #скорости записи/извлечения
-                        #с объёмом хранимых данных,
-                        #я выбрал в качестве
-                        #алгоритма сжатия Zstandard.
+                        #Создание коллекции. Для оптимального соотношения
+                        #скорости записи/извлечения с объёмом хранимых данных,
+                        #я выбрал в качестве алгоритма сжатия Zstandard.
                         coll_obj = db_obj.create_collection(arc_file_name[:-3],
                                                             storageEngine={'wiredTiger':
                                                                            {'configString':
@@ -270,25 +235,19 @@ class PrepSingleProc():
                                 #исходной таблицы в список.
                                 row = line.rstrip().split('\t')
                                 
-                                #MongoDB позволяет размещать в одну
-                                #коллекцию документы с переменным количеством
-                                #полей и разными типами данных значений.
-                                #Воспользуемся такой гибкостью СУБД,
-                                #создавая структуры, максимально заточенные
-                                #под содержимое конкретной исходной строки.
-                                #VCF и BED обрабатываются полностью
-                                #автоматически: значениям определённых
-                                #столбцов присваиваются типы данных
-                                #int и decimal, где-то производится
-                                #разбивка на списки, а INFO- и GT-ячейки
-                                #конвертируются в многослойные структуры.
-                                #Для кастомных табличных форматов типы
-                                #данных определяются подбором по
-                                #принципу "подходит - не подходит",
-                                #а разбиение на списки делается
-                                #при наличии в ячейке обозначенного
-                                #исследователем разделителя.
+                                #MongoDB позволяет размещать в одну коллекцию документы
+                                #с переменным количеством полей и разными типами данных
+                                #значений. Воспользуемся такой гибкостью СУБД, создавая
+                                #структуры, максимально заточенные под содержимое конкретной
+                                #исходной строки. VCF и BED обрабатываются полностью автоматически:
+                                #значениям определённых столбцов присваиваются типы данных int
+                                #и decimal, где-то производится разбивка на списки, а INFO- и
+                                #GT-ячейки конвертируются в многослойные структуры. Для кастомных
+                                #табличных форматов типы данных определяются подбором по принципу
+                                #"подходит - не подходит", а разбиение на списки делается при
+                                #наличии в ячейке обозначенного исследователем разделителя.
                                 if src_file_format == 'vcf':
+                                        row[0] = def_data_type(row[0].replace('chr', ''))
                                         row[1] = int(row[1])
                                         if ';' in row[2]:
                                                 row[2] = row[2].split(';')
@@ -302,6 +261,7 @@ class PrepSingleProc():
                                                 gt_objs = [process_gt_cell(row[8], gt_cell) for gt_cell in row[9:]]
                                                 row = row[:8] + gt_objs
                                 elif src_file_format == 'bed':
+                                        row[0] = def_data_type(row[0].replace('chr', ''))
                                         row[1], row[2] = int(row[1]), int(row[2])
                                         if self.minimal:
                                                 row = row[:3]
@@ -340,10 +300,10 @@ class PrepSingleProc():
                                 #событие с помощью счётчика.
                                 fragment_len += 1
                                 
-                                #Исходная таблица ещё не до
-                                #конца считалась, а фрагмент достиг
-                                #порогового значения количества строк.
-                                #Тогда прописываем фрагмент в коллекцию,
+                                #Исходная таблица ещё не до конца
+                                #считалась, а фрагмент достиг порогового
+                                #значения количества строк. Тогда
+                                #прописываем фрагмент в коллекцию,
                                 #очищаем его и обнуляем счётчик.
                                 if fragment_len == self.max_fragment_len:
                                         coll_obj.insert_many(fragment)
@@ -357,22 +317,16 @@ class PrepSingleProc():
                 if fragment_len > 0:
                         coll_obj.insert_many(fragment)
                         
-                #Независимо от того, указал
-                #исследователь имена индексируемых
-                #полей или нет, для ex-VCF
-                #и ex-BED индексация будет
-                #произведена по первым трём полям.
-                #Притом индексы хромосом и
-                #позиций построятся составные,
-                #что потом позволит парсерам
-                #эффективно сортировать по
-                #этим полям свои результаты.
-                #Для обозначенных исследователем
-                #полей появятся раздельные индексы.
-                #Если они придутся на хромосому
-                #или позицию ex-VCF/ex-BED,
-                #то будут сосуществовать с
-                #обязательным компаундным индексом.
+                #Независимо от того, указал исследователь имена
+                #индексируемых полей или нет, для db-VCF и db-BED
+                #индексация будет произведена по первым трём полям.
+                #Притом индексы хромосом и позиций построятся составные,
+                #что потом позволит парсерам эффективно сортировать
+                #по этим полям свои результаты. Для обозначенных
+                #исследователем полей появятся одиночные индексы.
+                #Если они придутся на хромосому или позицию
+                #db-VCF/db-BED, то будут сосуществовать
+                #с обязательным компаундным индексом.
                 if src_file_format == 'vcf':
                         index_models = [IndexModel([('#CHROM', ASCENDING),
                                                     ('POS', ASCENDING)]),
@@ -393,11 +347,15 @@ class PrepSingleProc():
 ####################################################################################################
 
 import sys, os, gzip
+
+#Подавление формирования питоновского кэша с
+#целью предотвращения искажения результатов.
+sys.dont_write_bytecode = True
+
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
-from bson.decimal128 import Decimal128
-from decimal import InvalidOperation
+from backend.def_data_type import def_data_type
 
 #Подготовительный этап: обработка
 #аргументов командной строки,
