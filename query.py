@@ -1,4 +1,4 @@
-__version__ = 'V3.1'
+__version__ = 'v3.2'
 
 def add_args(ver):
         '''
@@ -156,7 +156,7 @@ class PrepSingleProc():
                         #Формируем и прописываем метастроки,
                         #повествующие о происхождении конечного
                         #файла. Прописываем также табличную шапку.
-                        trg_file_opened.write(f'##Tool: {os.path.basename(__file__).rstrip(".py")} {self.ver}\n')
+                        trg_file_opened.write(f'##Tool: {os.path.basename(__file__)[:-3]} {self.ver}\n')
                         trg_file_opened.write(f'##Database: {self.db_name}\n')
                         trg_file_opened.write(f'##Collection: {coll_name}\n')
                         trg_file_opened.write(f'##Query: {self.pymongo_query}\n')
@@ -183,7 +183,7 @@ class PrepSingleProc():
                         
 ####################################################################################################
 
-import sys, os
+import sys, os, datetime
 
 #Подавление формирования питоновского кэша с
 #целью предотвращения искажения результатов.
@@ -218,6 +218,11 @@ else:
 print(f'\nПоиск по БД {db_name}')
 print(f'\tколичество параллельных процессов: {proc_quan}')
 
-#Параллельный запуск поиска.
+#Параллельный запуск поиска. Замер времени
+#выполнения вычислений с точностью до микросекунды.
 with Pool(proc_quan) as pool_obj:
+        exec_time_start = datetime.datetime.now()
         pool_obj.map(prep_single_proc.search, coll_names)
+        exec_time = (datetime.datetime.now() - exec_time_start)
+        
+print(f'\tвремя выполнения: {exec_time}')
