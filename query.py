@@ -1,4 +1,4 @@
-__version__ = 'v3.2'
+__version__ = 'v3.3'
 
 def add_args(ver):
         '''
@@ -44,7 +44,7 @@ https://docs.mongodb.com/manual/reference/operator/query/
         argparser.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
                                help='Отбираемые поля (через запятую без пробела; db-VCF: не применяется; db-BED: получится TSV; поле _id не выведется')
         argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (без -k): не применяется)')
+                               help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (trg-BED): не применяется)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно парсимых коллекций')
         args = argparser.parse_args()
@@ -156,16 +156,18 @@ class PrepSingleProc():
                         #Формируем и прописываем метастроки,
                         #повествующие о происхождении конечного
                         #файла. Прописываем также табличную шапку.
-                        trg_file_opened.write(f'##Tool: {os.path.basename(__file__)[:-3]} {self.ver}\n')
-                        trg_file_opened.write(f'##Database: {self.db_name}\n')
-                        trg_file_opened.write(f'##Collection: {coll_name}\n')
-                        trg_file_opened.write(f'##Query: {self.pymongo_query}\n')
+                        trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                        trg_file_opened.write(f'##database={self.db_name}\n')
+                        trg_file_opened.write(f'##collection={coll_name}\n')
+                        trg_file_opened.write(f'##query={self.pymongo_query}\n')
                         if self.pymongo_project is not None and trg_file_format != 'vcf':
-                                trg_file_opened.write(f'##Project: {self.pymongo_project}\n')
+                                trg_file_opened.write(f'##Project={self.pymongo_project}\n')
                         trg_file_opened.write(header_line + '\n')
                         
-                        #Извлечение из объекта курсора отвечающих запросу документов, преобразование
-                        #их значений в обычные строки и прописывание последних в конечный файл.
+                        #Извлечение из объекта курсора отвечающих запросу
+                        #документов, преобразование их значений в обычные
+                        #строки и прописывание последних в конечный файл.
+                        #Проверка, вылез ли по запросу хоть один документ.
                         empty_res = True
                         for doc in curs_obj:
                                 trg_file_opened.write(restore_line(doc,
@@ -176,8 +178,8 @@ class PrepSingleProc():
                 #Дисконнект.
                 client.close()
                 
-                #Удаление конечного файла,
-                #если ничего не нашлось.
+                #Удаление конечного файла,если в
+                #нём очутились только метастроки.
                 if empty_res:
                         os.remove(trg_file_path)
                         
@@ -215,8 +217,8 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nПоиск по БД {db_name}')
-print(f'\tколичество параллельных процессов: {proc_quan}')
+print(f'\nQueriing by {db_name} DB')
+print(f'\tnumber of parallel processes: {proc_quan}')
 
 #Параллельный запуск поиска. Замер времени
 #выполнения вычислений с точностью до микросекунды.
@@ -225,4 +227,4 @@ with Pool(proc_quan) as pool_obj:
         pool_obj.map(prep_single_proc.search, coll_names)
         exec_time = (datetime.datetime.now() - exec_time_start)
         
-print(f'\tвремя выполнения: {exec_time}')
+print(f'\tparallel computation time: {exec_time}')
