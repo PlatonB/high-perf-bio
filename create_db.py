@@ -1,4 +1,4 @@
-__version__ = 'V3.0'
+__version__ = 'v3.1'
 
 def add_args(ver):
         '''
@@ -9,7 +9,7 @@ def add_args(ver):
 по VCF, BED или любым другим таблицам.
 
 Версия: {ver}
-Требуемые сторонние компоненты: MongoDB, pymongo
+Требуемые сторонние компоненты: MongoDB, PyMongo
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
@@ -56,7 +56,7 @@ TSV: так будет условно обозначаться
         argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                                help='Максимальное количество строк фрагмента заливаемой таблицы')
         argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; db-VCF: в любом случае проинд. #CHROM+POS и ID; db-BED: в любом случае проинд. chrom+start+end)')
+                               help='Имена индексируемых полей (через запятую без пробела; db-VCF: принуд. проинд. #CHROM+POS и ID; db-BED: принуд. проинд. chrom+start+end и name)')
         argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                                help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = argparser.parse_args()
@@ -69,12 +69,12 @@ def remove_database(db_name):
         '''
         client = MongoClient()
         if db_name in client.list_database_names():
-                db_to_remove = input(f'''\nБаза данных {db_name} уже существует.
-Для пересоздания введите её имя: ''')
+                db_to_remove = input(f'''\n{db_name} database already exists.
+To confirm database re-creation, type its name: ''')
                 if db_to_remove == db_name:
                         client.drop_database(db_name)
                 else:
-                        print(f'\nБаза данных {db_name} останется')
+                        print(f'\n{db_name} database will remain')
                         client.close()
                         sys.exit()
         client.close()
@@ -319,14 +319,14 @@ class PrepSingleProc():
                         
                 #Независимо от того, указал исследователь имена
                 #индексируемых полей или нет, для db-VCF и db-BED
-                #индексация будет произведена по первым трём полям.
-                #Притом индексы хромосом и позиций построятся составные,
-                #что потом позволит парсерам эффективно сортировать
-                #по этим полям свои результаты. Для обозначенных
-                #исследователем полей появятся одиночные индексы.
-                #Если они придутся на хромосому или позицию
-                #db-VCF/db-BED, то будут сосуществовать
-                #с обязательным компаундным индексом.
+                #индексация будет произведена по полям с локациями
+                #и основополагающими идентификаторами. Притом индексы
+                #хромосом и позиций построятся составные, что потом
+                #позволит парсерам эффективно сортировать по этим полям
+                #свои результаты. Для обозначенных исследователем
+                #полей появятся одиночные индексы. Если они придутся
+                #на хромосому или позицию db-VCF/db-BED, то будут
+                #сосуществовать с обязательным компаундным индексом.
                 if src_file_format == 'vcf':
                         index_models = [IndexModel([('#CHROM', ASCENDING),
                                                     ('POS', ASCENDING)]),
@@ -335,6 +335,8 @@ class PrepSingleProc():
                         index_models = [IndexModel([('chrom', ASCENDING),
                                                     ('start', ASCENDING),
                                                     ('end', ASCENDING)])]
+                        if 'name' in coll_obj.find_one():
+                                index_models.append(IndexModel([('name', ASCENDING)]))
                 else:
                         index_models = []
                 if self.ind_col_names is not None:
@@ -342,11 +344,12 @@ class PrepSingleProc():
                 if index_models != []:
                         coll_obj.create_indexes(index_models)
                         
+                #Дисконнект.
                 client.close()
                 
 ####################################################################################################
 
-import sys, os, gzip
+import sys, os, datetime, gzip
 
 #Подавление формирования питоновского кэша с
 #целью предотвращения искажения результатов.
@@ -377,9 +380,14 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nПополнение и индексация БД {db_name}')
-print(f'\tколичество параллельных процессов: {proc_quan}')
+print(f'\nReplenishment and indexing {db_name} database')
+print(f'\tnumber of parallel processes: {proc_quan}')
 
-#Параллельный запуск создания коллекций.
+#Параллельный запуск создания коллекций. Замер времени
+#выполнения этого кода с точностью до микросекунды.
 with Pool(proc_quan) as pool_obj:
+        exec_time_start = datetime.datetime.now()
         pool_obj.map(prep_single_proc.create_collection, arc_file_names)
+        exec_time = datetime.datetime.now() - exec_time_start
+        
+print(f'\tparallel computation time: {exec_time}')
