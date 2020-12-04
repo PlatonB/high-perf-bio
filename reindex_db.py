@@ -1,6 +1,6 @@
-__version__ = 'V3.0'
+__version__ = 'v3.1'
 
-def add_args():
+def add_args(ver):
         '''
         Работа с аргументами командной строки.
         '''
@@ -8,27 +8,26 @@ def add_args():
 Программа, способная удалять имеющиеся
 индексы MongoDB-базы и добавлять новые.
 
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020.
-Версия: {__version__}.
-Лицензия: GNU General Public License version 3.
-Поддержать проект: https://money.yandex.ru/to/41001832285976
+Версия: {ver}
+Требуемые сторонние компоненты: MongoDB, PyMongo
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Лицензия: GNU General Public License version 3
+Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
-Перед запуском программы нужно установить
-MongoDB и PyMongo (см. документацию).
+Не путайте понятия имени поля и имени индекса.
 
-Для вывода имён баз данных, индексов
-и полей рекомендую использовать
-программу print_db_info.
+Для вывода имён баз данных, индексов и полей
+рекомендую использовать print_db_info из
+состава high-perf-bio, либо MongoDB Compass.
 
 Поддерживается создание/удаление как
 одиночных, так и составных индексов.
 
 Условные обозначения в справке по CLI:
 - краткая форма с большой буквы - обязательный аргумент;
-- в квадратных скобках - значение по умолчанию;
-- в фигурных скобках - перечисление возможных значений.
+- в квадратных скобках - значение по умолчанию.
 ''',
                                    formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
@@ -42,14 +41,6 @@ MongoDB и PyMongo (см. документацию).
         args = argparser.parse_args()
         return args
 
-def remove_indices(coll_names, del_ind_names, db_obj):
-        '''
-        Функция удаления индексов.
-        '''
-        for coll_name in coll_names:
-                for del_ind_name in del_ind_names:
-                        db_obj[coll_name].drop_index(del_ind_name)
-                        
 class PrepSingleProc():
         '''
         Класс, спроектированный под
@@ -57,18 +48,14 @@ class PrepSingleProc():
         '''
         def __init__(self, args):
                 '''
-                Получение атрибутов, необходимых
-                заточенной под многопроцессовое
-                выполнение функции индексации
-                всех коллекций MongoDB-базы.
-                Атрибуты должны быть созданы
-                единожды и далее ни в
-                коем случае не изменяться.
-                Получаются они в основном из
-                указанных исследователем опций.
+                Получение атрибутов, необходимых заточенной под
+                многопроцессовое выполнение функции индексации
+                всех коллекций MongoDB-базы. Атрибуты должны быть
+                созданы единожды и далее ни в коем случае не изменяться.
+                Получаются они в основном из указанных исследователем опций.
                 '''
                 self.db_name = args.db_name
-                if args.ind_field_names == None:
+                if args.ind_field_names is None:
                         self.ind_field_names = args.ind_field_names
                 else:
                         self.ind_field_names = args.ind_field_names.split(',')
@@ -88,35 +75,32 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
+import datetime
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 
-#Подготовительный этап:
-#обработка аргументов
-#командной строки, создание
-#экземпляра содержащего
-#ключевую функцию класса
-#и MongoDB-объектов,
-#получение имён
-#всех коллекций.
-args, client = add_args(), MongoClient()
+#Подготовительный этап: обработка
+#аргументов командной строки, создание
+#экземпляра содержащего ключевую
+#функцию класса и MongoDB-объектов,
+#получение имён всех коллекций.
+args, client = add_args(__version__), MongoClient()
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
 db_obj = client[db_name]
 coll_names = db_obj.list_collection_names()
 
-#По запросу исследователя
-#удаляем индексы.
-#Это - очень быстрый
-#процесс, поэтому
-#в распараллеливании
-#не нуждается.
-if args.del_ind_names != None:
+#По запросу исследователя удаляем индексы.
+#Это - очень быстрый процесс, поэтому
+#в распараллеливании не нуждается.
+if args.del_ind_names is not None:
         del_ind_names = args.del_ind_names.split(',')
-        print(f'\nУдаляются индексы БД {db_name}')
-        remove_indices(coll_names, del_ind_names, db_obj)
-        
+        print(f'\nRemoving indexes from {db_name} database')
+        for coll_name in coll_names:
+                for del_ind_name in del_ind_names:
+                        db_obj[coll_name].drop_index(del_ind_name)
+                        
 #Необходимости в подключении
 #к серверу MongoDB больше нет,
 #поэтому дисконнектимся.
@@ -127,17 +111,12 @@ if args.del_ind_names != None:
 #на уровне каждого процесса.
 client.close()
 
-#Если исследователь пожелал
-#индексировать поля, то
-#сейчас будет произведена
-#подготовка к параллельному
-#выполнению этой процедуры.
-#Количество процессов будет
-#определено по заданному
-#исследователем максимуму
-#этого значения и количеству
-#коллекций переиндексируемой БД.
-if prep_single_proc.ind_field_names != None:
+#Если исследователь пожелал индексировать поля, то
+#сейчас будет произведена подготовка к параллельному
+#выполнению этой процедуры. Количество процессов будет
+#определено по заданному исследователем максимуму этого
+#значения и количеству коллекций переиндексируемой БД.
+if prep_single_proc.ind_field_names is not None:
         max_proc_quan = args.max_proc_quan
         colls_quan = len(coll_names)
         if max_proc_quan > colls_quan <= 8:
@@ -147,9 +126,13 @@ if prep_single_proc.ind_field_names != None:
         else:
                 proc_quan = max_proc_quan
                 
-        print(f'\nИндексируется БД {db_name}')
-        print(f'\tколичество параллельных процессов: {proc_quan}')
+        print(f'\nIndexing {db_name} database')
+        print(f'\tnumber of parallel processes: {proc_quan}')
         
         #Параллельный запуск индексации коллекций.
         with Pool(proc_quan) as pool_obj:
+                exec_time_start = datetime.datetime.now()
                 pool_obj.map(prep_single_proc.add_indices, coll_names)
+                exec_time = datetime.datetime.now() - exec_time_start
+                
+        print(f'\tparallel computation time: {exec_time}')
