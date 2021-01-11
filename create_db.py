@@ -1,25 +1,24 @@
-__version__ = 'v3.2'
+__version__ = 'v3.3'
 
-class DifExtsError(Exception):
+class DifFmtsError(Exception):
         '''
-        Создавать базу можно только
-        по одноформатным таблицам.
+        Создавать базу можно только по одноформатным таблицам.
         '''
-        def __init__(self, arc_file_exts):
-                err_msg = f'\nSource files are in different formats: {arc_file_exts}'
+        def __init__(self, src_file_fmts):
+                err_msg = f'\nSource files are in different formats: {src_file_fmts}'
                 super().__init__(err_msg)
                 
 def add_args(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description=f'''
+        arg_parser = ArgumentParser(description=f'''
 Программа, создающая MongoDB-базу данных
 по VCF, BED или любым другим таблицам.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -44,34 +43,38 @@ TSV        |  Обязательно     |  Не прибавляйте 1
 Каждая исходная таблица должна быть сжата с помощью GZIP.
 
 Условные обозначения в справке по CLI:
--A - обязательный аргумент;
--a - необязательный агрумент;
 [значение по умолчанию на этапе парсинга аргументов];
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}};
 src-FMT - исходные таблицы определённого формата (VCF, BED, TSV);
 db-FMT - коллекции БД, полученные из таблиц определённого формата;
 не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку;
-f1+f2+f3 - поля коллекций БД с составным индексом;
+f1+f2+f3 - поля коллекций БД с составным индексом
 ''',
-                                   formatter_class=RawTextHelpFormatter)
-        argparser.add_argument('-S', '--arc-dir-path', metavar='str', dest='arc_dir_path', type=str,
-                               help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
-        argparser.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
-                               help='Имя создаваемой базы данных ([[имя папки со сжатыми таблицами]])')
-        argparser.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                               help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
-        argparser.add_argument('-r', '--minimal', dest='minimal', action='store_true',
-                               help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
-        argparser.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
-                               help='Максимальное количество строк фрагмента заливаемой таблицы')
-        argparser.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; db-VCF: принуд. проинд. #CHROM+POS и ID; db-BED: принуд. проинд. chrom+start+end и name)')
-        argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                               help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
-        args = argparser.parse_args()
+                                   formatter_class=RawTextHelpFormatter,
+                                   add_help=False)
+        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
+        hlp_grp.add_argument('-h', '--help', action='help',
+                             help='Вывести справку и выйти')
+        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
+        man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
+                             help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
+        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
+                             help='Имя создаваемой базы данных ([[имя папки со сжатыми таблицами]])')
+        opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
+                             help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
+        opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
+                             help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
+                             help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
+        opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
+                             help='Максимальное количество строк фрагмента заливаемой таблицы')
+        opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
+                             help='Имена индексируемых полей (через запятую без пробела; db-VCF: принуд. проинд. #CHROM+POS и ID; db-BED: принуд. проинд. chrom+start+end и name)')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
+        args = arg_parser.parse_args()
         return args
 
 def remove_database(db_name):
@@ -93,22 +96,14 @@ To confirm database re-creation, type its name: ''')
         
 def process_info_cell(info_cell):
         '''
-        Функция преобразования ячейки
-        INFO-столбца VCF-таблицы в
-        список из словаря и списка.
-        У INFO есть такая особенность:
-        одни элементы представляют
-        собой пары ключ-значение, другие
-        (далее - флаги) идут без ключей.
-        Пары разместятся в словарь, а
-        флаги - в список, расположенный
-        на одинаковом со словарём уровне.
-        Если у одного ключа несколько значений,
-        программа положит их в подсписок.
-        Поскольку официальные рекомендации
-        по составу INFO-столбца не являются
-        строгими, тип данных каждого
-        элемента приходится подбирать.
+        Функция преобразования ячейки INFO-столбца VCF-таблицы в список
+        из словаря и списка. У INFO есть такая особенность: одни элементы
+        представляют собой пары ключ-значение, другие (далее - флаги)
+        идут без ключей. Пары разместятся в словарь, а флаги - в список,
+        расположенный на одинаковом со словарём уровне. Если у одного ключа
+        несколько значений, программа положит их в подсписок. Поскольку
+        официальные рекомендации по составу INFO-столбца не являются
+        строгими, тип данных каждого элемента приходится подбирать.
         '''
         info_row, info_obj = info_cell.split(';'), [{}, []]
         for info_subcell in info_row:
@@ -146,13 +141,19 @@ class PrepSingleProc():
         def __init__(self, args):
                 '''
                 Получение атрибутов, необходимых заточенной под многопроцессовое
-                выполнение функции построения коллекций MongoDB с нуля. Атрибуты
-                должны быть созданы единожды и далее ни в коем случае не изменяться.
+                выполнение функции построения коллекций MongoDB с нуля. Атрибуты ни в
+                коем случае не должны будут потом в параллельных процессах изменяться.
                 Получаются они в основном из указанных исследователем опций.
                 '''
-                self.arc_dir_path = os.path.normpath(args.arc_dir_path)
+                self.src_dir_path = os.path.normpath(args.src_dir_path)
+                self.src_file_names = os.listdir(self.src_dir_path)
+                src_file_fmts = set(map(lambda src_file_name: src_file_name.rsplit('.', maxsplit=2)[1],
+                                        self.src_file_names))
+                if len(src_file_fmts) > 1:
+                        raise DifFmtsError(src_file_fmts)
+                self.src_file_fmt = list(src_file_fmts)[0]
                 if args.db_name is None:
-                        self.db_name = os.path.basename(self.arc_dir_path)
+                        self.db_name = os.path.basename(self.src_dir_path)
                 else:
                         self.db_name = args.db_name
                 self.meta_lines_quan = args.meta_lines_quan
@@ -173,7 +174,7 @@ class PrepSingleProc():
                 else:
                         self.ind_col_names = args.ind_col_names.split(',')
                         
-        def create_collection(self, arc_file_name):
+        def create_collection(self, src_file_name):
                 '''
                 Функция создания и наполнения
                 одной MongoDB-коллекции
@@ -191,12 +192,8 @@ class PrepSingleProc():
                 client = MongoClient()
                 db_obj = client[self.db_name]
                 
-                #Автоматическое определение
-                #формата исходной сжатой таблицы.
-                src_file_format = arc_file_name.split('.')[-2]
-                
                 #Открытие исходной архивированной таблицы на чтение.
-                with gzip.open(os.path.join(self.arc_dir_path, arc_file_name), mode='rt') as arc_file_opened:
+                with gzip.open(os.path.join(self.src_dir_path, src_file_name), mode='rt') as src_file_opened:
                         
                         #Политика обработки метастрок задаётся исследователем.
                         #В любом случае, всё сводится к их холостому прочтению.
@@ -206,8 +203,8 @@ class PrepSingleProc():
                         #начала файла. После метастрок, по-хорошему, должна
                         #следовать шапка, но во многих BED-файлах её нет. Для BED
                         #приходится вручную вписывать в код референсную шапку.
-                        if src_file_format == 'vcf':
-                                for line in arc_file_opened:
+                        if self.src_file_fmt == 'vcf':
+                                for line in src_file_opened:
                                         if not line.startswith('##'):
                                                 header_row = line.rstrip().split('\t')
                                                 if len(header_row) > 8:
@@ -215,18 +212,18 @@ class PrepSingleProc():
                                                 break
                         else:
                                 for meta_line_index in range(self.meta_lines_quan):
-                                        arc_file_opened.readline()
-                                if src_file_format == 'bed':
+                                        src_file_opened.readline()
+                                if self.src_file_fmt == 'bed':
                                         header_row = ['chrom', 'start', 'end', 'name',
                                                       'score', 'strand', 'thickStart', 'thickEnd',
                                                       'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
                                 else:
-                                        header_row = arc_file_opened.readline().rstrip().split('\t')
+                                        header_row = src_file_opened.readline().rstrip().split('\t')
                                         
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
                         #я выбрал в качестве алгоритма сжатия Zstandard.
-                        coll_obj = db_obj.create_collection(arc_file_name[:-3],
+                        coll_obj = db_obj.create_collection(src_file_name[:-3],
                                                             storageEngine={'wiredTiger':
                                                                            {'configString':
                                                                             'block_compressor=zstd'}})
@@ -241,7 +238,7 @@ class PrepSingleProc():
                         #Коллекция БД будет пополняться
                         #до тех пор, пока не закончится
                         #перебор строк исходной таблицы.
-                        for line in arc_file_opened:
+                        for line in src_file_opened:
                                 
                                 #Преобразование очередной строки
                                 #исходной таблицы в список.
@@ -258,7 +255,7 @@ class PrepSingleProc():
                                 #табличных форматов типы данных определяются подбором по принципу
                                 #"подходит - не подходит", а разбиение на списки делается при
                                 #наличии в ячейке обозначенного исследователем разделителя.
-                                if src_file_format == 'vcf':
+                                if self.src_file_fmt == 'vcf':
                                         row[0] = def_data_type(row[0].replace('chr', ''))
                                         row[1] = int(row[1])
                                         if ';' in row[2]:
@@ -272,7 +269,7 @@ class PrepSingleProc():
                                         elif len(row) > 8:
                                                 gt_objs = [process_gt_cell(row[8], gt_cell) for gt_cell in row[9:]]
                                                 row = row[:8] + gt_objs
-                                elif src_file_format == 'bed':
+                                elif self.src_file_fmt == 'bed':
                                         row[0] = def_data_type(row[0].replace('chr', ''))
                                         row[1], row[2] = int(row[1]), int(row[2])
                                         if self.minimal:
@@ -339,11 +336,11 @@ class PrepSingleProc():
                 #полей появятся одиночные индексы. Если они придутся
                 #на хромосому или позицию db-VCF/db-BED, то будут
                 #сосуществовать с обязательным компаундным индексом.
-                if src_file_format == 'vcf':
+                if self.src_file_fmt == 'vcf':
                         index_models = [IndexModel([('#CHROM', ASCENDING),
                                                     ('POS', ASCENDING)]),
                                         IndexModel([('ID', ASCENDING)])]
-                elif src_file_format == 'bed':
+                elif self.src_file_fmt == 'bed':
                         index_models = [IndexModel([('chrom', ASCENDING),
                                                     ('start', ASCENDING),
                                                     ('end', ASCENDING)])]
@@ -375,22 +372,17 @@ from backend.def_data_type import def_data_type
 #Подготовительный этап: обработка
 #аргументов командной строки, создание
 #экземпляра содержащего ключевую функцию
-#класса, удаление старой базы, сверка
-#файловых расширений, определение
+#класса, удаление старой базы, определение
 #оптимального количества процессов.
 args = add_args(__version__)
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
 remove_database(db_name)
 max_proc_quan = args.max_proc_quan
-arc_file_names = os.listdir(prep_single_proc.arc_dir_path)
-arc_file_exts = set(map(lambda arc_file_name: arc_file_name.rsplit('.', maxsplit=2)[1],
-                        arc_file_names))
-if len(arc_file_exts) > 1:
-        raise DifExtsError(arc_file_exts)
-arc_files_quan = len(arc_file_names)
-if max_proc_quan > arc_files_quan <= 8:
-        proc_quan = arc_files_quan
+src_file_names = prep_single_proc.src_file_names
+src_files_quan = len(src_file_names)
+if max_proc_quan > src_files_quan <= 8:
+        proc_quan = src_files_quan
 elif max_proc_quan > 8:
         proc_quan = 8
 else:
@@ -403,7 +395,8 @@ print(f'\tnumber of parallel processes: {proc_quan}')
 #выполнения этого кода с точностью до микросекунды.
 with Pool(proc_quan) as pool_obj:
         exec_time_start = datetime.datetime.now()
-        pool_obj.map(prep_single_proc.create_collection, arc_file_names)
+        pool_obj.map(prep_single_proc.create_collection,
+                     src_file_names)
         exec_time = datetime.datetime.now() - exec_time_start
         
 print(f'\tparallel computation time: {exec_time}')

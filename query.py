@@ -1,16 +1,16 @@
-__version__ = 'v3.4'
+__version__ = 'v3.5'
 
 def add_args(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description=f'''
+        arg_parser = ArgumentParser(description=f'''
 Программа, позволяющая выполнить
 запрос по всем коллекциям MongoDB-базы.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -27,29 +27,33 @@ https://docs.mongodb.com/manual/tutorial/query-documents/
 https://docs.mongodb.com/manual/reference/operator/query/
 
 Условные обозначения в справке по CLI:
--A - обязательный аргумент;
--a - необязательный агрумент;
 [значение по умолчанию];
 {{допустимые значения}};
 src-FMT - исходные таблицы определённого формата (VCF, BED, TSV);
 db-FMT - коллекции БД, полученные из таблиц определённого формата;
 trg-FMT - конечные таблицы определённого формата;
-не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку.
+не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку
 ''',
-                                   formatter_class=RawTextHelpFormatter)
-        argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
-                               help='Имя БД, по которой искать')
-        argparser.add_argument('-T', '--trg-dir-path', metavar='str', dest='trg_dir_path', type=str,
-                               help='Путь к папке для результатов')
-        argparser.add_argument('-q', '--mongo-query', metavar="['{}']", default='{}', dest='mongo_query', type=str,
-                               help='Запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
-        argparser.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                               help='Отбираемые поля (через запятую без пробела; db-VCF: не применяется; db-BED: trg-TSV; поле _id не выведется)')
-        argparser.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                               help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (trg-BED): не применяется)')
-        argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                               help='Максимальное количество параллельно парсимых коллекций')
-        args = argparser.parse_args()
+                                   formatter_class=RawTextHelpFormatter,
+                                   add_help=False)
+        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
+        hlp_grp.add_argument('-h', '--help', action='help',
+                             help='Вывести справку и выйти')
+        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
+        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+                             help='Имя БД, по которой искать')
+        man_grp.add_argument('-T', '--trg-dir-path', required=True, metavar='str', dest='trg_dir_path', type=str,
+                             help='Путь к папке для результатов')
+        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-q', '--mongo-query', metavar="['{}']", default='{}', dest='mongo_query', type=str,
+                             help='Запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
+        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
+                             help='Отбираемые поля (через запятую без пробела; db-VCF: не применяется; db-BED: trg-TSV; поле _id не выведется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
+                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (trg-BED): не применяется)')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно парсимых коллекций')
+        args = arg_parser.parse_args()
         return args
 
 class PrepSingleProc():

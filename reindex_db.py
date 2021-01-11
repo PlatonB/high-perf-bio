@@ -1,16 +1,16 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 def add_args(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description=f'''
+        arg_parser = ArgumentParser(description=f'''
 Программа, способная удалять имеющиеся
 индексы MongoDB-базы и добавлять новые.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -26,19 +26,24 @@ def add_args(ver):
 одиночных, так и составных индексов.
 
 Условные обозначения в справке по CLI:
-- краткая форма с большой буквы - обязательный аргумент;
-- в квадратных скобках - значение по умолчанию.
+[значение по умолчанию]
 ''',
-                                   formatter_class=RawTextHelpFormatter)
-        argparser.add_argument('-D', '--db-name', metavar='str', dest='db_name', type=str,
-                               help='Имя переиндексируемой БД')
-        argparser.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
-                               help='Имена удаляемых индексов (через запятую без пробела)')
-        argparser.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                               help='Имена индексируемых полей (через запятую без пробела; для составного индекса: через плюс без пробелов)')
-        argparser.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                               help='Максимальное количество параллельно индексируемых коллекций')
-        args = argparser.parse_args()
+                                   formatter_class=RawTextHelpFormatter,
+                                   add_help=False)
+        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
+        hlp_grp.add_argument('-h', '--help', action='help',
+                             help='Вывести справку и выйти')
+        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
+        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+                             help='Имя переиндексируемой БД')
+        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
+                             help='Имена удаляемых индексов (через запятую без пробела)')
+        opt_grp.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
+                             help='Имена индексируемых полей (через запятую без пробела; для составного индекса: через плюс без пробелов)')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно индексируемых коллекций')
+        args = arg_parser.parse_args()
         return args
 
 class PrepSingleProc():
@@ -49,9 +54,9 @@ class PrepSingleProc():
         def __init__(self, args):
                 '''
                 Получение атрибутов, необходимых заточенной под
-                многопроцессовое выполнение функции индексации
-                всех коллекций MongoDB-базы. Атрибуты должны быть
-                созданы единожды и далее ни в коем случае не изменяться.
+                многопроцессовое выполнение функции индексации всех
+                коллекций MongoDB-базы. Атрибуты ни в коем случае не
+                должны будут потом в параллельных процессах изменяться.
                 Получаются они в основном из указанных исследователем опций.
                 '''
                 self.db_name = args.db_name
