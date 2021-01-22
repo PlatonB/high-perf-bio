@@ -1,4 +1,4 @@
-__version__ = 'v3.5'
+__version__ = 'v3.6'
 
 def add_args(ver):
         '''
@@ -29,7 +29,6 @@ https://docs.mongodb.com/manual/reference/operator/query/
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
 {{допустимые значения}};
-src-FMT - исходные таблицы определённого формата (VCF, BED, TSV);
 db-FMT - коллекции БД, полученные из таблиц определённого формата;
 trg-FMT - конечные таблицы определённого формата;
 не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку
@@ -152,6 +151,8 @@ class PrepSingleProc():
                         #Формируем и прописываем метастроки,
                         #повествующие о происхождении конечного
                         #файла. Прописываем также табличную шапку.
+                        if self.trg_file_fmt == 'vcf':
+                                trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
                         trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                         trg_file_opened.write(f'##database={self.db_name}\n')
                         trg_file_opened.write(f'##collection={coll_name}\n')
