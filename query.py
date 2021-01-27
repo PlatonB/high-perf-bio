@@ -1,4 +1,4 @@
-__version__ = 'v3.6'
+__version__ = 'v3.7'
 
 def add_args(ver):
         '''
@@ -64,33 +64,41 @@ class PrepSingleProc():
         def __init__(self, args, ver):
                 '''
                 Получение атрибутов, необходимых заточенной под многопроцессовое
-                выполнение функции отбора документов. Атрибуты должны быть созданы
-                единожды и далее ни в коем случае не изменяться. Получаются они в
-                основном из указанных исследователем опций. Некоторые неочевидные,
-                но важные детали об атрибутах. Квази-расширение коллекций нужно,
+                выполнение функции отбора документов. Атрибуты ни в коем случае не
+                должны будут потом в параллельных процессах изменяться. Получаются
+                они в основном из указанных исследователем опций. Некоторые неочевидные,
+                но важные детали об атрибутах. Квази-расширение коллекций. Оно нужно,
                 как минимум, для определения правил сортировки и форматирования
                 конечных файлов. Проджекшен (отбор полей). Для db-VCF его крайне
                 трудно реализовать из-за наличия в соответствующих коллекциях
                 разнообразных вложенных структур и запрета со стороны MongoDB на
                 применение точечной формы обращения к отбираемым элементам массивов.
                 Что касается db-BED, когда мы оставляем только часть полей, невозможно
-                гарантировать соблюдение спецификаций BED-формата, поэтому вывод
-                будет формироваться не более, чем просто табулированным (trg-TSV).
+                гарантировать соблюдение спецификаций BED-формата, поэтому вывод будет
+                формироваться не более, чем просто табулированным (trg-TSV). Сортировка
+                BED и VCF делается по координатам для поддержки tabix-индексации.
                 '''
                 client = MongoClient()
                 self.db_name = args.db_name
                 self.coll_names = client[self.db_name].list_collection_names()
                 coll_name_ext = self.coll_names[0].rsplit('.', maxsplit=1)[1]
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
-                self.mongo_find_args = [eval(args.mongo_query)]
+                self.mongo_aggregate_arg = [{'$match': eval(args.mongo_query)}]
                 if args.proj_fields is None or coll_name_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = coll_name_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
-                        self.mongo_find_args.append(mongo_project)
+                        self.mongo_aggregate_arg.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
+                if self.trg_file_fmt == 'vcf':
+                        self.mongo_aggregate_arg.append({'$sort': SON([('#CHROM', ASCENDING),
+                                                                       ('POS', ASCENDING)])})
+                elif self.trg_file_fmt == 'bed':
+                        self.mongo_aggregate_arg.append({'$sort': SON([('chrom', ASCENDING),
+                                                                       ('start', ASCENDING),
+                                                                       ('end', ASCENDING)])})
                 if args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
                 elif args.sec_delimiter == 'semicolon':
@@ -117,20 +125,8 @@ class PrepSingleProc():
                 coll_obj = db_obj[coll_name]
                 
                 #Создание объекта курсора.
-                curs_obj = coll_obj.find(*self.mongo_find_args)
+                curs_obj = coll_obj.aggregate(self.mongo_aggregate_arg)
                 
-                #Таблицы биоинформатических форматов
-                #нужно сортировать по хромосомам и позициям.
-                #Задаём правило сортировки будущего VCF
-                #или BED на уровне MongoDB-курсора.
-                if self.trg_file_fmt == 'vcf':
-                        curs_obj.sort([('#CHROM', ASCENDING),
-                                       ('POS', ASCENDING)])
-                elif self.trg_file_fmt == 'bed':
-                        curs_obj.sort([('chrom', ASCENDING),
-                                       ('start', ASCENDING),
-                                       ('end', ASCENDING)])
-                        
                 #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                 #коллекция, создадим её из имён полей. Projection при этом учтём.
                 #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
@@ -156,9 +152,9 @@ class PrepSingleProc():
                         trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                         trg_file_opened.write(f'##database={self.db_name}\n')
                         trg_file_opened.write(f'##collection={coll_name}\n')
-                        trg_file_opened.write(f'##query={self.mongo_find_args[0]}\n')
-                        if len(self.mongo_find_args) == 2:
-                                trg_file_opened.write(f'##project={self.mongo_find_args[1]}\n')
+                        trg_file_opened.write(f'##query={self.mongo_aggregate_arg[0]["$match"]}\n')
+                        if self.mongo_findone_args[1] is not None:
+                                trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
                         trg_file_opened.write(header_line + '\n')
                         
                         #Извлечение из объекта курсора отвечающих запросу
@@ -192,6 +188,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, ASCENDING
 from bson.decimal128 import Decimal128
 from multiprocessing import Pool
+from bson.son import SON
 from backend.doc_to_line import restore_line
 
 #Подготовительный этап: обработка

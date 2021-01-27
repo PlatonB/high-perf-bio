@@ -1,4 +1,4 @@
-__version__ = 'v4.2'
+__version__ = 'v4.3'
 
 class DifFmtsError(Exception):
         '''
@@ -111,6 +111,7 @@ class PrepSingleProc():
                 элементам массивов. Что касается db-BED, когда мы оставляем только часть
                 полей, невозможно гарантировать соблюдение спецификаций BED-формата, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-TSV).
+                Сортировка BED и VCF делается по координатам для поддержки tabix-индексации.
                 '''
                 client = MongoClient()
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
@@ -132,7 +133,7 @@ class PrepSingleProc():
                 if self.by_loc:
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.coll_name_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
-                        self.mongo_find_draft = [{'$or': []}]
+                        self.mongo_aggregate_draft = [{'$match': {'$or': []}}]
                 else:
                         if args.ann_col_num is None:
                                 if self.src_file_fmt == 'vcf':
@@ -152,15 +153,22 @@ class PrepSingleProc():
                                         self.ann_field_name = 'rsID'
                         else:
                                 self.ann_field_name = args.ann_field_name
-                        self.mongo_find_draft = [{self.ann_field_name: {'$in': []}}]
+                        self.mongo_aggregate_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
                 if args.proj_fields is None or self.coll_name_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = self.coll_name_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
-                        self.mongo_find_draft.append(mongo_project)
+                        self.mongo_aggregate_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
+                if self.trg_file_fmt == 'vcf':
+                        self.mongo_aggregate_draft.append({'$sort': SON([('#CHROM', ASCENDING),
+                                                                         ('POS', ASCENDING)])})
+                elif self.trg_file_fmt == 'bed':
+                        self.mongo_aggregate_draft.append({'$sort': SON([('chrom', ASCENDING),
+                                                                         ('start', ASCENDING),
+                                                                         ('end', ASCENDING)])})
                 if args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
                 elif args.sec_delimiter == 'semicolon':
@@ -206,31 +214,31 @@ class PrepSingleProc():
                         #БД для каждого значения устанавливался оптимальный тип данных. При работе с MongoDB
                         #важно соблюдать соответствие типа данных запрашиваемого слова и размещённых в базе
                         #значений. Для этого присвоим подходящий тип данных каждому аннотируемому элементу.
-                        mongo_find_args = copy.deepcopy(self.mongo_find_draft)
+                        mongo_aggregate_arg = copy.deepcopy(self.mongo_aggregate_draft)
                         for src_line in src_file_opened:
                                 src_row = src_line.rstrip().split('\t')
                                 if self.by_loc:
                                         if self.src_file_fmt == 'vcf':
                                                 src_chrom, src_pos = def_data_type(src_row[0].replace('chr', '')), int(src_row[1])
                                                 if self.coll_name_ext == 'vcf':
-                                                        mongo_find_args[0]['$or'].append({'#CHROM': src_chrom,
-                                                                                          'POS': src_pos})
+                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
+                                                                                                        'POS': src_pos})
                                                 elif self.coll_name_ext == 'bed':
-                                                        mongo_find_args[0]['$or'].append({'chrom': src_chrom,
-                                                                                          'start': {'$lt': src_pos},
-                                                                                          'end': {'$gte': src_pos}})
+                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'chrom': src_chrom,
+                                                                                                        'start': {'$lt': src_pos},
+                                                                                                        'end': {'$gte': src_pos}})
                                         elif self.src_file_fmt == 'bed':
                                                 src_chrom, src_start, src_end = def_data_type(src_row[0].replace('chr', '')), int(src_row[1]), int(src_row[2])
                                                 if self.coll_name_ext == 'vcf':
-                                                        mongo_find_args[0]['$or'].append({'#CHROM': src_chrom,
-                                                                                          'POS': {'$gt': src_start,
-                                                                                                  '$lte': src_end}})
+                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
+                                                                                                        'POS': {'$gt': src_start,
+                                                                                                                '$lte': src_end}})
                                                 elif self.coll_name_ext == 'bed':
-                                                        mongo_find_args[0]['$or'].append({'chrom': src_chrom,
-                                                                                          'start': {'$lt': src_end},
-                                                                                          'end': {'$gt': src_start}})
+                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'chrom': src_chrom,
+                                                                                                        'start': {'$lt': src_end},
+                                                                                                        'end': {'$gt': src_start}})
                                 else:
-                                        mongo_find_args[0][self.ann_field_name]['$in'].append(def_data_type(src_row[self.ann_col_index]))
+                                        mongo_aggregate_arg[0]['$match'][self.ann_field_name]['$in'].append(def_data_type(src_row[self.ann_col_index]))
                                         
                 #Построение имени подпапки для результатов работы
                 #над текущим исходным файлом и пути к этой подпапке.
@@ -249,20 +257,8 @@ class PrepSingleProc():
                         
                         #Создание двух объектов: текущей коллекции и курсора.
                         coll_obj = db_obj[coll_name]
-                        curs_obj = coll_obj.find(*mongo_find_args)
+                        curs_obj = coll_obj.aggregate(mongo_aggregate_arg)
                         
-                        #Таблицы биоинформатических форматов
-                        #нужно сортировать по хромосомам и позициям.
-                        #Задаём правило сортировки будущего VCF
-                        #или BED на уровне MongoDB-курсора.
-                        if self.trg_file_fmt == 'vcf':
-                                curs_obj.sort([('#CHROM', ASCENDING),
-                                               ('POS', ASCENDING)])
-                        elif self.trg_file_fmt == 'bed':
-                                curs_obj.sort([('chrom', ASCENDING),
-                                               ('start', ASCENDING),
-                                               ('end', ASCENDING)])
-                                
                         #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                         #коллекция, создадим её из имён полей. Projection при этом учтём.
                         #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
@@ -298,8 +294,8 @@ class PrepSingleProc():
                                 trg_file_opened.write(f'##collection={coll_name}\n')
                                 if not self.by_loc:
                                         trg_file_opened.write(f'##field={self.ann_field_name}\n')
-                                if len(mongo_find_args) == 2:
-                                        trg_file_opened.write(f'##project={mongo_find_args[1]}\n')
+                                if self.mongo_findone_args[1] is not None:
+                                        trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
                                 trg_file_opened.write(header_line + '\n')
                                 
                                 #Извлечение из объекта курсора отвечающих запросу документов,
@@ -340,6 +336,7 @@ sys.dont_write_bytecode = True
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, ASCENDING
 from multiprocessing import Pool
+from bson.son import SON
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
 
