@@ -1,4 +1,4 @@
-__version__ = 'v6.1'
+__version__ = 'v6.2'
 
 class NotEnoughCollsError(Exception):
         '''
@@ -155,7 +155,9 @@ class PrepSingleProc():
                 из указанных исследователем аргументов. Некоторые неочевидные, но
                 важные детали об атрибутах. Квази-расширение коллекций. Оно нужно,
                 как минимум, для определения правил сортировки и форматирования
-                конечных файлов. Набор правых коллекций. На этапе создания атрибутов
+                конечных файлов. Сортировка. Её лучше ставить в начало пайплайна:
+                она тогда задействует индекс сама и не отберает эту возможность у
+                других стадий. Набор правых коллекций. На этапе создания атрибутов
                 он не окончательный. Впоследствии в каждом потоке отбирается свой
                 список правых, не поглядывающих налево. Пересекаемое/вычитаемое
                 поле по-умолчанию. Оно подобрано на основании здравого смысла. К
@@ -174,6 +176,13 @@ class PrepSingleProc():
                 if len(self.coll_names) < 2:
                         raise NotEnoughCollsError()
                 self.coll_name_ext = self.coll_names[0].rsplit('.', maxsplit=1)[1]
+                if self.coll_name_ext == 'vcf':
+                        self.mongo_aggregate_draft = [{'$sort': SON([('#CHROM', ASCENDING),
+                                                                     ('POS', ASCENDING)])}]
+                elif self.coll_name_ext == 'bed':
+                        self.mongo_aggregate_draft = [{'$sort': SON([('chrom', ASCENDING),
+                                                                     ('start', ASCENDING),
+                                                                     ('end', ASCENDING)])}]
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
                 if args.left_coll_names is None:
                         self.left_coll_names = set(self.coll_names)
@@ -240,6 +249,10 @@ class PrepSingleProc():
                 db_obj = client[self.db_name]
                 left_coll_obj = db_obj[left_coll_name]
                 
+                #Дальнейшее построение пайплайна будет вестись
+                #в пределах каждого процесса по-своему.
+                mongo_aggregate_arg = copy.deepcopy(self.mongo_aggregate_draft)
+                
                 #Предотвращение возможной попытки агрегации коллекции самой с собой. Сортировка имён правых
                 #коллекций для большей читабельности их списка в метастроке будущего конечного файла.
                 right_coll_names = sorted(filter(lambda right_coll_name: right_coll_name != left_coll_name,
@@ -251,45 +264,29 @@ class PrepSingleProc():
                 #Небольшая памятка: в let назначаются правые переменные, а сослаться на них можно через $$.
                 if self.by_loc:
                         if self.coll_name_ext == 'vcf':
-                                pipeline = [{'$lookup': {'from': right_coll_name,
-                                                         'let': {'chrom': '$#CHROM', 'pos': '$POS'},
-                                                         'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
-                                                                                                     {'$eq': ['$POS', '$$pos']}]}}}],
-                                                         'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                                mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
+                                                                     'let': {'chrom': '$#CHROM', 'pos': '$POS'},
+                                                                     'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
+                                                                                                                 {'$eq': ['$POS', '$$pos']}]}}}],
+                                                                     'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                         elif self.coll_name_ext == 'bed':
-                                pipeline = [{'$lookup': {'from': right_coll_name,
-                                                         'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
-                                                         'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
-                                                                                                     {'$lt': ['$start', '$$end']},
-                                                                                                     {'$gt': ['$end', '$$start']}]}}}],
-                                                         'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                                mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
+                                                                     'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
+                                                                     'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
+                                                                                                                 {'$lt': ['$start', '$$end']},
+                                                                                                                 {'$gt': ['$end', '$$start']}]}}}],
+                                                                     'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                 else:
-                        pipeline = [{'$lookup': {'from': right_coll_name,
-                                                 'localField': self.field_name,
-                                                 'foreignField': self.field_name,
-                                                 'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
+                                                             'localField': self.field_name,
+                                                             'foreignField': self.field_name,
+                                                             'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                         
-                #Таблицы биоинформатических форматов нужно сортировать
-                #по хромосомам и позициям. Задаём правило сортировки
-                #будущего VCF или BED на уровне aggregation-пайплайна.
-                #Стадия сортировки должна идти после всех стадий
-                #объединения, иначе при выполнении джойнов будет
-                #игнорироваться индекс, что в случае работы с более
-                #менее крупными данными уничтожит производительность.
-                if self.trg_file_fmt == 'vcf':
-                        pipeline.append({"$sort": SON([('#CHROM', ASCENDING),
-                                                       ('POS', ASCENDING)])})
-                elif self.trg_file_fmt == 'bed':
-                        pipeline.append({"$sort": SON([('chrom', ASCENDING),
-                                                       ('start', ASCENDING),
-                                                       ('end', ASCENDING)])})
-                        
-                #Выполняем описанный выше пайплайн из левостороннего
-                #объединения и (для BED/VCF-форматов) сортировки. MongoDB
-                #не может использовать индекс для оптимизации сортировки
-                #уже лукапнутых документов. Поэтому во избежание превышения
-                #лимита RAM разрешаем СУБД применять внешнюю сортировку.
-                curs_obj = left_coll_obj.aggregate(pipeline, allowDiskUse=True)
+                #Выполняем пайплайн из сортировки (для db-VCF и db-BED)
+                #и левостороннего объединения. Проджекшен, если запрошен
+                #исследователем, будет потом организован отдельно -
+                #на этапе Python-фильтрации объединённых документов.
+                curs_obj = left_coll_obj.aggregate(mongo_aggregate_arg)
                 
                 #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                 #коллекция, создадим её из имён полей. Projection при этом учтём.
@@ -375,7 +372,7 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
-import sys, datetime, os
+import sys, datetime, os, copy
 
 #Подавление формирования питоновского кэша с
 #целью предотвращения искажения результатов.
