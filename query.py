@@ -1,4 +1,4 @@
-__version__ = 'v3.7'
+__version__ = 'v3.8'
 
 def add_args(ver):
         '''
@@ -65,18 +65,18 @@ class PrepSingleProc():
                 '''
                 Получение атрибутов, необходимых заточенной под многопроцессовое
                 выполнение функции отбора документов. Атрибуты ни в коем случае не
-                должны будут потом в параллельных процессах изменяться. Получаются
-                они в основном из указанных исследователем опций. Некоторые неочевидные,
+                должны будут потом в параллельных процессах изменяться. Получаются они
+                в основном из указанных исследователем аргументов. Некоторые неочевидные,
                 но важные детали об атрибутах. Квази-расширение коллекций. Оно нужно,
-                как минимум, для определения правил сортировки и форматирования
-                конечных файлов. Проджекшен (отбор полей). Для db-VCF его крайне
-                трудно реализовать из-за наличия в соответствующих коллекциях
-                разнообразных вложенных структур и запрета со стороны MongoDB на
-                применение точечной формы обращения к отбираемым элементам массивов.
-                Что касается db-BED, когда мы оставляем только часть полей, невозможно
-                гарантировать соблюдение спецификаций BED-формата, поэтому вывод будет
-                формироваться не более, чем просто табулированным (trg-TSV). Сортировка
-                BED и VCF делается по координатам для поддержки tabix-индексации.
+                как минимум, для определения правил сортировки и форматирования конечных
+                файлов. Сортировка db-VCF и db-BED. Она делается по координатам для
+                обеспечения поддержки tabix-индексации конечных таблиц. Проджекшен
+                (отбор полей). Для db-VCF его крайне трудно реализовать из-за наличия
+                в соответствующих коллекциях разнообразных вложенных структур и запрета
+                со стороны MongoDB на применение точечной формы обращения к отбираемым
+                элементам массивов. Что касается db-BED, когда мы оставляем только часть
+                полей, невозможно гарантировать соблюдение спецификаций BED-формата, поэтому
+                вывод будет формироваться не более, чем просто табулированным (trg-TSV).
                 '''
                 client = MongoClient()
                 self.db_name = args.db_name
@@ -84,6 +84,13 @@ class PrepSingleProc():
                 coll_name_ext = self.coll_names[0].rsplit('.', maxsplit=1)[1]
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
                 self.mongo_aggregate_arg = [{'$match': eval(args.mongo_query)}]
+                if coll_name_ext == 'vcf':
+                        self.mongo_aggregate_arg.append({'$sort': SON([('#CHROM', ASCENDING),
+                                                                       ('POS', ASCENDING)])})
+                elif coll_name_ext == 'bed':
+                        self.mongo_aggregate_arg.append({'$sort': SON([('chrom', ASCENDING),
+                                                                       ('start', ASCENDING),
+                                                                       ('end', ASCENDING)])})
                 if args.proj_fields is None or coll_name_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = coll_name_ext
@@ -92,13 +99,6 @@ class PrepSingleProc():
                         self.mongo_aggregate_arg.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
-                if self.trg_file_fmt == 'vcf':
-                        self.mongo_aggregate_arg.append({'$sort': SON([('#CHROM', ASCENDING),
-                                                                       ('POS', ASCENDING)])})
-                elif self.trg_file_fmt == 'bed':
-                        self.mongo_aggregate_arg.append({'$sort': SON([('chrom', ASCENDING),
-                                                                       ('start', ASCENDING),
-                                                                       ('end', ASCENDING)])})
                 if args.sec_delimiter == 'comma':
                         self.sec_delimiter = ','
                 elif args.sec_delimiter == 'semicolon':
