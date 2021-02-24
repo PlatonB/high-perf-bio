@@ -1,4 +1,4 @@
-__version__ = 'v3.3'
+__version__ = 'v3.4'
 
 class DifFmtsError(Exception):
         '''
@@ -47,7 +47,7 @@ TSV        |  Обязательно     |  Не прибавляйте 1
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}};
 src-FMT - исходные таблицы определённого формата (VCF, BED, TSV);
-db-FMT - коллекции БД, полученные из таблиц определённого формата;
+trg-db-FMT - коллекции БД, полученные из таблиц определённого формата;
 не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку;
 f1+f2+f3 - поля коллекций БД с составным индексом
 ''',
@@ -60,7 +60,7 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
                              help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-d', '--db-name', metavar='[None]', dest='db_name', type=str,
+        opt_grp.add_argument('-d', '--trg-db-name', metavar='[None]', dest='trg_db_name', type=str,
                              help='Имя создаваемой базы данных ([[имя папки со сжатыми таблицами]])')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
@@ -71,29 +71,12 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
         opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; db-VCF: принуд. проинд. #CHROM+POS и ID; db-BED: принуд. проинд. chrom+start+end и name)')
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = arg_parser.parse_args()
         return args
 
-def remove_database(db_name):
-        '''
-        Функция, дающая возможность
-        полного удаления базы данных.
-        '''
-        client = MongoClient()
-        if db_name in client.list_database_names():
-                db_to_remove = input(f'''\n{db_name} database already exists.
-To confirm database re-creation, type its name: ''')
-                if db_to_remove == db_name:
-                        client.drop_database(db_name)
-                else:
-                        print(f'\n{db_name} database will remain')
-                        client.close()
-                        sys.exit()
-        client.close()
-        
 def process_info_cell(info_cell):
         '''
         Функция преобразования ячейки INFO-столбца VCF-таблицы в список
@@ -143,7 +126,8 @@ class PrepSingleProc():
                 Получение атрибутов, необходимых заточенной под многопроцессовое
                 выполнение функции построения коллекций MongoDB с нуля. Атрибуты ни в
                 коем случае не должны будут потом в параллельных процессах изменяться.
-                Получаются они в основном из указанных исследователем опций.
+                Получаются они в основном из указанных исследователем опций. Разрешение
+                конфликта в случае существования БД с тем же именем, что и у создаваемой.
                 '''
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
                 self.src_file_names = os.listdir(self.src_dir_path)
@@ -152,10 +136,11 @@ class PrepSingleProc():
                 if len(src_file_fmts) > 1:
                         raise DifFmtsError(src_file_fmts)
                 self.src_file_fmt = list(src_file_fmts)[0]
-                if args.db_name is None:
-                        self.db_name = os.path.basename(self.src_dir_path)
+                if args.trg_db_name is None:
+                        self.trg_db_name = os.path.basename(self.src_dir_path)
                 else:
-                        self.db_name = args.db_name
+                        self.trg_db_name = args.trg_db_name
+                resolve_db_existence(self.trg_db_name)
                 self.meta_lines_quan = args.meta_lines_quan
                 self.minimal = args.minimal
                 if args.sec_delimiter is None:
@@ -176,12 +161,9 @@ class PrepSingleProc():
                         
         def create_collection(self, src_file_name):
                 '''
-                Функция создания и наполнения
-                одной MongoDB-коллекции
-                данными одного файла,
-                а также индексации
-                выбранных исследователем
-                полей этой коллекции.
+                Функция создания и наполнения одной
+                MongoDB-коллекции данными одного файла,
+                а также индексации полей этой коллекции.
                 '''
                 
                 #Набор MongoDB-объектов
@@ -190,7 +172,7 @@ class PrepSingleProc():
                 #каждого процесса, иначе
                 #возможны конфликты.
                 client = MongoClient()
-                db_obj = client[self.db_name]
+                trg_db_obj = client[self.trg_db_name]
                 
                 #Открытие исходной архивированной таблицы на чтение.
                 with gzip.open(os.path.join(self.src_dir_path, src_file_name), mode='rt') as src_file_opened:
@@ -223,10 +205,10 @@ class PrepSingleProc():
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
                         #я выбрал в качестве алгоритма сжатия Zstandard.
-                        coll_obj = db_obj.create_collection(src_file_name[:-3],
-                                                            storageEngine={'wiredTiger':
-                                                                           {'configString':
-                                                                            'block_compressor=zstd'}})
+                        coll_obj = trg_db_obj.create_collection(src_file_name[:-3],
+                                                                storageEngine={'wiredTiger':
+                                                                               {'configString':
+                                                                                'block_compressor=zstd'}})
                         
                         #Данные будут поступать в коллекцию
                         #базы одним или более фрагментами.
@@ -326,30 +308,10 @@ class PrepSingleProc():
                 if fragment_len > 0:
                         coll_obj.insert_many(fragment)
                         
-                #Независимо от того, указал исследователь имена
-                #индексируемых полей или нет, для db-VCF и db-BED
-                #индексация будет произведена по полям с локациями
-                #и основополагающими идентификаторами. Притом индексы
-                #хромосом и позиций построятся составные, что потом
-                #позволит парсерам эффективно сортировать по этим полям
-                #свои результаты. Для обозначенных исследователем
-                #полей появятся одиночные индексы. Если они придутся
-                #на хромосому или позицию db-VCF/db-BED, то будут
-                #сосуществовать с обязательным компаундным индексом.
-                if self.src_file_fmt == 'vcf':
-                        index_models = [IndexModel([('#CHROM', ASCENDING),
-                                                    ('POS', ASCENDING)]),
-                                        IndexModel([('ID', ASCENDING)])]
-                elif self.src_file_fmt == 'bed':
-                        index_models = [IndexModel([('chrom', ASCENDING),
-                                                    ('start', ASCENDING),
-                                                    ('end', ASCENDING)])]
-                        if 'name' in coll_obj.find_one():
-                                index_models.append(IndexModel([('name', ASCENDING)]))
-                else:
-                        index_models = []
-                if self.ind_col_names is not None:
-                        index_models += [IndexModel([(ind_col_name, ASCENDING)]) for ind_col_name in self.ind_col_names]
+                #Создание обязательных и (при наличии
+                #таковых) пользовательских индексов.
+                index_models = create_index_models(self.src_file_fmt,
+                                                   self.ind_col_names)
                 if index_models != []:
                         coll_obj.create_indexes(index_models)
                         
@@ -365,19 +327,19 @@ import sys, os, datetime, gzip
 sys.dont_write_bytecode = True
 
 from argparse import ArgumentParser, RawTextHelpFormatter
-from pymongo import MongoClient, IndexModel, ASCENDING
+from pymongo import MongoClient
+from backend.resolve_db_existence import resolve_db_existence
 from multiprocessing import Pool
 from backend.def_data_type import def_data_type
+from backend.create_index_models import create_index_models
 
 #Подготовительный этап: обработка
-#аргументов командной строки, создание
-#экземпляра содержащего ключевую функцию
-#класса, удаление старой базы, определение
+#аргументов командной строки,
+#создание экземпляра содержащего
+#ключевую функцию класса, определение
 #оптимального количества процессов.
 args = add_args(__version__)
 prep_single_proc = PrepSingleProc(args)
-db_name = prep_single_proc.db_name
-remove_database(db_name)
 max_proc_quan = args.max_proc_quan
 src_file_names = prep_single_proc.src_file_names
 src_files_quan = len(src_file_names)
@@ -388,7 +350,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nReplenishment and indexing {db_name} database')
+print(f'\nReplenishment and indexing {prep_single_proc.trg_db_name} database')
 print(f'\tnumber of parallel processes: {proc_quan}')
 
 #Параллельный запуск создания коллекций. Замер времени
