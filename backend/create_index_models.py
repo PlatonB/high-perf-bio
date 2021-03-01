@@ -1,8 +1,8 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from pymongo import IndexModel, ASCENDING
 
-def create_index_models(coll_name_ext, ind_col_names):
+def create_index_models(coll_name_ext, ind_field_names):
         '''
         Функция не индексирует, а лишь готовит руководящие индексацией
         IndexModel-объекты. В случае db-VCF и db-BED, независимо от того,
@@ -29,6 +29,6 @@ def create_index_models(coll_name_ext, ind_col_names):
                                 IndexModel([('name', ASCENDING)])]
         else:
                 index_models = []
-        if ind_col_names is not None:
-                index_models += [IndexModel([(ind_col_name, ASCENDING)]) for ind_col_name in ind_col_names]
+        if ind_field_names is not None:
+                index_models += [IndexModel([(ind_field_name, ASCENDING)]) for ind_field_name in ind_field_names]
         return index_models

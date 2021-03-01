@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from pymongo import MongoClient
 
@@ -17,8 +17,9 @@ source) database is not supported yet'''
                 
 def resolve_db_existence(db_name):
         '''
-        Функция, дающая возможность
-        полного удаления базы данных.
+        Функция, дающая возможность удаления базы
+        данных в случае конфликта имён. Учтите,
+        что защиты от удаления исходной БД тут нет.
         '''
         client = MongoClient()
         if db_name in client.list_database_names():
