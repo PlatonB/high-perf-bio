@@ -1,4 +1,4 @@
-__version__ = 'v4.4'
+__version__ = 'v5.0'
 
 class DifFmtsError(Exception):
         '''
@@ -18,7 +18,7 @@ class ByLocTsvError(Exception):
         из этих двух мест витал вольноформатный дух.
         '''
         def __init__(self):
-                err_msg = '\nIntersection by location is not possible for src-TSV or db-TSV'
+                err_msg = '\nIntersection by location is not possible for src-TSV or src-db-TSV'
                 super().__init__(err_msg)
                 
 def add_args(ver):
@@ -54,10 +54,12 @@ def add_args(ver):
 [значение по умолчанию на этапе парсинга аргументов];
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}};
-src-FMT - аннотируемые таблицы определённого формата (VCF, BED, TSV);
-db-FMT - коллекции БД, полученные из таблиц определённого формата;
+src-FMT - аннотируемые таблицы определённого формата;
+scr/trg-db-FMT - исходная/конечная БД с коллекциями,
+соответствующими по структуре таблицам определённого формата;
 trg-FMT - конечные таблицы определённого формата;
-не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку
+не применяется - при обозначенных условиях
+аргумент проигнорируется или вызовет ошибку
 ''',
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
@@ -67,23 +69,25 @@ trg-FMT - конечные таблицы определённого форма�
         man_grp = arg_parser.add_argument_group('Обязательные аргументы')
         man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
                              help='Путь к папке со сжатыми аннотируемыми таблицами')
-        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+        man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Имя БД, по которой аннотировать')
+        man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
+                             help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-t', '--trg-top-dir-path', metavar='[None]', dest='trg_top_dir_path', type=str,
-                             help='Путь к папке для результатов ([[путь к исходной папке]])')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
-                             help='Пересекать по геномной локации (экспериментальная фича; src-TSV, db-TSV: не применяется)')
+                             help='Пересекать по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
-                             help='Номер аннотируемого столбца (применяется без -l; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                             help='Номер аннотируемого столбца (применяется без -n; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
         opt_grp.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
-                             help='Имя поля БД, по которому аннотировать (применяется без -l; db-VCF: [[ID]]; db-BED: [[name]]; db-TSV: [[rsID]])')
+                             help='Имя поля БД, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; db-VCF: не применяется; db-BED: trg-TSV; поле _id не выведется)')
+                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (trg-BED): не применяется)')
+                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-(db-)BED): не применяется)')
+        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно аннотируемых таблиц')
         args = arg_parser.parse_args()
@@ -99,19 +103,19 @@ class PrepSingleProc():
                 Получение атрибутов, необходимых заточенной под многопроцессовое выполнение
                 функции пересечения данных исходного файла с данными из базы. Атрибуты ни в
                 коем случае не должны будут потом в параллельных процессах изменяться. Получаются
-                они в основном из указанных исследователем аргументов. Немного о наиболее
-                значимых атрибутах. Расширение исходных таблиц и квази-расширение коллекций
-                нужны, как минимум, для выбора формат-ориентированного пересекательного запроса,
-                определения правил сортировки и форматирования конечных файлов. Умолчания по столбцам
-                и полям выбраны на основе здравого смысла: к примеру, аннотировать src-VCF по db-VCF
-                или db-BED логично, пересекая столбец и поле, оба из которых с идентификаторами
-                вариантов. Сортировка db-VCF и db-BED делается по координатам для обеспечения поддержки
-                tabix-индексации конечных таблиц. Важные замечания по проджекшену. Для db-VCF его
-                крайне трудно реализовать из-за наличия в соответствующих коллекциях разнообразных
-                вложенных структур и запрета со стороны MongoDB на применение точечной формы
-                обращения к отбираемым элементам массивов. Что касается db-BED, когда мы оставляем
-                только часть полей, невозможно гарантировать соблюдение спецификаций BED-формата,
-                поэтому вывод будет формироваться не более, чем просто табулированным (trg-TSV).
+                они в основном из указанных исследователем аргументов. Немного о наиболее значимых
+                атрибутах. Расширение исходных таблиц и квази-расширение коллекций нужны, как минимум,
+                для выбора формат-ориентированного пересекательного запроса, определения правил
+                сортировки и форматирования конечных файлов. Умолчания по столбцам и полям выбраны
+                на основе здравого смысла: к примеру, аннотировать src-VCF по src-db-VCF или src-db-BED
+                логично, пересекая столбец и поле, оба из которых с идентификаторами вариантов. Сортировка
+                src-db-VCF и src-db-BED делается по координатам для обеспечения поддержки tabix-индексации
+                конечных таблиц. Важные замечания по проджекшену. Для src-db-VCF его крайне трудно
+                реализовать из-за наличия в соответствующих коллекциях разнообразных вложенных структур
+                и запрета со стороны MongoDB на применение точечной формы обращения к отбираемым
+                элементам массивов. Что касается src-db-BED, когда мы оставляем только часть
+                полей, невозможно гарантировать соблюдение спецификаций BED-формата, поэтому
+                вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
                 '''
                 client = MongoClient()
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
@@ -121,17 +125,20 @@ class PrepSingleProc():
                 if len(src_file_fmts) > 1:
                         raise DifFmtsError(src_file_fmts)
                 self.src_file_fmt = list(src_file_fmts)[0]
-                self.db_name = args.db_name
-                self.coll_names = client[self.db_name].list_collection_names()
-                self.coll_name_ext = self.coll_names[0].rsplit('.', maxsplit=1)[1]
-                if args.trg_top_dir_path is None:
-                        self.trg_top_dir_path = self.src_dir_path
+                self.src_db_name = args.src_db_name
+                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                if '/' in args.trg_place:
+                        self.trg_dir_path = os.path.normpath(args.trg_place)
+                elif args.trg_place != self.src_db_name:
+                        self.trg_db_name = args.trg_place
+                        resolve_db_existence(self.trg_db_name)
                 else:
-                        self.trg_top_dir_path = os.path.normpath(args.trg_top_dir_path)
+                        raise DbAlreadyExistsError()
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
                 if self.by_loc:
-                        if self.src_file_fmt not in ['vcf', 'bed'] or self.coll_name_ext not in ['vcf', 'bed']:
+                        if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
                         self.mongo_aggregate_draft = [{'$match': {'$or': []}}]
                 else:
@@ -145,25 +152,25 @@ class PrepSingleProc():
                         else:
                                 self.ann_col_index = args.ann_col_num - 1
                         if args.ann_field_name is None:
-                                if self.coll_name_ext == 'vcf':
+                                if self.src_coll_ext == 'vcf':
                                         self.ann_field_name = 'ID'
-                                elif self.coll_name_ext == 'bed':
+                                elif self.src_coll_ext == 'bed':
                                         self.ann_field_name = 'name'
                                 else:
                                         self.ann_field_name = 'rsID'
                         else:
                                 self.ann_field_name = args.ann_field_name
                         self.mongo_aggregate_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
-                if self.coll_name_ext == 'vcf':
+                if self.src_coll_ext == 'vcf':
                         self.mongo_aggregate_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                          ('POS', ASCENDING)])})
-                elif self.coll_name_ext == 'bed':
+                elif self.src_coll_ext == 'bed':
                         self.mongo_aggregate_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                          ('start', ASCENDING),
                                                                          ('end', ASCENDING)])})
-                if args.proj_fields is None or self.coll_name_ext == 'vcf':
+                if args.proj_fields is None or self.src_coll_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
-                        self.trg_file_fmt = self.coll_name_ext
+                        self.trg_file_fmt = self.src_coll_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
                         self.mongo_aggregate_draft.append({'$project': mongo_project})
@@ -177,6 +184,10 @@ class PrepSingleProc():
                         self.sec_delimiter = ':'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                if args.ind_field_names is None:
+                        self.ind_field_names = args.ind_field_names
+                else:
+                        self.ind_field_names = args.ind_field_names.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -193,7 +204,7 @@ class PrepSingleProc():
                 #каждого процесса, иначе
                 #возможны конфликты.
                 client = MongoClient()
-                db_obj = client[self.db_name]
+                src_db_obj = client[self.src_db_name]
                 
                 #Открытие исходной архивированной таблицы на чтение, смещение курсора к её основной части.
                 with gzip.open(os.path.join(self.src_dir_path, src_file_name), mode='rt') as src_file_opened:
@@ -214,114 +225,132 @@ class PrepSingleProc():
                         #БД для каждого значения устанавливался оптимальный тип данных. При работе с MongoDB
                         #важно соблюдать соответствие типа данных запрашиваемого слова и размещённых в базе
                         #значений. Для этого присвоим подходящий тип данных каждому аннотируемому элементу.
-                        mongo_aggregate_arg = copy.deepcopy(self.mongo_aggregate_draft)
+                        mongo_aggr_arg = copy.deepcopy(self.mongo_aggregate_draft)
                         for src_line in src_file_opened:
                                 src_row = src_line.rstrip().split('\t')
                                 if self.by_loc:
                                         if self.src_file_fmt == 'vcf':
                                                 src_chrom, src_pos = def_data_type(src_row[0].replace('chr', '')), int(src_row[1])
-                                                if self.coll_name_ext == 'vcf':
-                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
-                                                                                                        'POS': src_pos})
-                                                elif self.coll_name_ext == 'bed':
-                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'chrom': src_chrom,
-                                                                                                        'start': {'$lt': src_pos},
-                                                                                                        'end': {'$gte': src_pos}})
+                                                if self.src_coll_ext == 'vcf':
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
+                                                                                                   'POS': src_pos})
+                                                elif self.src_coll_ext == 'bed':
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom,
+                                                                                                   'start': {'$lt': src_pos},
+                                                                                                   'end': {'$gte': src_pos}})
                                         elif self.src_file_fmt == 'bed':
                                                 src_chrom, src_start, src_end = def_data_type(src_row[0].replace('chr', '')), int(src_row[1]), int(src_row[2])
-                                                if self.coll_name_ext == 'vcf':
-                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
-                                                                                                        'POS': {'$gt': src_start,
-                                                                                                                '$lte': src_end}})
-                                                elif self.coll_name_ext == 'bed':
-                                                        mongo_aggregate_arg[0]['$match']['$or'].append({'chrom': src_chrom,
-                                                                                                        'start': {'$lt': src_end},
-                                                                                                        'end': {'$gt': src_start}})
+                                                if self.src_coll_ext == 'vcf':
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
+                                                                                                   'POS': {'$gt': src_start,
+                                                                                                           '$lte': src_end}})
+                                                elif self.src_coll_ext == 'bed':
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom,
+                                                                                                   'start': {'$lt': src_end},
+                                                                                                   'end': {'$gt': src_start}})
                                 else:
-                                        mongo_aggregate_arg[0]['$match'][self.ann_field_name]['$in'].append(def_data_type(src_row[self.ann_col_index]))
+                                        mongo_aggr_arg[0]['$match'][self.ann_field_name]['$in'].append(def_data_type(src_row[self.ann_col_index]))
                                         
-                #Построение имени подпапки для результатов работы
-                #над текущим исходным файлом и пути к этой подпапке.
+                #Название исходной коллекции (без квазирасширения) потом
+                #пригодится для построения имени конечного файла или коллекции.
                 src_file_base = src_file_name.rsplit('.', maxsplit=2)[0]
-                trg_dir_path = os.path.join(self.trg_top_dir_path,
-                                            f'{src_file_base}_ann')
                 
-                #Обработка каждой исходной
-                #таблицы производится по всем
-                #коллекциям MongoDB-базы. Т.е.
-                #даже, если по одной из коллекций
-                #уже получились результаты, обход
-                #будет продолжаться и завершится лишь
-                #после обращения к последней коллекции.
-                for coll_name in self.coll_names:
+                #Этот большой блок осуществляет
+                #запрос с выводом результатов в файл.
+                if hasattr(self, 'trg_dir_path'):
                         
-                        #Создание двух объектов: текущей коллекции и курсора.
-                        coll_obj = db_obj[coll_name]
-                        curs_obj = coll_obj.aggregate(mongo_aggregate_arg)
-                        
-                        #Чтобы шапка повторяла шапку той таблицы, по которой делалась
-                        #коллекция, создадим её из имён полей. Projection при этом учтём.
-                        #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
-                        #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                        header_row = list(coll_obj.find_one(*self.mongo_findone_args))[1:]
-                        if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                header_row.insert(8, 'FORMAT')
-                        header_line = '\t'.join(header_row)
-                        
-                        #Создание конечной подпапки. Не факт,
-                        #что она просуществует до окончания
-                        #выполнения программы, т.к. за отсутствие
-                        #в ней результатов полагается удаление.
-                        if not os.path.exists(trg_dir_path):
-                                os.mkdir(trg_dir_path)
+                        #Обработка каждой исходной
+                        #таблицы производится по всем
+                        #коллекциям MongoDB-базы. Т.е.
+                        #даже, если по одной из коллекций
+                        #уже получились результаты, обход
+                        #будет продолжаться и завершится лишь
+                        #после обращения к последней коллекции.
+                        for src_coll_name in self.src_coll_names:
                                 
-                        #Конструируем имя конечного файла и абсолютный путь к этому файлу.
-                        coll_name_base = coll_name.rsplit('.', maxsplit=1)[0]
-                        trg_file_name = f'{src_file_base}_ann_by_{coll_name_base}.{self.trg_file_fmt}'
-                        trg_file_path = os.path.join(trg_dir_path, trg_file_name)
-                        
-                        #Открытие конечного файла на запись.
-                        with open(trg_file_path, 'w') as trg_file_opened:
+                                #Создание двух объектов: текущей коллекции и курсора.
+                                src_coll_obj = src_db_obj[src_coll_name]
+                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
                                 
-                                #Формируем и прописываем метастроки,
-                                #повествующие о происхождении конечного
-                                #файла. Прописываем также табличную шапку.
-                                if self.trg_file_fmt == 'vcf':
-                                        trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                                trg_file_opened.write(f'##table={src_file_name}\n')
-                                trg_file_opened.write(f'##database={self.db_name}\n')
-                                trg_file_opened.write(f'##collection={coll_name}\n')
-                                if not self.by_loc:
-                                        trg_file_opened.write(f'##field={self.ann_field_name}\n')
-                                if self.mongo_findone_args[1] is not None:
-                                        trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
-                                trg_file_opened.write(header_line + '\n')
+                                #Чтобы шапка повторяла шапку той таблицы, по которой делалась
+                                #коллекция, создадим её из имён полей. Projection при этом учтём.
+                                #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
+                                #есть поля с генотипами, то шапка дополнится элементом FORMAT.
+                                header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                                if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
+                                        header_row.insert(8, 'FORMAT')
+                                header_line = '\t'.join(header_row)
                                 
-                                #Извлечение из объекта курсора отвечающих запросу документов,
-                                #преобразование их значений в обычные строки и прописывание
-                                #последних в конечный файл. Проверка, вылез ли по запросу хоть
-                                #один документ. В аннотируемый набор затесались одинаковые элементы?
-                                #Ничего страшного - СУБД подготовит результат только для одного из них.
-                                #Также поступает BedTools, если к команде пересечения добавить опцию -u.
-                                empty_res = True
-                                for doc in curs_obj:
-                                        trg_file_opened.write(restore_line(doc,
-                                                                           self.trg_file_fmt,
-                                                                           self.sec_delimiter))
-                                        empty_res = False
+                                #Конструируем имя конечного файла и абсолютный путь к этому файлу.
+                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
+                                trg_file_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}'
+                                trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
+                                
+                                #Открытие конечного файла на запись.
+                                with open(trg_file_path, 'w') as trg_file_opened:
                                         
-                        #Удаление конечного файла, если в
-                        #нём очутились только метастроки.
-                        if empty_res:
-                                os.remove(trg_file_path)
+                                        #Формируем и прописываем метастроки,
+                                        #повествующие о происхождении конечного
+                                        #файла. Прописываем также табличную шапку.
+                                        if self.trg_file_fmt == 'vcf':
+                                                trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
+                                        trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                        trg_file_opened.write(f'##table={src_file_name}\n')
+                                        trg_file_opened.write(f'##database={self.src_db_name}\n')
+                                        trg_file_opened.write(f'##collection={src_coll_name}\n')
+                                        if not self.by_loc:
+                                                trg_file_opened.write(f'##field={self.ann_field_name}\n')
+                                        if self.mongo_findone_args[1] is not None:
+                                                trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
+                                        trg_file_opened.write(header_line + '\n')
+                                        
+                                        #Извлечение из объекта курсора отвечающих запросу документов,
+                                        #преобразование их значений в обычные строки и прописывание
+                                        #последних в конечный файл. Проверка, вылез ли по запросу хоть
+                                        #один документ. В аннотируемый набор затесались одинаковые элементы?
+                                        #Ничего страшного - СУБД подготовит результат только для одного из них.
+                                        #Также поступает BedTools, если к команде пересечения добавить опцию -u.
+                                        empty_res = True
+                                        for doc in curs_obj:
+                                                trg_file_opened.write(restore_line(doc,
+                                                                                   self.trg_file_fmt,
+                                                                                   self.sec_delimiter))
+                                                empty_res = False
+                                                
+                                #Удаление конечного файла, если в
+                                #нём очутились только метастроки.
+                                if empty_res:
+                                        os.remove(trg_file_path)
+                                        
+                #Создание конечной базы и коллекций. При
+                #работе с каждой исходной коллекцией делается
+                #обогащение aggregation-инструкции этапом
+                #вывода в конечную коллекцию. Последняя,
+                #если не пополнилась результатами, удаляется.
+                #Для непустых конечных коллекций создаются
+                #обязательные и пользовательские индексы.
+                elif hasattr(self, 'trg_db_name'):
+                        trg_db_obj = client[self.trg_db_name]
+                        for src_coll_name in self.src_coll_names:
+                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
+                                trg_coll_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}'
+                                src_coll_obj = src_db_obj[src_coll_name]
+                                trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
+                                                                            storageEngine={'wiredTiger':
+                                                                                           {'configString':
+                                                                                            'block_compressor=zstd'}})
+                                mongo_aggr_arg.append({'$out': {'db': self.trg_db_name,
+                                                                'coll': trg_coll_name}})
+                                src_coll_obj.aggregate(mongo_aggr_arg)
+                                if trg_coll_obj.count_documents({}) == 0:
+                                        trg_db_obj.drop_collection(trg_coll_name)
+                                else:
+                                        index_models = create_index_models(self.trg_file_fmt,
+                                                                           self.ind_field_names)
+                                        if index_models != []:
+                                                trg_coll_obj.create_indexes(index_models)
+                                del mongo_aggr_arg[-1]
                                 
-                #Удаление оставшейся пустой подпапки.
-                try:
-                        os.rmdir(trg_dir_path)
-                except OSError:
-                        pass
-                
                 #Дисконнект.
                 client.close()
                 
@@ -335,10 +364,12 @@ sys.dont_write_bytecode = True
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, ASCENDING
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from multiprocessing import Pool
 from bson.son import SON
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
+from backend.create_index_models import create_index_models
 
 #Подготовительный этап: обработка
 #аргументов командной строки,
@@ -360,7 +391,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nAnnotation by {prep_single_proc.db_name} database')
+print(f'\nAnnotation by {prep_single_proc.src_db_name} database')
 print(f'\tnumber of parallel processes: {proc_quan}')
 
 #Параллельный запуск аннотирования. Замер времени
