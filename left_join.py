@@ -1,4 +1,4 @@
-__version__ = 'v6.2'
+__version__ = 'v6.3'
 
 class NotEnoughCollsError(Exception):
         '''
@@ -21,7 +21,7 @@ class ByLocTsvError(Exception):
         '''
         def __init__(self):
                 err_msg = '''\nIntersection or subtraction by
-location is not possible for db-TSV'''
+location is not possible for src-db-TSV'''
                 super().__init__(err_msg)
                 
 def add_args(ver):
@@ -92,21 +92,23 @@ def add_args(ver):
 Пересечение и вычитание по геномной локации.
 - актуальны все написанные выше разъяснения,
 касающиеся работы с единичным полем;
-- db-BED: стартовая координата каждого
+- src-db-BED: стартовая координата каждого
 интервала - 0-based, т.е. равна
 истинному номеру нуклеотида минус 1;
-- db-BED: левые интервалы попадают
+- src-db-BED: левые интервалы попадают
 в результаты в неизменном виде.
-- db-BED: баг - неприлично низкая
+- src-db-BED: баг - неприлично низкая
 скорость вычислений (Issue #7);
 
 Условные обозначения в справке по CLI:
 [значение по умолчанию на этапе парсинга аргументов];
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}};
-db-FMT - коллекции БД, полученные из таблиц определённого формата;
+src-db-FMT - исходная БД с коллекциями, соответствующими
+по структуре таблицам определённого формата;
 trg-FMT - конечные таблицы определённого формата;
-не применяется - при обозначенных условиях аргумент проигнорируется или вызовет ошибку.
+не применяется - при обозначенных условиях
+аргумент проигнорируется или вызовет ошибку.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -114,7 +116,7 @@ trg-FMT - конечные таблицы определённого форма�
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Вывести справку и выйти')
         man_grp = arg_parser.add_argument_group('Обязательные аргументы')
-        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+        man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Имя БД, по которой выполнять работу')
         man_grp.add_argument('-T', '--trg-dir-path', required=True, metavar='str', dest='trg_dir_path', type=str,
                              help='Путь к папке для результатов')
@@ -124,17 +126,17 @@ trg-FMT - конечные таблицы определённого форма�
         opt_grp.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                              help='Имена правых коллекций (через запятую без пробела; [[все коллекции БД]]; правая, совпадающая с текущей левой, проигнорируется)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
-                             help='Пересекать или вычитать по геномной локации (экспериментальная фича; db-TSV: не применяется)')
+                             help='Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется)')
         opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                             help='Имя поля, по которому пересекать или вычитать (применяется без -n; db-VCF: [[ID]]; db-BED: [[name]], db-TSV: [[rsID]])')
+                             help='Имя поля, по которому пересекать или вычитать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[rsID]])')
         opt_grp.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                              help='{intersect, subtract} Пересекать или вычитать')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
                              help='Охват (1 <= c <= количество правых коллекций; 0 - приравнять к количеству правых; уменьшится на 1 при любом совпадении правых и левых)')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; db-VCF: не применяется; db-BED: trg-TSV; поле _id не выведется)')
+                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (db-VCF, db-BED (trg-BED): не применяется)')
+                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно обрабатываемых левых коллекций')
         args = arg_parser.parse_args()
@@ -162,34 +164,34 @@ class PrepSingleProc():
                 список правых, не поглядывающих налево. Пересекаемое/вычитаемое
                 поле по-умолчанию. Оно подобрано на основании здравого смысла. К
                 примеру, вряд ли придёт в голову пересекать VCF по полю, отличному
-                от ID. Проджекшен (отбор полей). Для db-VCF его крайне трудно
+                от ID. Проджекшен (отбор полей). Для src-db-VCF его крайне трудно
                 реализовать из-за наличия в соответствующих коллекциях разнообразных
-                вложенных структур и запрета со стороны MongoDB на применение
-                точечной формы обращения к отбираемым элементам массивов. Что
-                касается db-BED, когда мы оставляем только часть полей, невозможно
+                вложенных структур и запрета со стороны MongoDB на применение точечной
+                формы обращения к отбираемым элементам массивов. Что касается
+                src-db-BED, когда мы оставляем только часть полей, невозможно
                 гарантировать соблюдение спецификаций BED-формата, поэтому вывод
                 будет формироваться не более, чем просто табулированным (trg-TSV).
                 '''
                 client = MongoClient()
-                self.db_name = args.db_name
-                self.coll_names = client[self.db_name].list_collection_names()
-                if len(self.coll_names) < 2:
+                self.src_db_name = args.src_db_name
+                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                if len(self.src_coll_names) < 2:
                         raise NotEnoughCollsError()
-                self.coll_name_ext = self.coll_names[0].rsplit('.', maxsplit=1)[1]
-                if self.coll_name_ext == 'vcf':
-                        self.mongo_aggregate_draft = [{'$sort': SON([('#CHROM', ASCENDING),
-                                                                     ('POS', ASCENDING)])}]
-                elif self.coll_name_ext == 'bed':
-                        self.mongo_aggregate_draft = [{'$sort': SON([('chrom', ASCENDING),
-                                                                     ('start', ASCENDING),
-                                                                     ('end', ASCENDING)])}]
+                self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                if self.src_coll_ext == 'vcf':
+                        self.mongo_aggr_draft = [{'$sort': SON([('#CHROM', ASCENDING),
+                                                                ('POS', ASCENDING)])}]
+                elif self.src_coll_ext == 'bed':
+                        self.mongo_aggr_draft = [{'$sort': SON([('chrom', ASCENDING),
+                                                                ('start', ASCENDING),
+                                                                ('end', ASCENDING)])}]
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
                 if args.left_coll_names is None:
-                        self.left_coll_names = set(self.coll_names)
+                        self.left_coll_names = set(self.src_coll_names)
                 else:
                         self.left_coll_names = set(args.left_coll_names.split(','))
                 if args.right_coll_names is None:
-                        self.right_coll_names = set(self.coll_names)
+                        self.right_coll_names = set(self.src_coll_names)
                 else:
                         self.right_coll_names = set(args.right_coll_names.split(','))
                 if len(self.right_coll_names & self.left_coll_names) == 0:
@@ -198,12 +200,12 @@ class PrepSingleProc():
                         right_colls_quan = len(self.right_coll_names) - 1
                 self.by_loc = args.by_loc
                 if self.by_loc:
-                        if self.coll_name_ext not in ['vcf', 'bed']:
+                        if self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
                 elif args.field_name is None:
-                        if self.coll_name_ext == 'vcf':
+                        if self.src_coll_ext == 'vcf':
                                 self.field_name = 'ID'
-                        elif self.coll_name_ext == 'bed':
+                        elif self.src_coll_ext == 'bed':
                                 self.field_name = 'name'
                         else:
                                 self.field_name = 'rsID'
@@ -214,9 +216,9 @@ class PrepSingleProc():
                         self.coverage = right_colls_quan
                 else:
                         self.coverage = args.coverage
-                if args.proj_fields is None or self.coll_name_ext == 'vcf':
+                if args.proj_fields is None or self.src_coll_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
-                        self.trg_file_fmt = self.coll_name_ext
+                        self.trg_file_fmt = self.src_coll_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
                         self.mongo_findone_args = [None, mongo_project]
@@ -246,12 +248,12 @@ class PrepSingleProc():
                 #каждого процесса, иначе
                 #возможны конфликты.
                 client = MongoClient()
-                db_obj = client[self.db_name]
-                left_coll_obj = db_obj[left_coll_name]
+                src_db_obj = client[self.src_db_name]
+                left_coll_obj = src_db_obj[left_coll_name]
                 
                 #Дальнейшее построение пайплайна будет вестись
                 #в пределах каждого процесса по-своему.
-                mongo_aggregate_arg = copy.deepcopy(self.mongo_aggregate_draft)
+                mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
                 
                 #Предотвращение возможной попытки агрегации коллекции самой с собой. Сортировка имён правых
                 #коллекций для большей читабельности их списка в метастроке будущего конечного файла.
@@ -263,34 +265,34 @@ class PrepSingleProc():
                 #Механизм пересечения и вычитания через левосторонее объединение я красочно описал в ридми.
                 #Небольшая памятка: в let назначаются правые переменные, а сослаться на них можно через $$.
                 if self.by_loc:
-                        if self.coll_name_ext == 'vcf':
-                                mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
-                                                                     'let': {'chrom': '$#CHROM', 'pos': '$POS'},
-                                                                     'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
-                                                                                                                 {'$eq': ['$POS', '$$pos']}]}}}],
-                                                                     'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
-                        elif self.coll_name_ext == 'bed':
-                                mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
-                                                                     'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
-                                                                     'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
-                                                                                                                 {'$lt': ['$start', '$$end']},
-                                                                                                                 {'$gt': ['$end', '$$start']}]}}}],
-                                                                     'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        if self.src_coll_ext == 'vcf':
+                                mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                                'let': {'chrom': '$#CHROM', 'pos': '$POS'},
+                                                                'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
+                                                                                                            {'$eq': ['$POS', '$$pos']}]}}}],
+                                                                'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        elif self.src_coll_ext == 'bed':
+                                mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                                'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
+                                                                'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
+                                                                                                            {'$lt': ['$start', '$$end']},
+                                                                                                            {'$gt': ['$end', '$$start']}]}}}],
+                                                                'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                 else:
-                        mongo_aggregate_arg += [{'$lookup': {'from': right_coll_name,
-                                                             'localField': self.field_name,
-                                                             'foreignField': self.field_name,
-                                                             'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                        'localField': self.field_name,
+                                                        'foreignField': self.field_name,
+                                                        'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                         
-                #Выполняем пайплайн из сортировки (для db-VCF и db-BED)
+                #Выполняем пайплайн из сортировки (для src-db-VCF и src-db-BED)
                 #и левостороннего объединения. Проджекшен, если запрошен
                 #исследователем, будет потом организован отдельно -
                 #на этапе Python-фильтрации объединённых документов.
-                curs_obj = left_coll_obj.aggregate(mongo_aggregate_arg)
+                curs_obj = left_coll_obj.aggregate(mongo_aggr_arg)
                 
                 #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                 #коллекция, создадим её из имён полей. Projection при этом учтём.
-                #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
+                #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
                 #есть поля с генотипами, то шапка дополнится элементом FORMAT.
                 header_row = list(left_coll_obj.find_one(*self.mongo_findone_args))[1:]
                 if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
@@ -300,8 +302,8 @@ class PrepSingleProc():
                 #Конструируем имя конечного файла и абсолютный путь к этому файлу.
                 #Происхождение имени файла от имени левой коллекции будет указывать на
                 #то, что все данные, попадающие в файл, берутся исключительно из неё.
-                left_coll_name_base = left_coll_name.rsplit('.', maxsplit=1)[0]
-                trg_file_name = f'{left_coll_name_base}_{self.action[:3]}_res_c_{self.coverage}.{self.trg_file_fmt}'
+                left_coll_base = left_coll_name.rsplit('.', maxsplit=1)[0]
+                trg_file_name = f'{left_coll_base}_{self.action[:3]}_res_c_{self.coverage}.{self.trg_file_fmt}'
                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                 
                 #Открытие конечного файла на запись.
@@ -313,7 +315,7 @@ class PrepSingleProc():
                         if self.trg_file_fmt == 'vcf':
                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
                         trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                        trg_file_opened.write(f'##database={self.db_name}\n')
+                        trg_file_opened.write(f'##database={self.src_db_name}\n')
                         trg_file_opened.write(f'##leftCollection={left_coll_name}\n')
                         trg_file_opened.write(f'##rightCollections=<{",".join(right_coll_names)}>\n')
                         if not self.by_loc:
@@ -401,7 +403,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\n{prep_single_proc.action}ing collections of {prep_single_proc.db_name} database')
+print(f'\n{prep_single_proc.action}ing collections of {prep_single_proc.src_db_name} database')
 print(f'\tcoverage: {prep_single_proc.coverage}')
 print(f'\tnumber of parallel processes: {proc_quan}')
 
