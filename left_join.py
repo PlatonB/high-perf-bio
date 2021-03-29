@@ -1,4 +1,4 @@
-__version__ = 'v6.3'
+__version__ = 'v7.0'
 
 class NotEnoughCollsError(Exception):
         '''
@@ -132,7 +132,7 @@ trg-FMT - конечные таблицы определённого форма�
         opt_grp.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                              help='{intersect, subtract} Пересекать или вычитать')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
-                             help='Охват (1 <= c <= количество правых коллекций; 0 - приравнять к количеству правых; уменьшится на 1 при любом совпадении правых и левых)')
+                             help='Охват (1 <= c <= количество правых; 0 - приравнять к количеству правых; вычтется 1, если правые и левые совпадают при 1 < c = количество правых)')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
                              help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
@@ -185,6 +185,8 @@ class PrepSingleProc():
                         self.mongo_aggr_draft = [{'$sort': SON([('chrom', ASCENDING),
                                                                 ('start', ASCENDING),
                                                                 ('end', ASCENDING)])}]
+                else:
+                        self.mongo_aggr_draft = []
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
                 if args.left_coll_names is None:
                         self.left_coll_names = set(self.src_coll_names)
@@ -194,10 +196,7 @@ class PrepSingleProc():
                         self.right_coll_names = set(self.src_coll_names)
                 else:
                         self.right_coll_names = set(args.right_coll_names.split(','))
-                if len(self.right_coll_names & self.left_coll_names) == 0:
-                        right_colls_quan = len(self.right_coll_names)
-                else:
-                        right_colls_quan = len(self.right_coll_names) - 1
+                right_colls_quan = len(self.right_coll_names)
                 self.by_loc = args.by_loc
                 if self.by_loc:
                         if self.src_coll_ext not in ['vcf', 'bed']:
@@ -216,6 +215,9 @@ class PrepSingleProc():
                         self.coverage = right_colls_quan
                 else:
                         self.coverage = args.coverage
+                if len(self.right_coll_names & self.left_coll_names) > 0 \
+                   and 1 < self.coverage == right_colls_quan:
+                        self.coverage -= 1
                 if args.proj_fields is None or self.src_coll_ext == 'vcf':
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = self.src_coll_ext
@@ -260,115 +262,120 @@ class PrepSingleProc():
                 right_coll_names = sorted(filter(lambda right_coll_name: right_coll_name != left_coll_name,
                                                  self.right_coll_names))
                 
-                #Дефолтное либо кастомное поле, по которому потом выполнится left join, утверждено ещё
-                #при инициализации атрибутов. В этом блоке кода находят своё место 3 возможных запроса.
-                #Механизм пересечения и вычитания через левосторонее объединение я красочно описал в ридми.
-                #Небольшая памятка: в let назначаются правые переменные, а сослаться на них можно через $$.
-                if self.by_loc:
-                        if self.src_coll_ext == 'vcf':
+                #Если правая коллекция лишь одна
+                #и при этом совпадает с текущей
+                #левой, то процесс будет прерван.
+                if right_coll_names != []:
+                        
+                        #Дефолтное либо кастомное поле, по которому потом выполнится left join, утверждено ещё
+                        #при инициализации атрибутов. В этом блоке кода находят своё место 3 возможных запроса.
+                        #Механизм пересечения и вычитания через левосторонее объединение я красочно описал в ридми.
+                        #Небольшая памятка: в let назначаются правые переменные, а сослаться на них можно через $$.
+                        if self.by_loc:
+                                if self.src_coll_ext == 'vcf':
+                                        mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                                        'let': {'chrom': '$#CHROM', 'pos': '$POS'},
+                                                                        'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
+                                                                                                                    {'$eq': ['$POS', '$$pos']}]}}}],
+                                                                        'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                                elif self.src_coll_ext == 'bed':
+                                        mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                                        'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
+                                                                        'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
+                                                                                                                    {'$lt': ['$start', '$$end']},
+                                                                                                                    {'$gt': ['$end', '$$start']}]}}}],
+                                                                        'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        else:
                                 mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
-                                                                'let': {'chrom': '$#CHROM', 'pos': '$POS'},
-                                                                'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$#CHROM', '$$chrom']},
-                                                                                                            {'$eq': ['$POS', '$$pos']}]}}}],
+                                                                'localField': self.field_name,
+                                                                'foreignField': self.field_name,
                                                                 'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
-                        elif self.src_coll_ext == 'bed':
-                                mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
-                                                                'let': {'chrom': '$chrom', 'start': '$start', 'end': '$end'},
-                                                                'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$chrom', '$$chrom']},
-                                                                                                            {'$lt': ['$start', '$$end']},
-                                                                                                            {'$gt': ['$end', '$$start']}]}}}],
-                                                                'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
-                else:
-                        mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
-                                                        'localField': self.field_name,
-                                                        'foreignField': self.field_name,
-                                                        'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                                
+                        #Выполняем пайплайн из сортировки (для src-db-VCF и src-db-BED)
+                        #и левостороннего объединения. Проджекшен, если запрошен
+                        #исследователем, будет потом организован отдельно -
+                        #на этапе Python-фильтрации объединённых документов.
+                        curs_obj = left_coll_obj.aggregate(mongo_aggr_arg)
                         
-                #Выполняем пайплайн из сортировки (для src-db-VCF и src-db-BED)
-                #и левостороннего объединения. Проджекшен, если запрошен
-                #исследователем, будет потом организован отдельно -
-                #на этапе Python-фильтрации объединённых документов.
-                curs_obj = left_coll_obj.aggregate(mongo_aggr_arg)
-                
-                #Чтобы шапка повторяла шапку той таблицы, по которой делалась
-                #коллекция, создадим её из имён полей. Projection при этом учтём.
-                #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
-                #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                header_row = list(left_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                        header_row.insert(8, 'FORMAT')
-                header_line = '\t'.join(header_row)
-                
-                #Конструируем имя конечного файла и абсолютный путь к этому файлу.
-                #Происхождение имени файла от имени левой коллекции будет указывать на
-                #то, что все данные, попадающие в файл, берутся исключительно из неё.
-                left_coll_base = left_coll_name.rsplit('.', maxsplit=1)[0]
-                trg_file_name = f'{left_coll_base}_{self.action[:3]}_res_c_{self.coverage}.{self.trg_file_fmt}'
-                trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
-                
-                #Открытие конечного файла на запись.
-                with open(trg_file_path, 'w') as trg_file_opened:
+                        #Чтобы шапка повторяла шапку той таблицы, по которой делалась
+                        #коллекция, создадим её из имён полей. Projection при этом учтём.
+                        #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
+                        #есть поля с генотипами, то шапка дополнится элементом FORMAT.
+                        header_row = list(left_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                        if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
+                                header_row.insert(8, 'FORMAT')
+                        header_line = '\t'.join(header_row)
                         
-                        #Формируем и прописываем метастроки,
-                        #повествующие о происхождении конечного
-                        #файла. Прописываем также табличную шапку.
-                        if self.trg_file_fmt == 'vcf':
-                                trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                        trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                        trg_file_opened.write(f'##database={self.src_db_name}\n')
-                        trg_file_opened.write(f'##leftCollection={left_coll_name}\n')
-                        trg_file_opened.write(f'##rightCollections=<{",".join(right_coll_names)}>\n')
-                        if not self.by_loc:
-                                trg_file_opened.write(f'##field={self.field_name}\n')
-                        trg_file_opened.write(f'##action={self.action}\n')
-                        trg_file_opened.write(f'##coverage={self.coverage}\n')
-                        if self.mongo_findone_args[1] is not None:
-                                trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
-                        trg_file_opened.write(header_line + '\n')
+                        #Конструируем имя конечного файла и абсолютный путь к этому файлу.
+                        #Происхождение имени файла от имени левой коллекции будет указывать на
+                        #то, что все данные, попадающие в файл, берутся исключительно из неё.
+                        left_coll_base = left_coll_name.rsplit('.', maxsplit=1)[0]
+                        trg_file_name = f'{left_coll_base}_{self.action[:3]}_res_c_{self.coverage}.{self.trg_file_fmt}'
+                        trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                         
-                        #Создаём флаг, по которому далее будет
-                        #определено, оказались ли в конечном
-                        #файле строки, отличные от хэдеров.
-                        empty_res = True
-                        
-                        #Правила фильтрации результатов левостороннего внешнего
-                        #объединения должны были быть заданы исследователем. Первый
-                        #фильтр - само действие - пересечение или вычитание: судьба
-                        #левого документа будет определяться непустыми результирующими
-                        #списками при пересечении и пустыми в случае вычитания. Второй
-                        #фильтр - охват: левый документ получит приглашение в конечный
-                        #файл, только если будет достигнут порог количества непустых/пустых
-                        #результирующих списков. Подробности - в readme проекта. Проджекшн
-                        #реализован здесь же в кустарно-питоновском виде. Было бы ошибочно
-                        #навешивать его на aggregation pipeline, т.к. это спровоцировало бы
-                        #конфликт как раз сейчас - при фильтрации объединённых документов.
-                        for doc in curs_obj:
-                                cov_meter = 0
-                                for right_coll_name in right_coll_names:
-                                        right_coll_alias = right_coll_name.replace('.', '_')
-                                        if (self.action == 'intersect' and doc[right_coll_alias] != []) or \
-                                           (self.action == 'subtract' and doc[right_coll_alias] == []):
-                                                cov_meter += 1
-                                        del doc[right_coll_alias]
-                                if cov_meter >= self.coverage:
-                                        if self.mongo_findone_args[1] is not None:
-                                                for field_name in list(doc):
-                                                        if field_name not in self.mongo_findone_args[1]:
-                                                                del doc[field_name]
-                                        trg_file_opened.write(restore_line(doc,
-                                                                           self.trg_file_fmt,
-                                                                           self.sec_delimiter))
-                                        empty_res = False
-                                        
-                #Если флаг-индикатор так и
-                #остался равен True, значит,
-                #результатов пересечения/вычитания
-                #для данной левой коллекции нет, и в
-                #конечный файл попали только хэдеры.
-                #Такие конечные файлы программа удалит.
-                if empty_res:
-                        os.remove(trg_file_path)
-                        
+                        #Открытие конечного файла на запись.
+                        with open(trg_file_path, 'w') as trg_file_opened:
+                                
+                                #Формируем и прописываем метастроки,
+                                #повествующие о происхождении конечного
+                                #файла. Прописываем также табличную шапку.
+                                if self.trg_file_fmt == 'vcf':
+                                        trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
+                                trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                trg_file_opened.write(f'##database={self.src_db_name}\n')
+                                trg_file_opened.write(f'##leftCollection={left_coll_name}\n')
+                                trg_file_opened.write(f'##rightCollections=<{",".join(right_coll_names)}>\n')
+                                if not self.by_loc:
+                                        trg_file_opened.write(f'##field={self.field_name}\n')
+                                trg_file_opened.write(f'##action={self.action}\n')
+                                trg_file_opened.write(f'##coverage={self.coverage}\n')
+                                if self.mongo_findone_args[1] is not None:
+                                        trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
+                                trg_file_opened.write(header_line + '\n')
+                                
+                                #Создаём флаг, по которому далее будет
+                                #определено, оказались ли в конечном
+                                #файле строки, отличные от хэдеров.
+                                empty_res = True
+                                
+                                #Правила фильтрации результатов левостороннего внешнего
+                                #объединения должны были быть заданы исследователем. Первый
+                                #фильтр - само действие - пересечение или вычитание: судьба
+                                #левого документа будет определяться непустыми результирующими
+                                #списками при пересечении и пустыми в случае вычитания. Второй
+                                #фильтр - охват: левый документ получит приглашение в конечный
+                                #файл, только если будет достигнут порог количества непустых/пустых
+                                #результирующих списков. Подробности - в readme проекта. Проджекшн
+                                #реализован здесь же в кустарно-питоновском виде. Было бы ошибочно
+                                #навешивать его на aggregation pipeline, т.к. это спровоцировало бы
+                                #конфликт как раз сейчас - при фильтрации объединённых документов.
+                                for doc in curs_obj:
+                                        cov_meter = 0
+                                        for right_coll_name in right_coll_names:
+                                                right_coll_alias = right_coll_name.replace('.', '_')
+                                                if (self.action == 'intersect' and doc[right_coll_alias] != []) or \
+                                                   (self.action == 'subtract' and doc[right_coll_alias] == []):
+                                                        cov_meter += 1
+                                                del doc[right_coll_alias]
+                                        if cov_meter >= self.coverage:
+                                                if self.mongo_findone_args[1] is not None:
+                                                        for field_name in list(doc):
+                                                                if field_name not in self.mongo_findone_args[1]:
+                                                                        del doc[field_name]
+                                                trg_file_opened.write(restore_line(doc,
+                                                                                   self.trg_file_fmt,
+                                                                                   self.sec_delimiter))
+                                                empty_res = False
+                                                
+                        #Если флаг-индикатор так и
+                        #остался равен True, значит,
+                        #результатов пересечения/вычитания
+                        #для данной левой коллекции нет, и в
+                        #конечный файл попали только хэдеры.
+                        #Такие конечные файлы программа удалит.
+                        if empty_res:
+                                os.remove(trg_file_path)
+                                
                 #Дисконнект.
                 client.close()
                 
