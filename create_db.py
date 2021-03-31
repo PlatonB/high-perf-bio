@@ -1,4 +1,4 @@
-__version__ = 'v3.4'
+__version__ = 'v3.5'
 
 class DifFmtsError(Exception):
         '''
@@ -66,8 +66,8 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
                              help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['comma', 'semicolon', 'colon', 'pipe'], dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
         opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
@@ -145,14 +145,16 @@ class PrepSingleProc():
                 self.minimal = args.minimal
                 if args.sec_delimiter is None:
                         self.sec_delimiter = args.sec_delimiter
-                elif args.sec_delimiter == 'comma':
-                        self.sec_delimiter = ','
-                elif args.sec_delimiter == 'semicolon':
-                        self.sec_delimiter = ';'
                 elif args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
+                elif args.sec_delimiter == 'comma':
+                        self.sec_delimiter = ','
+                elif args.sec_delimiter == 'low_line':
+                        self.sec_delimiter = '_'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                elif args.sec_delimiter == 'semicolon':
+                        self.sec_delimiter = ';'
                 self.max_fragment_len = args.max_fragment_len
                 if args.ind_col_names is None:
                         self.ind_col_names = args.ind_col_names

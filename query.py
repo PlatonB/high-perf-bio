@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 def add_args(ver):
         '''
@@ -29,8 +29,8 @@ https://docs.mongodb.com/manual/reference/operator/query/
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
 {{допустимые значения}};
-scr/trg-db-FMT - исходные/конечные БД, соответствующие
-по своей структуре таблицам определённого формата;
+scr/trg-db-FMT - исходная/конечная БД с коллекциями,
+соответствующими по структуре таблицам определённого формата;
 trg-FMT - конечные таблицы определённого формата;
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку;
@@ -50,9 +50,9 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp.add_argument('-q', '--mongo-query', metavar="['{}']", default='{}', dest='mongo_query', type=str,
                              help='Запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-TSV; поле _id не выведется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
+                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-(db-)TSV; поле _id не выведется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
@@ -110,14 +110,16 @@ class PrepSingleProc():
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
-                if args.sec_delimiter == 'comma':
-                        self.sec_delimiter = ','
-                elif args.sec_delimiter == 'semicolon':
-                        self.sec_delimiter = ';'
-                elif args.sec_delimiter == 'colon':
+                if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
+                elif args.sec_delimiter == 'comma':
+                        self.sec_delimiter = ','
+                elif args.sec_delimiter == 'low_line':
+                        self.sec_delimiter = '_'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                elif args.sec_delimiter == 'semicolon':
+                        self.sec_delimiter = ';'
                 if args.ind_field_names is None:
                         self.ind_field_names = args.ind_field_names
                 else:
@@ -140,9 +142,10 @@ class PrepSingleProc():
                 src_coll_obj = src_db_obj[src_coll_name]
                 
                 #Aggregation-инструкция может быть потом дополнена
-                #индивидуальным для конкретной коллекции $out-этапом.
+                #индивидуальным для текущей коллекции $out-этапом.
                 #В связи с перспективой внутрипроцессовой модификации
-                #общего выражения, копируем его в отдельный объект.
+                #общего выражения, создаём отдельный объект с этим
+                #выражением, который точно не страшно ковырять.
                 mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
                 
                 #Получаем имя конечного файла. Оно же при
@@ -200,11 +203,12 @@ class PrepSingleProc():
                         if empty_res:
                                 os.remove(trg_file_path)
                                 
-                #Создание конечной коллекции. Обогащение
-                #aggregation-инструкции этапом вывода в
-                #коллекцию. Выполнение инструкции. Удаление
-                #коллекции, получившейся пустой. Создание
-                #обязательных и пользовательских индексов.
+                #Создание конечной базы и коллекции.
+                #Обогащение aggregation-инструкции этапом
+                #вывода в конечную коллекцию. Последняя,
+                #если не пополнилась результатами, удаляется.
+                #Для непустых конечных коллекций создаются
+                #обязательные и пользовательские индексы.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
                         trg_coll_obj = trg_db_obj.create_collection(trg_file_name,

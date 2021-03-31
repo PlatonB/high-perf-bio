@@ -1,4 +1,4 @@
-__version__ = 'v7.0'
+__version__ = 'v7.1'
 
 class NotEnoughCollsError(Exception):
         '''
@@ -135,8 +135,8 @@ trg-FMT - конечные таблицы определённого форма�
                              help='Охват (1 <= c <= количество правых; 0 - приравнять к количеству правых; вычтется 1, если правые и левые совпадают при 1 < c = количество правых)')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
                              help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-TSV; поле _id не выведется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно обрабатываемых левых коллекций')
         args = arg_parser.parse_args()
@@ -225,14 +225,16 @@ class PrepSingleProc():
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
-                if args.sec_delimiter == 'comma':
-                        self.sec_delimiter = ','
-                elif args.sec_delimiter == 'semicolon':
-                        self.sec_delimiter = ';'
-                elif args.sec_delimiter == 'colon':
+                if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
+                elif args.sec_delimiter == 'comma':
+                        self.sec_delimiter = ','
+                elif args.sec_delimiter == 'low_line':
+                        self.sec_delimiter = '_'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                elif args.sec_delimiter == 'semicolon':
+                        self.sec_delimiter = ';'
                 self.ver = ver
                 client.close()
                 

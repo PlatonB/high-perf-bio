@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 class DifFmtsError(Exception):
         '''
@@ -84,8 +84,8 @@ trg-FMT - конечные таблицы определённого форма�
                              help='Имя поля БД, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
                              help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-(db-)TSV; поле _id не выведется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['comma', 'semicolon', 'colon', 'pipe'], default='comma', dest='sec_delimiter', type=str,
-                             help='{comma, semicolon, colon, pipe} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-(db-)BED): не применяется)')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
@@ -176,14 +176,16 @@ class PrepSingleProc():
                         self.mongo_aggregate_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
-                if args.sec_delimiter == 'comma':
-                        self.sec_delimiter = ','
-                elif args.sec_delimiter == 'semicolon':
-                        self.sec_delimiter = ';'
-                elif args.sec_delimiter == 'colon':
+                if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
+                elif args.sec_delimiter == 'comma':
+                        self.sec_delimiter = ','
+                elif args.sec_delimiter == 'low_line':
+                        self.sec_delimiter = '_'
                 elif args.sec_delimiter == 'pipe':
                         self.sec_delimiter = '|'
+                elif args.sec_delimiter == 'semicolon':
+                        self.sec_delimiter = ';'
                 if args.ind_field_names is None:
                         self.ind_field_names = args.ind_field_names
                 else:
