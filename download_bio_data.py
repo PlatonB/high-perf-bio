@@ -1,5 +1,81 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
+def add_args(ver):
+        '''
+        Работа с аргументами командной строки.
+        '''
+        arg_parser = ArgumentParser(description=f'''
+Программа, позволяющая скачивать данные
+известных биоинформатических ресурсов.
+
+Версия: {ver}
+Требуемые сторонние компоненты: requests
+Автор: Платон Быкадоров (platon.work@gmail.com), 2021
+Лицензия: GNU General Public License version 3
+Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
+Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
+Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
+
+От версии к версии буду добавлять новые источники. Пишите в Issues,
+какими публичными биоинформатическими данными больше всего пользуетесь.
+
+Условные обозначения в справке по CLI:
+[значение по умолчанию]
+''',
+                                   formatter_class=RawTextHelpFormatter,
+                                   add_help=False)
+        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
+        hlp_grp.add_argument('-h', '--help', action='help',
+                             help='Вывести справку и выйти')
+        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
+        man_grp.add_argument('-T', '--trg-top-dir-path', required=True, metavar='str', dest='trg_top_dir_path', type=str,
+                             help='Путь к папке для скачиваемых данных')
+        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-r', '--redownload', dest='redownload', action='store_true',
+                             help='Заменить ранее скачанные данные в случае возникновения конфликта')
+        opt_grp.add_argument('--cis-eqtls-gtex', dest='ciseqtls_gtex', action='store_true',
+                             help='Скачать сильные пары вариант-ген (cis-eQTL, GTEx)')
+        opt_grp.add_argument('--vars-1000g', dest='vars_1000g', action='store_true',
+                             help='Скачать варианты 1000 Genomes (NYGC)')
+        opt_grp.add_argument('--vars-dbsnp-ens', dest='vars_dbsnpens', action='store_true',
+                             help='Скачать варианты dbSNP (Ensembl)')
+        opt_grp.add_argument('--vars-dbsnp-ncbi', dest='vars_dbsnpncbi', action='store_true',
+                             help='Скачать варианты dbSNP (NCBI)')
+        opt_grp.add_argument('-i', '--download-indexes', dest='download_indexes', action='store_true',
+                             help='Скачать tbi/csi-индексы, если они предоставлены')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно качаемых файлов')
+        args = arg_parser.parse_args()
+        return args
+
+class PrepSingleProc():
+        '''
+        Класс, спроектированный под безопасное
+        параллельное скачивание данных.
+        '''
+        def __init__(self, args):
+                '''
+                Единственным атрибутом, объявляемым в __init__,
+                будет путь к папке, в которую планируется размещать
+                папки для данных конкретных ресурсов. Атрибуты с
+                путями к последним будут добавляться тоже потом -
+                при работе с экземплярами описываемого класса.
+                '''
+                self.trg_top_dir_path = os.path.normpath(args.trg_top_dir_path)
+                
+        def download(self, url):
+                '''
+                Функция скачивания одного файла.
+                Размер фрагмента - 128 МБ.
+                '''
+                with requests.Session() as s:
+                        with s.get(url, stream=True) as r:
+                                trg_file_path = os.path.join(self.trg_dir_path,
+                                                             url.split('/')[-1])
+                                with open(trg_file_path, 'wb') as trg_file_opened:
+                                        for chunk in r.iter_content(chunk_size=134217728):
+                                                trg_file_opened.write(chunk)
+                                                
 def download_bio_data(args, data_name, cat_url, regexp):
         '''
         Создание подпапки для скачиваемых данных выбранного проекта. Сбор ссылок на файлы
@@ -43,80 +119,6 @@ def download_bio_data(args, data_name, cat_url, regexp):
                 
         print(f'\tparallel execution time: {exec_time}')
         
-def add_args(ver):
-        '''
-        Работа с аргументами командной строки.
-        '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, позволяющая скачивать данные
-известных биоинформатических ресурсов.
-
-Версия: {ver}
-Требуемые сторонние компоненты: requests
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-От версии к версии буду добавлять новые источники. Пишите в Issues,
-какими публичными биоинформатическими данными больше всего пользуетесь.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию]
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
-        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
-        hlp_grp.add_argument('-h', '--help', action='help',
-                             help='Вывести справку и выйти')
-        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
-        man_grp.add_argument('-T', '--trg-top-dir-path', required=True, metavar='str', dest='trg_top_dir_path', type=str,
-                             help='Путь к папке для скачиваемых данных')
-        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-r', '--redownload', dest='redownload', action='store_true',
-                             help='Заменить ранее скачанные данные в случае возникновения конфликта')
-        opt_grp.add_argument('--ciseqtls-gtex', dest='ciseqtls_gtex', action='store_true',
-                             help='Скачать сильные пары вариант-ген (cis-eQTL, GTEx)')
-        opt_grp.add_argument('--vars-1000g', dest='vars_1000g', action='store_true',
-                             help='Скачать варианты 1000 Genomes (NYGC)')
-        opt_grp.add_argument('--vars-dbsnp', dest='vars_dbsnp', action='store_true',
-                             help='Скачать варианты dbSNP (Ensembl)')
-        opt_grp.add_argument('-i', '--download-indexes', dest='download_indexes', action='store_true',
-                             help='Скачать tbi/csi-индексы, если они предоставлены')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Максимальное количество параллельно качаемых файлов')
-        args = arg_parser.parse_args()
-        return args
-
-class PrepSingleProc():
-        '''
-        Класс, спроектированный под безопасное
-        параллельное скачивание данных.
-        '''
-        def __init__(self, args):
-                '''
-                Единственным атрибутом, объявляемым в __init__,
-                будет путь к папке, в которую планируется размещать
-                папки для данных конкретных ресурсов. Атрибуты с
-                путями к последним будут добавляться тоже потом -
-                при работе с экземплярами описываемого класса.
-                '''
-                self.trg_top_dir_path = os.path.normpath(args.trg_top_dir_path)
-                
-        def download(self, url):
-                '''
-                Функция скачивания одного файла.
-                Размер фрагмента - 128 МБ.
-                '''
-                with requests.Session() as s:
-                        with s.get(url, stream=True) as r:
-                                trg_file_path = os.path.join(self.trg_dir_path,
-                                                             url.split('/')[-1])
-                                with open(trg_file_path, 'wb') as trg_file_opened:
-                                        for chunk in r.iter_content(chunk_size=134217728):
-                                                trg_file_opened.write(chunk)
-                                                
 ####################################################################################################
 
 import os, shutil, datetime, requests, re
@@ -173,18 +175,30 @@ if args.vars_1000g:
                           vars_1000g_cat_url,
                           vars_1000g_regexp)
         
-#Версия dbSNP, размещённая проектом
-#Ensembl. Отличается от апстрима, как
-#минимум, классической номенклатурой имён
-#хромосом и похромосомным разбиением.
-if args.vars_dbsnp:
-        vars_dbsnp_data_name = 'Variants_dbSNP'
-        vars_dbsnp_cat_url = 'http://ftp.ensembl.org/pub/release-103/variation/vcf/homo_sapiens/'
+#Версия dbSNP, размещённая проектом Ensembl. Отличается от апстрима,
+#как минимум, классической номенклатурой имён хромосом, похромосомным
+#разбиением и смещением координат инделей на единичку вправо.
+if args.vars_dbsnpens:
+        vars_dbsnpens_data_name = 'Variants_dbSNP_Ensembl'
+        vars_dbsnpens_cat_url = 'http://ftp.ensembl.org/pub/release-103/variation/vcf/homo_sapiens/'
         if not args.download_indexes:
-                vars_dbsnp_regexp = r'(?<=>)homo_sapiens-chr\S+\.gz(?=<)'
+                vars_dbsnpens_regexp = r'(?<=>)homo_sapiens-chr\S+\.gz(?=<)'
         else:
-                vars_dbsnp_regexp = r'(?<=>)homo_sapiens-chr\S+\.gz(?:\.csi)*(?=<)'
+                vars_dbsnpens_regexp = r'(?<=>)homo_sapiens-chr\S+\.gz(?:\.csi)*(?=<)'
         download_bio_data(args,
-                          vars_dbsnp_data_name,
-                          vars_dbsnp_cat_url,
-                          vars_dbsnp_regexp)
+                          vars_dbsnpens_data_name,
+                          vars_dbsnpens_cat_url,
+                          vars_dbsnpens_regexp)
+        
+#Основная версия dbSNP.
+if args.vars_dbsnpncbi:
+        vars_dbsnpncbi_data_name = 'Variants_dbSNP_NCBI'
+        vars_dbsnpncbi_cat_url = 'https://ftp.ncbi.nih.gov/snp/latest_release/VCF/'
+        if not args.download_indexes:
+                vars_dbsnpncbi_regexp = r'(?<=>)GCF_000001405\.38\.gz(?=<)'
+        else:
+                vars_dbsnpncbi_regexp = r'(?<=>)GCF_000001405\.38\.gz(?:\.tbi)*(?=<)'
+        download_bio_data(args,
+                          vars_dbsnpncbi_data_name,
+                          vars_dbsnpncbi_cat_url,
+                          vars_dbsnpncbi_regexp)
