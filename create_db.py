@@ -1,4 +1,4 @@
-__version__ = 'v3.7'
+__version__ = 'v4.0'
 
 def add_args(ver):
         '''
@@ -34,8 +34,8 @@ VCF        |  Обязательно     |  Аргумент не примени
 BED        |  Не обязательно  |  Прибавьте 1
 TSV        |  Обязательно     |  Не прибавляйте 1
 
-HGVS accession numbers конвертируются в обычные хромосомные
-имена (патчи и альтернативные локусы не поддерживаюся).
+HGVS accession numbers конвертируются в обычные хромосомные имена
+(для патчей и альтернативных локусов программа этого не делает).
 
 Каждая исходная таблица должна быть сжата с помощью GZIP.
 
@@ -60,7 +60,9 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Путь к папке со сжатыми таблицами, преобразуемыми в коллекции MongoDB-базы')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-d', '--trg-db-name', metavar='[None]', dest='trg_db_name', type=str,
-                             help='Имя создаваемой базы данных ([[имя папки со сжатыми таблицами]])')
+                             help='Имя пополняемой базы данных ([[имя папки со сжатыми таблицами]])')
+        opt_grp.add_argument('-a', '--append', dest='append', action='store_true',
+                             help='Разрешить дозаписывать данные в имеющуюся базу (не допускайте смешивания форматов в одной БД)')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
@@ -82,6 +84,16 @@ class DifFmtsError(Exception):
         '''
         def __init__(self, src_file_fmts):
                 err_msg = f'\nSource files are in different formats: {src_file_fmts}'
+                super().__init__(err_msg)
+                
+class NoDataToUploadError(Exception):
+        '''
+        Это исключение предусмотрено, в основном, на случай,
+        если исследователь выбрал дозапись, но соответствующие
+        всем исходным файлам коллекции уже наличествуют.
+        '''
+        def __init__(self):
+                err_msg = f'\nSource files are absent or already uploaded'
                 super().__init__(err_msg)
                 
 def process_chrom_cell(chrom_cell):
@@ -150,17 +162,20 @@ class PrepSingleProc():
         '''
         def __init__(self, args):
                 '''
-                Получение атрибутов, необходимых заточенной под многопроцессовое выполнение
-                функции построения коллекций MongoDB с нуля. Атрибуты ни в коем случае не
-                должны будут потом в параллельных процессах изменяться. Получаются они в
-                основном из указанных исследователем опций. Из набора имён заливаемых файлов
-                исключаются имена возможных сопутствующих tbi/csi-индексов. Разрешается
-                конфликт в случае существования БД с тем же именем, что и у создаваемой.
+                Получение атрибутов, необходимых заточенной под многопроцессовое
+                выполнение функции построения коллекций MongoDB из таблиц. Атрибуты
+                ни в коем случае не должны будут потом в параллельных процессах
+                изменяться. Получаются они в основном из указанных исследователем
+                опций. Из набора имён заливаемых файлов исключаются имена возможных
+                сопутствующих tbi/csi-индексов. Если исследователь не позволил
+                производить дозапись, то, в случае существования БД с тем же именем,
+                что и у создаваемой, вызывается функция разрешения конфликта.
                 '''
+                client = MongoClient()
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
-                self.src_file_names = list(filter(lambda src_file_name: re.search(r'\.tbi|\.csi',
-                                                                                  src_file_name) is None,
-                                                  os.listdir(self.src_dir_path)))
+                self.src_file_names = set(filter(lambda src_file_name: re.search(r'\.tbi|\.csi',
+                                                                                 src_file_name) is None,
+                                                 os.listdir(self.src_dir_path)))
                 src_file_fmts = set(map(lambda src_file_name: src_file_name.rsplit('.', maxsplit=2)[1],
                                         self.src_file_names))
                 if len(src_file_fmts) > 1:
@@ -170,7 +185,13 @@ class PrepSingleProc():
                         self.trg_db_name = os.path.basename(self.src_dir_path)
                 else:
                         self.trg_db_name = args.trg_db_name
-                resolve_db_existence(self.trg_db_name)
+                if not args.append:
+                        resolve_db_existence(self.trg_db_name)
+                else:
+                        self.src_file_names -= set(map(lambda cur_coll_name: cur_coll_name + '.gz',
+                                                       client[self.trg_db_name].list_collection_names()))
+                if len(self.src_file_names) == 0:
+                        raise NoDataToUploadError()
                 self.meta_lines_quan = args.meta_lines_quan
                 self.minimal = args.minimal
                 if args.sec_delimiter is None:
@@ -190,7 +211,8 @@ class PrepSingleProc():
                         self.ind_col_names = args.ind_col_names
                 else:
                         self.ind_col_names = args.ind_col_names.split(',')
-                        
+                client.close()
+                
         def create_collection(self, src_file_name):
                 '''
                 Функция создания и наполнения одной
