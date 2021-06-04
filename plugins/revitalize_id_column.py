@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 def add_args(ver):
         '''
@@ -59,7 +59,7 @@ class NotVcfError(Exception):
         данными отличных от VCF форматов.
         '''
         def __init__(self, src_fmt):
-                err_msg = '\nSource file or collection is in {src_fmt} format instead of VCF'
+                err_msg = f'\nSource file or collection is in {src_fmt} format instead of VCF'
                 super().__init__(err_msg)
                 
 class MoreThanOneCollError(Exception):
@@ -67,7 +67,7 @@ class MoreThanOneCollError(Exception):
         rsIDs можно черпать только из одиночной коллекции.
         '''
         def __init__(self, src_colls_quan):
-                err_msg = '\nThere are {src_colls_quan} collections in the DB, but it must be 1'
+                err_msg = f'\nThere are {src_colls_quan} collections in the DB, but it must be 1'
                 super().__init__(err_msg)
                 
 class PrepSingleProc():
@@ -168,11 +168,9 @@ class PrepSingleProc():
 ####################################################################################################
 
 import sys, os, datetime, gzip
-
-#Подавление формирования питоновского кэша с
-#целью предотвращения искажения результатов.
 sys.dont_write_bytecode = True
-
+sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                             'backend'))
 from argparse import ArgumentParser, RawTextHelpFormatter
 from pymongo import MongoClient, ASCENDING
 from multiprocessing import Pool
@@ -198,7 +196,7 @@ elif max_proc_quan > 8:
 else:
         proc_quan = max_proc_quan
         
-print(f'\nAnnotation by {prep_single_proc.src_db_name} database')
+print(f'\nID column reconstruction by {prep_single_proc.src_db_name} database')
 print(f'\tnumber of parallel processes: {proc_quan}')
 
 #Параллельный запуск реабилитации ID. Замер времени
