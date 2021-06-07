@@ -1,50 +1,4 @@
-__version__ = 'v3.2'
-
-def add_args(ver):
-        '''
-        Работа с аргументами командной строки.
-        '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, способная удалять имеющиеся
-индексы MongoDB-базы и добавлять новые.
-
-Версия: {ver}
-Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Не путайте понятия имени поля и имени индекса.
-
-Для вывода имён баз данных, индексов и полей
-рекомендую использовать print_db_info из
-состава high-perf-bio, либо MongoDB Compass.
-
-Поддерживается создание/удаление как
-одиночных, так и составных индексов.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию]
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
-        hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
-        hlp_grp.add_argument('-h', '--help', action='help',
-                             help='Вывести справку и выйти')
-        man_grp = arg_parser.add_argument_group('Обязательные аргументы')
-        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
-                             help='Имя переиндексируемой БД')
-        opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
-                             help='Имена удаляемых индексов (через запятую без пробела)')
-        opt_grp.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; для составного индекса: через плюс без пробелов)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Максимальное количество параллельно индексируемых коллекций')
-        args = arg_parser.parse_args()
-        return args
+__version__ = 'v4.0'
 
 class PrepSingleProc():
         '''
@@ -80,8 +34,9 @@ class PrepSingleProc():
                 
 ####################################################################################################
 
-import datetime
-from argparse import ArgumentParser, RawTextHelpFormatter
+import sys, locale, datetime
+sys.dont_write_bytecode = True
+from cli.reindex_db_cli_ru import add_args_ru
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 
@@ -90,7 +45,11 @@ from multiprocessing import Pool
 #экземпляра содержащего ключевую
 #функцию класса и MongoDB-объектов,
 #получение имён всех коллекций.
-args, client = add_args(__version__), MongoClient()
+if locale.getdefaultlocale()[0][:2] == 'ru':
+        args = add_args_ru(__version__)
+else:
+        args = add_args_en(__version__)
+client = MongoClient()
 prep_single_proc = PrepSingleProc(args)
 db_name = prep_single_proc.db_name
 db_obj = client[db_name]
