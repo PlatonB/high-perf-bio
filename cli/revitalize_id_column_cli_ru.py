@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -21,7 +21,7 @@ def add_args_ru(ver):
 коллекцию: созданную с помощью create_db по VCF и содержащую rsIDs в поле ID. Рекомендуемый
 источник данных для этой коллекции - NCBI dbSNP VCF с координатами подходящей сборки.
 
-Чтобы программа работала быстро, нужны индексы полей #CHROM, POS, REF и ALT.
+Чтобы программа работала быстро, нужен индекс полей #CHROM и POS.
 
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
@@ -42,6 +42,8 @@ scr-db-FMT - исходная БД с коллекциями, соответст
         man_grp.add_argument('-T', '--trg-dir-path', required=True, metavar='str', dest='trg_dir_path', type=str,
                              help='Путь к папке для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-r', '--ignore-unrev-lines', dest='ignore_unrev_lines', action='store_true',
+                             help='Не прописывать строки, не обогащённые rsID')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно обогащаемых таблиц')
         args = arg_parser.parse_args()
