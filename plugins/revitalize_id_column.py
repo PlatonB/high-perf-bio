@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 class DifFmtsError(Exception):
         '''
@@ -63,6 +63,7 @@ class PrepSingleProc():
                 if src_coll_ext != 'vcf':
                         raise NotVcfError(src_coll_ext)
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
+                self.ignore_unrev_lines = args.ignore_unrev_lines
                 client.close()
                 
         def revitalize(self, src_file_name):
@@ -114,7 +115,7 @@ class PrepSingleProc():
                                         if doc is not None:
                                                 row[2] = doc['ID']
                                                 trg_file_opened.write('\t'.join(row))
-                                        else:
+                                        elif not self.ignore_unrev_lines:
                                                 trg_file_opened.write(line)
                                                 
                 #Дисконнект.
