@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -46,11 +46,11 @@ The notation in the CLI help:
 [[final default value]];
 {{permissible values}};
 src-FMT - source tables in a certain format (VCF, BED, TSV);
-trg-db-FMT - target database with collections matching
+trg-db-FMT - target DB with collections matching
 by structure to the tables of a certain format;
 not applicable - under the specified conditions
 the argument is ignored or causes an error;
-f1+f2+f3 - fields of the database collections with a compound index
+f1+f2+f3 - fields of the DB collections with a compound index
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -59,12 +59,12 @@ f1+f2+f3 - fields of the database collections with a compound index
                              help='Show this help message and exit')
         man_grp = arg_parser.add_argument_group('Mandatory arguments')
         man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
-                             help='Path to folder with gzipped tables which will be converted to collections of MongoDB database')
+                             help='Path to directory with gzipped tables which will be converted to collections of MongoDB database')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-d', '--trg-db-name', metavar='[None]', dest='trg_db_name', type=str,
-                             help='Name of the database to be replenished ([[compressed tables folder name]])')
+                             help='Name of the DB to be replenished ([[compressed tables directory name]])')
         opt_grp.add_argument('-a', '--append', dest='append', action='store_true',
-                             help='Permit addition of data to the existing database (do not allow mixing of formats in the same database)')
+                             help='Permit addition of data to the existing DB (do not allow mixing of formats in the same DB)')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Number of metainformation lines (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
@@ -74,7 +74,7 @@ f1+f2+f3 - fields of the database collections with a compound index
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Maximum number of rows of uploaded table fragment')
         opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                             help='Indexable field names (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID to be indexed); trg-db-BED: chrom+start+end and name to be indexed)')
+                             help='Names of indexable fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID to be indexed); trg-db-BED: chrom+start+end and name to be indexed)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum number of parallel uploaded tables/indexed collections')
         args = arg_parser.parse_args()
