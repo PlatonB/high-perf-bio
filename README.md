@@ -51,10 +51,10 @@ cd /path/to/high-perf-bio-master
 
 Подключение официального репозитория _MongoDB_.
 ```
-wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
 ```
 ```
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
 ```
 
 Обновление индекса пакетов ОС.
@@ -89,7 +89,7 @@ mongo --version
 
 Если да, то первой строкой выведется номер версии интерактивной консоли _MongoDB_.
 ```
-MongoDB shell version v4.4.1
+MongoDB shell version v5.0.2
 <...>
 ```
 
