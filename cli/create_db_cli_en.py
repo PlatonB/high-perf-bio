@@ -1,8 +1,8 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-def add_args_ru(ver):
+def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
@@ -47,7 +47,7 @@ The notation in the CLI help:
 {{permissible values}};
 src-FMT - source tables in a certain format (VCF, BED, TSV);
 trg-db-FMT - target DB with collections matching
-by structure to the tables of a certain format;
+by structure to the tables in a certain format;
 not applicable - under the specified conditions
 the argument is ignored or causes an error;
 f1+f2+f3 - fields of the DB collections with a compound index

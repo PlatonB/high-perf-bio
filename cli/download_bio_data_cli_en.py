@@ -1,8 +1,8 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-def add_args_ru(ver):
+def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
