@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 class PrepSingleProc():
         '''
@@ -77,7 +77,7 @@ import sys, locale, os, shutil, datetime, requests, re
 sys.dont_write_bytecode = True
 sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
                              'cli'))
-from download_bio_data_cli_ru import add_args_ru
+from download_bio_data_cli import add_args_ru, add_args_en
 from multiprocessing import Pool
 
 #CLI.
