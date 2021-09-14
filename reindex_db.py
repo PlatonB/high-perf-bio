@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 class PrepSingleProc():
         '''
@@ -36,7 +36,7 @@ class PrepSingleProc():
 
 import sys, locale, datetime
 sys.dont_write_bytecode = True
-from cli.reindex_db_cli_ru import add_args_ru
+from cli.reindex_db_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 

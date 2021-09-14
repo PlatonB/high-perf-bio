@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 class DifFmtsError(Exception):
         '''
@@ -297,7 +297,7 @@ class PrepSingleProc():
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
-from cli.create_db_cli_ru import add_args_ru
+from cli.create_db_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
 from backend.resolve_db_existence import resolve_db_existence
 from multiprocessing import Pool

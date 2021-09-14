@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 class PrepSingleProc():
         '''
@@ -173,7 +173,7 @@ class PrepSingleProc():
 
 import sys, locale, os, datetime, copy
 sys.dont_write_bytecode = True
-from cli.query_cli_ru import add_args_ru
+from cli.query_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from bson.decimal128 import Decimal128
