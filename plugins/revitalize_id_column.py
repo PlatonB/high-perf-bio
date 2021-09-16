@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 class DifFmtsError(Exception):
         '''
@@ -129,7 +129,7 @@ sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
                              'cli'))
 sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
                              'backend'))
-from revitalize_id_column_cli_ru import add_args_ru
+from revitalize_id_column_cli import add_args_ru
 from pymongo import MongoClient, ASCENDING
 from multiprocessing import Pool
 from def_data_type import def_data_type
