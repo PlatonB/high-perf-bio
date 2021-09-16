@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -10,7 +10,7 @@ def add_args_ru(ver):
 Программа, объединяющая все коллекции
 одной MongoDB-базы с выводом в другую.
 
-Версия: {__version__}
+Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
 Автор: Платон Быкадоров (platon.work@gmail.com), 2021
 Лицензия: GNU General Public License version 3

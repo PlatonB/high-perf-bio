@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -11,7 +11,7 @@ def add_args_ru(ver):
 имена всех баз данных или ключевую
 информацию об определённой БД.
 
-Версия: {__version__}
+Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
 Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
 Лицензия: GNU General Public License version 3
