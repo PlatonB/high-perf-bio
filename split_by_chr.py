@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 class PrepSingleProc():
         '''
@@ -202,7 +202,7 @@ class PrepSingleProc():
 
 import sys, locale, os, datetime, copy
 sys.dont_write_bytecode = True
-from cli.split_by_chr_cli_ru import add_args_ru
+from cli.split_by_chr_cli import add_args_ru
 from pymongo import MongoClient, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from multiprocessing import Pool

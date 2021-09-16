@@ -1,8 +1,8 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 import sys, locale
 sys.dont_write_bytecode = True
-from cli.print_db_info_cli_ru import add_args_ru
+from cli.print_db_info_cli import add_args_ru
 from pymongo import MongoClient
 
 def conv_data_measure(size):

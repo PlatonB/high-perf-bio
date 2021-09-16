@@ -1,4 +1,4 @@
-__version__ = 'v8.0'
+__version__ = 'v8.1'
 
 class NotEnoughCollsError(Exception):
         '''
@@ -267,7 +267,7 @@ class PrepSingleProc():
 
 import sys, locale, datetime, os, copy
 sys.dont_write_bytecode = True
-from cli.left_join_cli_ru import add_args_ru
+from cli.left_join_cli import add_args_ru
 from pymongo import MongoClient, ASCENDING
 from multiprocessing import Pool
 from bson.son import SON

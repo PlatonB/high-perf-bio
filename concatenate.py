@@ -1,8 +1,8 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import sys, locale, datetime
 sys.dont_write_bytecode = True
-from cli.concatenate_cli_ru import add_args_ru
+from cli.concatenate_cli import add_args_ru
 from pymongo import MongoClient, IndexModel, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from backend.create_index_models import create_index_models
