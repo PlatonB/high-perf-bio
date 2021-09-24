@@ -1,4 +1,4 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 class PrepSingleProc():
         '''
@@ -58,7 +58,7 @@ import sys, locale, os, random, datetime, gzip
 sys.dont_write_bytecode = True
 sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
                              'cli'))
-from gen_test_files_cli import add_args_ru
+from gen_test_files_cli import add_args_ru, add_args_en
 from multiprocessing import Pool
 
 #Подготовительный этап: обработка
