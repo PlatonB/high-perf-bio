@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -26,8 +26,9 @@ field_1.field_2.(...).field_N
 Из-за ограничений со стороны MongoDB, программа не использует индексы.
 
 Условные обозначения в справке по CLI:
-[значение по умолчанию];
-{{допустимые значения}}
+[значение по умолчанию на этапе парсинга аргументов];
+[[конкретизированное значение по умолчанию]];
+{{допустимые значения}}.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -39,15 +40,17 @@ field_1.field_2.(...).field_N
                              help='Имя анализируемой БД')
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Путь к папке или имя БД для результатов')
-        man_grp.add_argument('-F', '--field-name', required=True, metavar='str', dest='field_name', type=str,
-                             help='Имя поля, для которого считать количество каждого значения')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-b', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
-                             help='Нижняя граница количества каждого значения')
-        opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
-                             help='{asc, desc} Порядок сортировки по количеству каждого значения')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно обрабатываемых коллекций')
+        opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
+                             help='Имя поля, для которого считать количество каждого значения (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
+        opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
+                             help='Нижняя граница количества каждого значения (применяется без -r)')
+        opt_grp.add_argument('-r', '--freq-thres', metavar='[None]', dest='freq_thres', type=str,
+                             help='Нижняя граница частоты каждого значения (применяется без -a)')
+        opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
+                             help='{asc, desc} Порядок сортировки по количеству каждого значения')
         args = arg_parser.parse_args()
         return args
 
@@ -75,8 +78,9 @@ field_1.field_2.(...).field_N
 Due to limitations on the MongoDB side, the program does not use indexes.
 
 The notation in the CLI help:
-[default value];
-{{permissible values}}
+[default value in the argument parsing step];
+[[final default value]];
+{{permissible values}}.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -88,14 +92,16 @@ The notation in the CLI help:
                              help='Name of the analyzed DB')
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Path to directory or name of the DB for results')
-        man_grp.add_argument('-F', '--field-name', required=True, metavar='str', dest='field_name', type=str,
-                             help='Name of field, for which to count the quantity of each value')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-b', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
-                             help='Lower threshold of quantity of each value')
-        opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
-                             help='{asc, desc} Order of sorting by quantity of each value')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum number of collections processed in parallel')
+        opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
+                             help='Name of field, for which to count the quantity of each value (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
+        opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
+                             help='Lower threshold of quantity of each value (applied without -r)')
+        opt_grp.add_argument('-r', '--freq-thres', metavar='[None]', dest='freq_thres', type=str,
+                             help='Lower threshold of frequency of each value (applied without -a)')
+        opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
+                             help='{asc, desc} Order of sorting by quantity of each value')
         args = arg_parser.parse_args()
         return args
