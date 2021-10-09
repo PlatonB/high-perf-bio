@@ -1,4 +1,4 @@
-__version__ = 'v5.1'
+__version__ = 'v5.2'
 
 class DifFmtsError(Exception):
         '''
@@ -77,18 +77,23 @@ def process_gt_cell(format_cell, gt_cell):
         gt_obj = dict(zip(format_row, gt_two_dim))
         return gt_obj
 
-class PrepSingleProc():
+class Main():
         '''
-        Класс, спроектированный под безопасное
-        параллельное создание базы данных.
+        Основной класс. args, подаваемый иниту на вход, не обязательно
+        должен формироваться argparse. Этим объектом может быть экземпляр
+        класса из стороннего Python-модуля, в т.ч. имеющего отношение к GUI.
+        Кстати, написание сообществом всевозможных графических интерфейсов
+        к high-perf-bio люто, бешено приветствуется! В ините на основе args
+        создаются как атрибуты, используемые распараллеливаемой функцией,
+        так и атрибуты, нужные для кода, её запускающего. Что касается этой
+        функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
         def __init__(self, args):
                 '''
-                Получение атрибутов, необходимых заточенной под многопроцессовое
-                выполнение функции построения коллекций MongoDB из таблиц. Атрибуты
-                ни в коем случае не должны будут потом в параллельных процессах
-                изменяться. Получаются они в основном из указанных исследователем
-                опций. Из набора имён заливаемых файлов исключаются имена возможных
+                Получение атрибутов как для основной функции программы, так и для блока
+                многопроцессового запуска таковой. Первые из перечисленных ни в коем
+                случае не должны будут потом в параллельных процессах изменяться.
+                Из набора имён заливаемых файлов исключаются имена возможных
                 сопутствующих tbi/csi-индексов. Если исследователь не позволил
                 производить дозапись, то, в случае существования БД с тем же именем,
                 что и у создаваемой, вызывается функция разрешения конфликта.
@@ -114,6 +119,15 @@ class PrepSingleProc():
                                                        client[self.trg_db_name].list_collection_names()))
                 if len(self.src_file_names) == 0:
                         raise NoDataToUploadError()
+                max_proc_quan = args.max_proc_quan
+                src_files_quan = len(self.src_file_names)
+                cpus_quan = os.cpu_count()
+                if max_proc_quan > src_files_quan <= cpus_quan:
+                        self.proc_quan = src_files_quan
+                elif max_proc_quan > cpus_quan:
+                        self.proc_quan = cpus_quan
+                else:
+                        self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
                 self.minimal = args.minimal
                 if args.sec_delimiter is None:
@@ -304,35 +318,22 @@ from multiprocessing import Pool
 from backend.def_data_type import def_data_type
 from backend.create_index_models import create_index_models
 
-#Подготовительный этап: обработка
-#аргументов командной строки,
-#создание экземпляра содержащего
-#ключевую функцию класса, определение
-#оптимального количества процессов.
-if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
-else:
-        args = add_args_en(__version__)
-prep_single_proc = PrepSingleProc(args)
-max_proc_quan = args.max_proc_quan
-src_file_names = prep_single_proc.src_file_names
-src_files_quan = len(src_file_names)
-if max_proc_quan > src_files_quan <= 8:
-        proc_quan = src_files_quan
-elif max_proc_quan > 8:
-        proc_quan = 8
-else:
-        proc_quan = max_proc_quan
-        
-print(f'\nReplenishment and indexing {prep_single_proc.trg_db_name} database')
-print(f'\tnumber of parallel processes: {proc_quan}')
-
-#Параллельный запуск создания коллекций. Замер времени
-#выполнения этого кода с точностью до микросекунды.
-with Pool(proc_quan) as pool_obj:
-        exec_time_start = datetime.datetime.now()
-        pool_obj.map(prep_single_proc.create_collection,
-                     src_file_names)
-        exec_time = datetime.datetime.now() - exec_time_start
-        
-print(f'\tparallel computation time: {exec_time}')
+#Обработка аргументов командной строки.
+#Создание экземпляра содержащего ключевую
+#функцию класса. Параллельный запуск конвертации
+#таблиц в коллекции. Замер времени выполнения
+#вычислений с точностью до микросекунды.
+if __name__ == '__main__':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = add_args_ru(__version__)
+        else:
+                args = add_args_en(__version__)
+        main = Main(args)
+        proc_quan = main.proc_quan
+        print(f'\nReplenishment and indexing {main.trg_db_name} DB')
+        print(f'\tquantity of parallel processes: {proc_quan}')
+        with Pool(proc_quan) as pool_obj:
+                exec_time_start = datetime.datetime.now()
+                pool_obj.map(main.create_collection, main.src_file_names)
+                exec_time = datetime.datetime.now() - exec_time_start
+        print(f'\tparallel computation time: {exec_time}')
