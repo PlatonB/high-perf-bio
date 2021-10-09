@@ -1,4 +1,13 @@
-__version__ = 'v5.2'
+__version__ = 'v5.3'
+
+import sys, locale, os, re, datetime, gzip
+sys.dont_write_bytecode = True
+from cli.create_db_cli import add_args_ru, add_args_en
+from pymongo import MongoClient
+from backend.resolve_db_existence import resolve_db_existence
+from multiprocessing import Pool
+from backend.def_data_type import def_data_type
+from backend.create_index_models import create_index_models
 
 class DifFmtsError(Exception):
         '''
@@ -307,17 +316,6 @@ class Main():
                 #Дисконнект.
                 client.close()
                 
-####################################################################################################
-
-import sys, locale, os, re, datetime, gzip
-sys.dont_write_bytecode = True
-from cli.create_db_cli import add_args_ru, add_args_en
-from pymongo import MongoClient
-from backend.resolve_db_existence import resolve_db_existence
-from multiprocessing import Pool
-from backend.def_data_type import def_data_type
-from backend.create_index_models import create_index_models
-
 #Обработка аргументов командной строки.
 #Создание экземпляра содержащего ключевую
 #функцию класса. Параллельный запуск конвертации
