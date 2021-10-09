@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -63,7 +63,9 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp.add_argument('-d', '--trg-db-name', metavar='[None]', dest='trg_db_name', type=str,
                              help='Имя пополняемой базы данных ([[имя папки со сжатыми таблицами]])')
         opt_grp.add_argument('-a', '--append', dest='append', action='store_true',
-                             help='Разрешить дозаписывать данные в имеющуюся базу (не допускайте смешивания форматов в одной БД)')
+                             help='Разрешить дозаписывать данные в имеющуюся базу (не допускайте смешивания форматов в одной БД; зальются только новые файлы папки)')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
@@ -74,8 +76,6 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
         opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
                              help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
         args = arg_parser.parse_args()
         return args
 
@@ -94,7 +94,7 @@ Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
-tbi- and csi-indexes are ignored when scanning the source folder.
+tbi- and csi-indexes are ignored when scanning the source directory.
 
 The format of the source tables:
 - Must be the same for all.
@@ -140,7 +140,9 @@ f1+f2+f3 - fields of the DB collections with a compound index
         opt_grp.add_argument('-d', '--trg-db-name', metavar='[None]', dest='trg_db_name', type=str,
                              help='Name of the replenished DB ([[compressed tables directory name]])')
         opt_grp.add_argument('-a', '--append', dest='append', action='store_true',
-                             help='Permit addition of data to the existing DB (do not allow mixing of formats in the same DB)')
+                             help='Permit addition of data to the existing DB (do not allow mixing of formats in the same DB; only new files of the directory will be uploaded)')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Maximum number of parallel uploaded tables/indexed collections')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Number of metainformation lines (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
@@ -151,7 +153,5 @@ f1+f2+f3 - fields of the DB collections with a compound index
                              help='Maximum number of rows of uploaded table fragment')
         opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
                              help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Maximum number of parallel uploaded tables/indexed collections')
         args = arg_parser.parse_args()
         return args
