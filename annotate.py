@@ -1,4 +1,15 @@
-__version__ = 'v6.1'
+__version__ = 'v6.2'
+
+import sys, locale, os, datetime, gzip, copy
+sys.dont_write_bytecode = True
+from cli.annotate_cli import add_args_ru, add_args_en
+from pymongo import MongoClient, ASCENDING
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from multiprocessing import Pool
+from bson.son import SON
+from backend.def_data_type import def_data_type
+from backend.doc_to_line import restore_line
+from backend.create_index_models import create_index_models
 
 class DifFmtsError(Exception):
         '''
@@ -21,28 +32,34 @@ class ByLocTsvError(Exception):
                 err_msg = '\nIntersection by location is not possible for src-TSV or src-db-TSV'
                 super().__init__(err_msg)
                 
-class PrepSingleProc():
+class Main():
         '''
-        Класс, спроектированный под безопасное
-        параллельное аннотирование набора таблиц.
+        Основной класс. args, подаваемый иниту на вход, не обязательно
+        должен формироваться argparse. Этим объектом может быть экземпляр
+        класса из стороннего Python-модуля, в т.ч. имеющего отношение к GUI.
+        Кстати, написание сообществом всевозможных графических интерфейсов
+        к high-perf-bio люто, бешено приветствуется! В ините на основе args
+        создаются как атрибуты, используемые распараллеливаемой функцией,
+        так и атрибуты, нужные для кода, её запускающего. Что касается этой
+        функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
         def __init__(self, args, ver):
                 '''
-                Получение атрибутов, необходимых заточенной под многопроцессовое выполнение
-                функции пересечения данных исходного файла с данными из базы. Атрибуты ни в
-                коем случае не должны будут потом в параллельных процессах изменяться. Получаются
-                они в основном из указанных исследователем аргументов. Немного о наиболее значимых
-                атрибутах. Расширение исходных таблиц и квази-расширение коллекций нужны, как минимум,
-                для выбора формат-ориентированного пересекательного запроса, определения правил
-                сортировки и форматирования конечных файлов. Умолчания по столбцам и полям выбраны
-                на основе здравого смысла: к примеру, аннотировать src-VCF по src-db-VCF или src-db-BED
-                логично, пересекая столбец и поле, оба из которых с идентификаторами вариантов. Сортировка
-                src-db-VCF и src-db-BED делается по координатам для обеспечения поддержки tabix-индексации
-                конечных таблиц. Важные замечания по проджекшену. Для src-db-VCF его крайне трудно
-                реализовать из-за наличия в соответствующих коллекциях разнообразных вложенных структур
-                и запрета со стороны MongoDB на применение точечной формы обращения к отбираемым
-                элементам массивов. Что касается src-db-BED, когда мы оставляем только часть
-                полей, невозможно гарантировать соблюдение спецификаций BED-формата, поэтому
+                Получение атрибутов как для основной функции программы, так и для блока
+                многопроцессового запуска таковой. Первые из перечисленных ни в коем случае
+                не должны будут потом в параллельных процессах изменяться. Немного о наиболее
+                значимых атрибутах. Расширение исходных таблиц и квази-расширение коллекций
+                нужны, как минимум, для выбора формат-ориентированного пересекательного запроса,
+                определения правил сортировки и форматирования конечных файлов. Умолчания по
+                столбцам и полям выбраны на основе здравого смысла: к примеру, аннотировать
+                src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец и поле, оба
+                из которых с идентификаторами вариантов. Сортировка src-db-VCF и src-db-BED
+                делается по координатам для обеспечения поддержки tabix-индексации конечных
+                таблиц. Важные замечания по проджекшену. Поля src-db-VCF я, скрепя сердце,
+                позволил отбирать, но документы со вложенными объектами, как, например, в INFO,
+                не сконвертируются в обычные строки, а сериализуются как есть. Что касается
+                и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей, невозможно
+                гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
                 '''
                 client = MongoClient()
@@ -63,6 +80,15 @@ class PrepSingleProc():
                         resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
+                max_proc_quan = args.max_proc_quan
+                src_files_quan = len(self.src_file_names)
+                cpus_quan = os.cpu_count()
+                if max_proc_quan > src_files_quan <= cpus_quan:
+                        self.proc_quan = src_files_quan
+                elif max_proc_quan > cpus_quan:
+                        self.proc_quan = cpus_quan
+                else:
+                        self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
                 if self.by_loc:
@@ -96,7 +122,7 @@ class PrepSingleProc():
                         self.mongo_aggregate_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                          ('start', ASCENDING),
                                                                          ('end', ASCENDING)])})
-                if args.proj_fields is None or self.src_coll_ext == 'vcf':
+                if args.proj_fields is None:
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = self.src_coll_ext
                 else:
@@ -148,9 +174,9 @@ class PrepSingleProc():
                                         
                         #Пополняем список, служащий основой будущего запроса. Для координатных вычислений
                         #предусматриваем структуры запроса под все 4 возможных сочетания форматов VCF и BED.
-                        #Несмотря на угрозу перерасхода RAM, программа кладёт в один запрос сразу всё, что
-                        #отобрано из исходного файла. Если запрашивать по одному элементу, то непонятно,
-                        #как сортировать конечные данные. Неспособным на внешнюю сортировку питоновским
+                        #Несмотря на то, что запрос может стать абсурдно длинным, программа кладёт в него
+                        #сразу всё, что отобрано из исходного файла. Если запрашивать по одному элементу, то
+                        #непонятно, как сортировать конечные данные. Неспособным на внешнюю сортировку питоновским
                         #sorted? А вдруг на запрос откликнется неприлично много документов?.. При создании
                         #БД для каждого значения устанавливался оптимальный тип данных. При работе с MongoDB
                         #важно соблюдать соответствие типа данных запрашиваемого слова и размещённых в базе
@@ -211,13 +237,13 @@ class PrepSingleProc():
                                         header_row.insert(8, 'FORMAT')
                                 header_line = '\t'.join(header_row)
                                 
-                                #Конструируем имя конечного файла и абсолютный путь к этому файлу.
+                                #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                trg_file_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}'
+                                trg_file_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
-                                with open(trg_file_path, 'w') as trg_file_opened:
+                                with gzip.open(trg_file_path, mode='wt') as trg_file_opened:
                                         
                                         #Формируем и прописываем метастроки,
                                         #повествующие о происхождении конечного
@@ -269,10 +295,22 @@ class PrepSingleProc():
                                                                             storageEngine={'wiredTiger':
                                                                                            {'configString':
                                                                                             'block_compressor=zstd'}})
-                                mongo_aggr_arg.append({'$out': {'db': self.trg_db_name,
-                                                                'coll': trg_coll_name}})
+                                meta_lines = {'meta': []}
+                                if self.trg_file_fmt == 'vcf':
+                                        meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
+                                meta_lines['meta'].append(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                meta_lines['meta'].append(f'##table={src_file_name}')
+                                meta_lines['meta'].append(f'##database={self.src_db_name}')
+                                meta_lines['meta'].append(f'##collection={src_coll_name}')
+                                if not self.by_loc:
+                                        meta_lines['meta'].append(f'##field={self.ann_field_name}')
+                                if self.mongo_findone_args[1] is not None:
+                                        meta_lines['meta'].append(f'##project={self.mongo_findone_args[1]}')
+                                trg_coll_obj.insert_one(meta_lines)
+                                mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
+                                                                           'coll': trg_coll_name}}})
                                 src_coll_obj.aggregate(mongo_aggr_arg)
-                                if trg_coll_obj.count_documents({}) == 0:
+                                if trg_coll_obj.count_documents({}) == 1:
                                         trg_db_obj.drop_collection(trg_coll_name)
                                 else:
                                         index_models = create_index_models(self.trg_file_fmt,
@@ -284,50 +322,21 @@ class PrepSingleProc():
                 #Дисконнект.
                 client.close()
                 
-####################################################################################################
-
-import sys, locale, os, datetime, gzip, copy
-sys.dont_write_bytecode = True
-from cli.annotate_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
-from multiprocessing import Pool
-from bson.son import SON
-from backend.def_data_type import def_data_type
-from backend.doc_to_line import restore_line
-from backend.create_index_models import create_index_models
-
-#Подготовительный этап: обработка
-#аргументов командной строки,
-#создание экземпляра содержащего
-#ключевую функцию класса,
-#получение имён и количества
-#аннотируемых файлов, определение
-#оптимального числа процессов.
+#Обработка аргументов командной строки.
+#Создание экземпляра содержащего ключевую
+#функцию класса. Параллельный запуск
+#аннотирования. Замер времени выполнения
+#вычислений с точностью до микросекунды.
 if locale.getdefaultlocale()[0][:2] == 'ru':
         args = add_args_ru(__version__)
 else:
         args = add_args_en(__version__)
-max_proc_quan = args.max_proc_quan
-prep_single_proc = PrepSingleProc(args,
-                                  __version__)
-src_file_names = prep_single_proc.src_file_names
-src_files_quan = len(src_file_names)
-if max_proc_quan > src_files_quan <= 8:
-        proc_quan = src_files_quan
-elif max_proc_quan > 8:
-        proc_quan = 8
-else:
-        proc_quan = max_proc_quan
-        
-print(f'\nAnnotation by {prep_single_proc.src_db_name} database')
-print(f'\tnumber of parallel processes: {proc_quan}')
-
-#Параллельный запуск аннотирования. Замер времени
-#выполнения этого кода с точностью до микросекунды.
+main = Main(args, __version__)
+proc_quan = main.proc_quan
+print(f'\nAnnotation by {main.src_db_name} DB')
+print(f'\tquantity of parallel processes: {proc_quan}')
 with Pool(proc_quan) as pool_obj:
         exec_time_start = datetime.datetime.now()
-        pool_obj.map(prep_single_proc.annotate, src_file_names)
+        pool_obj.map(main.annotate, main.src_file_names)
         exec_time = datetime.datetime.now() - exec_time_start
-        
 print(f'\tparallel computation time: {exec_time}')
