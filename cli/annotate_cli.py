@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -55,6 +55,8 @@ trg-FMT - конечные таблицы определённого форма�
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно аннотируемых таблиц')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
@@ -69,8 +71,6 @@ trg-FMT - конечные таблицы определённого форма�
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Максимальное количество параллельно аннотируемых таблиц')
         args = arg_parser.parse_args()
         return args
 
@@ -127,8 +127,10 @@ the argument is ignored or causes an error
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Path to directory or name of the DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Maximum quantity of parallel annotated tables')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
-                             help='Number of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
+                             help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
                              help='Intersect by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
@@ -141,7 +143,5 @@ the argument is ignored or causes an error
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Maximum number of parallel annotated tables')
         args = arg_parser.parse_args()
         return args
