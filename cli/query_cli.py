@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -7,7 +7,7 @@ def add_args_ru(ver):
         Работа с аргументами командной строки.
         '''
         arg_parser = ArgumentParser(description=f'''
-Программа, позволяющая выполнить запрос по всем коллекциям MongoDB-базы.
+Программа, выполняющая наборы запросов по всем коллекциям MongoDB-базы.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
@@ -17,15 +17,29 @@ def add_args_ru(ver):
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
+В исходных файлах каждый запрос должен располагаться в отдельной строке.
+Допустимы пустые строки (например, для повышения читаемости наборов запросов).
+
 Источником отбираемых данных должна быть база, созданная с помощью create_db.
 
 Чтобы программа работала быстро, нужны индексы вовлечённых в запрос полей.
 
-Поддерживается только Python-диалект языка запросов MongoDB (см. вкладку Python):
+Поддерживается только Python-диалект языка запросов
+MongoDB (нажмите Select your language --> Python):
 https://docs.mongodb.com/manual/tutorial/query-documents/
 
 Допустимые MongoDB-операторы:
 https://docs.mongodb.com/manual/reference/operator/query/
+
+Примеры указания типа данных:
+"any_str"
+Decimal128("any_str")
+
+К вложенному полю обращайтесь через точку:
+"field_1.field_2.(...).field_N"
+
+Пример запроса:
+{{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
@@ -43,21 +57,23 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Вывести справку и выйти')
         man_grp = arg_parser.add_argument_group('Обязательные аргументы')
+        man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
+                             help='Путь к папке с содержащими запросы файлами')
         man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Имя БД, по которой искать')
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-q', '--mongo-query', metavar="['{}']", default='{}', dest='mongo_query', type=str,
-                             help='Запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Максимальное количество параллельно считываемых файлов с запросами')
+        opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
+                             help='Количество строк метаинформации файлов с запросами')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-(db-)TSV; поле _id не выведется)')
+                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Максимальное количество параллельно парсимых коллекций')
         args = arg_parser.parse_args()
         return args
 
@@ -66,7 +82,7 @@ def add_args_en(ver):
         Работа с аргументами командной строки.
         '''
         arg_parser = ArgumentParser(description=f'''
-A program that allows to run query to all MongoDB collections.
+A program that runs query sets to all collections of MongoDB database.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
@@ -76,15 +92,29 @@ Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
+In the source files, each query must be on a separate line.
+Blank lines are allowed (e.g., to make query sets more human readable).
+
 The source of the retrieved data should be the DB produced by create_db.
 
 For the program to work fast, it needs indexes of the fields involved in the query.
 
-Only Python dialect of MongoDB query language is supported (see Python tab):
+Only Python dialect of MongoDB query language is
+supported (press Select your language --> Python):
 https://docs.mongodb.com/manual/tutorial/query-documents/
 
 Allowed MongoDB operators:
 https://docs.mongodb.com/manual/reference/operator/query/
+
+Examples of specifying data type:
+"any_str"
+Decimal128("any_str")
+
+Call the nested field using a point:
+"field_1.field_2.(...).field_N"
+
+Example of query:
+{{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
 The notation in the CLI help:
 [default value];
@@ -102,20 +132,22 @@ f1+f2+f3 - fields of the DB collections with a compound index.
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Show this help message and exit')
         man_grp = arg_parser.add_argument_group('Mandatory arguments')
+        man_grp.add_argument('-S', '--src-dir-path', required=True, metavar='str', dest='src_dir_path', type=str,
+                             help='Path to directory with files containing queries')
         man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Name of the DB to search in')
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Path to directory or name of the DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-q', '--mongo-query', metavar="['{}']", default='{}', dest='mongo_query', type=str,
-                             help='Query to all DB collections (in single quotes; PyMongo syntax; examples of specifying data type: "any_str", Decimal128("any_str"))')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Maximum quantity of files with queries read in parallel')
+        opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
+                             help='Quantity of metainformation lines of files with queries')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Selectable fields (comma separated without spaces; src-db-VCF: not applicable; src-db-BED: trg-(db-)TSV; _id field will not be output)')
+                             help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
                              help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Maximum number of collections parsed in parallel')
         args = arg_parser.parse_args()
         return args
