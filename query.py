@@ -1,29 +1,46 @@
-__version__ = 'v5.1'
+__version__ = 'v6.0'
 
-class PrepSingleProc():
+import sys, locale, os, datetime, copy, gzip
+sys.dont_write_bytecode = True
+from cli.query_cli import add_args_ru, add_args_en
+from pymongo import MongoClient, ASCENDING
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from multiprocessing import Pool
+from bson.son import SON
+from bson.decimal128 import Decimal128
+from backend.doc_to_line import restore_line
+from backend.create_index_models import create_index_models
+
+class Main():
         '''
-        Класс, спроектированный под
-        безопасный параллельный поиск
-        по набору коллекций MongoDB.
+        Основной класс. args, подаваемый иниту на вход, не обязательно
+        должен формироваться argparse. Этим объектом может быть экземпляр
+        класса из стороннего Python-модуля, в т.ч. имеющего отношение к GUI.
+        Кстати, написание сообществом всевозможных графических интерфейсов
+        к high-perf-bio люто, бешено приветствуется! В ините на основе args
+        создаются как атрибуты, используемые распараллеливаемой функцией,
+        так и атрибуты, нужные для кода, её запускающего. Что касается этой
+        функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
         def __init__(self, args, ver):
                 '''
-                Получение атрибутов, необходимых заточенной под многопроцессовое
-                выполнение функции отбора документов. Атрибуты ни в коем случае не
-                должны будут потом в параллельных процессах изменяться. Получаются они
-                в основном из указанных исследователем аргументов. Некоторые неочевидные,
-                но важные детали об атрибутах. Квази-расширение коллекций. Оно нужно,
-                как минимум, для определения правил сортировки и форматирования конечных
-                файлов. Сортировка db-VCF и db-BED. Она делается по координатам для
-                обеспечения поддержки tabix-индексации конечных таблиц. Проджекшен
-                (отбор полей). Для db-VCF его крайне трудно реализовать из-за наличия
-                в соответствующих коллекциях разнообразных вложенных структур и запрета
-                со стороны MongoDB на применение точечной формы обращения к отбираемым
-                элементам массивов. Что касается db-BED, когда мы оставляем только часть
-                полей, невозможно гарантировать соблюдение спецификаций BED-формата, поэтому
-                вывод будет формироваться не более, чем просто табулированным (trg-TSV).
+                Получение атрибутов как для основной функции программы, так и для блока
+                многопроцессового запуска таковой. Первые из перечисленных ни в коем
+                случае не должны будут потом в параллельных процессах изменяться. Некоторые
+                неочевидные, но важные детали об атрибутах. Квази-расширение коллекций.
+                Оно нужно, как минимум, для определения правил сортировки и форматирования
+                конечных файлов. Сортировка db-VCF и db-BED. Она делается по координатам
+                для обеспечения поддержки tabix-индексации конечных таблиц. Проджекшен
+                (отбор полей). Поля src-db-VCF я, скрепя сердце, позволил отбирать, но
+                документы со вложенными объектами, как, например, в INFO, не сконвертируются
+                в обычные строки, а сериализуются как есть. Что касается и src-db-VCF, и
+                src-db-BED, когда мы оставляем только часть полей, невозможно гарантировать
+                соблюдение спецификаций соответствующих форматов, поэтому вывод будет
+                формироваться не более, чем просто табулированным (trg-(db-)TSV).
                 '''
                 client = MongoClient()
+                self.src_dir_path = os.path.normpath(args.src_dir_path)
+                self.src_file_names = os.listdir(self.src_dir_path)
                 self.src_db_name = args.src_db_name
                 self.src_coll_names = client[self.src_db_name].list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
@@ -34,7 +51,17 @@ class PrepSingleProc():
                         resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
-                self.mongo_aggr_draft = [{'$match': eval(args.mongo_query)}]
+                max_proc_quan = args.max_proc_quan
+                src_files_quan = len(self.src_file_names)
+                cpus_quan = os.cpu_count()
+                if max_proc_quan > src_files_quan <= cpus_quan:
+                        self.proc_quan = src_files_quan
+                elif max_proc_quan > cpus_quan:
+                        self.proc_quan = cpus_quan
+                else:
+                        self.proc_quan = max_proc_quan
+                self.meta_lines_quan = args.meta_lines_quan
+                self.mongo_aggr_draft = [{'$match': None}]
                 if src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
@@ -42,7 +69,7 @@ class PrepSingleProc():
                         self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
-                if args.proj_fields is None or src_coll_ext == 'vcf':
+                if args.proj_fields is None:
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = src_coll_ext
                 else:
@@ -67,9 +94,10 @@ class PrepSingleProc():
                 self.ver = ver
                 client.close()
                 
-        def search(self, src_coll_name):
+        def search(self, src_file_name):
                 '''
-                Функция поиска по одной коллекции.
+                Функция выполнения запросов из
+                одного JSONl-подобного файла.
                 '''
                 
                 #Набор MongoDB-объектов
@@ -79,140 +107,166 @@ class PrepSingleProc():
                 #возможны конфликты.
                 client = MongoClient()
                 src_db_obj = client[self.src_db_name]
-                src_coll_obj = src_db_obj[src_coll_name]
                 
-                #Aggregation-инструкция может быть потом дополнена
-                #индивидуальным для текущей коллекции $out-этапом.
-                #В связи с перспективой внутрипроцессовой модификации
-                #общего выражения, создаём отдельный объект с этим
-                #выражением, который точно не страшно ковырять.
-                mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
-                
-                #Получаем имя конечного файла. Оно же при
-                #необходимости - имя конечной коллекции.
-                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                trg_file_name = f'{src_coll_base}_query_res.{self.trg_file_fmt}'
-                
-                #Этот большой блок осуществляет
-                #запрос с выводом результатов в файл.
-                if hasattr(self, 'trg_dir_path'):
-                        curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
-                        
-                        #Чтобы шапка повторяла шапку той таблицы, по которой делалась
-                        #коллекция, создадим её из имён полей. Projection при этом учтём.
-                        #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
-                        #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                        header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                        if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                header_row.insert(8, 'FORMAT')
-                        header_line = '\t'.join(header_row)
-                        
-                        #Конструируем абсолютный путь к конечному файлу.
-                        trg_file_path = os.path.join(self.trg_dir_path,
-                                                     trg_file_name)
-                        
-                        #Открытие конечного файла на запись.
-                        with open(trg_file_path, 'w') as trg_file_opened:
+                #Открытие исходного файла на чтение, смещение курсора к его основной части.
+                with open(os.path.join(self.src_dir_path, src_file_name)) as src_file_opened:
+                        for meta_line_index in range(self.meta_lines_quan):
+                                src_file_opened.readline()
                                 
-                                #Формируем и прописываем метастроки,
-                                #повествующие о происхождении конечного
-                                #файла. Прописываем также табличную шапку.
-                                if self.trg_file_fmt == 'vcf':
-                                        trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                                trg_file_opened.write(f'##database={self.src_db_name}\n')
-                                trg_file_opened.write(f'##collection={src_coll_name}\n')
-                                trg_file_opened.write(f'##query={mongo_aggr_arg[0]["$match"]}\n')
-                                if self.mongo_findone_args[1] is not None:
-                                        trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
-                                trg_file_opened.write(header_line + '\n')
+                        #Запрос, вынесенный в отдельный объект,
+                        #можно будет спокойно модифицировать
+                        #внутри распараллеливаемой функции.
+                        mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
+                        
+                        #Счётчик запросов, а также название исходного
+                        #файла (без расширения), потом пригодятся для
+                        #построения имён конечных файлов или коллекций.
+                        src_line_num = 0
+                        src_file_base = src_file_name.rsplit('.', maxsplit=1)[0]
+                        
+                        #Этот большой блок вытаскивает запросы из
+                        #исходного файла и запускает их выполнение
+                        #с выводом результатов в соответствующие
+                        #парам запрос-коллекция конечные файлы.
+                        if hasattr(self, 'trg_dir_path'):
                                 
-                                #Извлечение из объекта курсора отвечающих запросу
-                                #документов, преобразование их значений в обычные
-                                #строки и прописывание последних в конечный файл.
-                                #Проверка, вылез ли по запросу хоть один документ.
-                                empty_res = True
-                                for doc in curs_obj:
-                                        trg_file_opened.write(restore_line(doc,
-                                                                           self.trg_file_fmt,
-                                                                           self.sec_delimiter))
-                                        empty_res = False
+                                #Одна строка - один запрос. Строки без обязательных
+                                #для любого MongoDB-запроса фигурных скобок игнорируются.
+                                #Это позволяет программе, в частности, не спотыкаться
+                                #на умышленно или случайно оставленных пустых строках.
+                                #eval используется вместо json.loads, чтобы не придираться
+                                #к виду кавычек и для поддержки чуждого для классического
+                                #JSON типа данных Decimal128. Номер запроса нужен будет
+                                #исключительно ради уникальности имени конечного файла.
+                                for src_line in src_file_opened:
+                                        if '{' not in src_line:
+                                                continue
+                                        mongo_aggr_arg[0]['$match'] = eval(src_line)
+                                        src_line_num += 1
                                         
-                        #Удаление конечного файла, если в
-                        #нём очутились только метастроки.
-                        if empty_res:
-                                os.remove(trg_file_path)
-                                
-                #Создание конечной базы и коллекции.
-                #Обогащение aggregation-инструкции этапом
-                #вывода в конечную коллекцию. Последняя,
-                #если не пополнилась результатами, удаляется.
-                #Для непустых конечных коллекций создаются
-                #обязательные и пользовательские индексы.
-                elif hasattr(self, 'trg_db_name'):
-                        trg_db_obj = client[self.trg_db_name]
-                        trg_coll_obj = trg_db_obj.create_collection(trg_file_name,
-                                                                    storageEngine={'wiredTiger':
-                                                                                   {'configString':
-                                                                                    'block_compressor=zstd'}})
-                        mongo_aggr_arg.append({'$out': {'db': self.trg_db_name,
-                                                        'coll': trg_file_name}})
-                        src_coll_obj.aggregate(mongo_aggr_arg)
-                        if trg_coll_obj.count_documents({}) == 0:
-                                trg_db_obj.drop_collection(trg_file_name)
-                        else:
-                                index_models = create_index_models(self.trg_file_fmt,
-                                                                   self.ind_field_names)
-                                if index_models != []:
-                                        trg_coll_obj.create_indexes(index_models)
-                                        
+                                        #Каждый запрос делается по всем
+                                        #коллекциям MongoDB-базы. Т.е.
+                                        #даже, если по одной из коллекций
+                                        #уже получились результаты, обход
+                                        #будет продолжаться и завершится лишь
+                                        #после обращения к последней коллекции.
+                                        for src_coll_name in self.src_coll_names:
+                                                
+                                                #Создание двух объектов: текущей коллекции и курсора.
+                                                src_coll_obj = src_db_obj[src_coll_name]
+                                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
+                                                
+                                                #Чтобы шапка повторяла шапку той таблицы, по которой делалась
+                                                #коллекция, создадим её из имён полей. Projection при этом учтём.
+                                                #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
+                                                #есть поля с генотипами, то шапка дополнится элементом FORMAT.
+                                                header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                                                if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
+                                                        header_row.insert(8, 'FORMAT')
+                                                header_line = '\t'.join(header_row)
+                                                
+                                                #Конструируем имя конечного архива и абсолютный путь.
+                                                #Пытаться поместить в имя запрос абсурдно, поэтому
+                                                #ограничимся номером запроса. Пайплайн, содержащий запрос,
+                                                #пропишется потом вовнутрь файла как строка метаинформации.
+                                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
+                                                trg_file_name = f'file_{src_file_base}__query_{src_line_num}__coll_{src_coll_base}.{self.trg_file_fmt}.gz'
+                                                trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
+                                                
+                                                #Открытие конечного файла на запись.
+                                                with gzip.open(trg_file_path, mode='wt') as trg_file_opened:
+                                                        
+                                                        #Формируем и прописываем метастроки,
+                                                        #повествующие о происхождении конечного
+                                                        #файла. Прописываем также табличную шапку.
+                                                        if self.trg_file_fmt == 'vcf':
+                                                                trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
+                                                        trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                                        trg_file_opened.write(f'##src_file_name={src_file_name}\n')
+                                                        trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
+                                                        trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
+                                                        trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
+                                                        trg_file_opened.write(header_line + '\n')
+                                                        
+                                                        #Извлечение из объекта курсора отвечающих запросу
+                                                        #документов, преобразование их значений в обычные
+                                                        #строки и прописывание последних в конечный файл.
+                                                        #Проверка, вылез ли по запросу хоть один документ.
+                                                        empty_res = True
+                                                        for doc in curs_obj:
+                                                                trg_file_opened.write(restore_line(doc,
+                                                                                                   self.trg_file_fmt,
+                                                                                                   self.sec_delimiter))
+                                                                empty_res = False
+                                                                
+                                                #Удаление конечного файла, если в
+                                                #нём очутились только метастроки.
+                                                if empty_res:
+                                                        os.remove(trg_file_path)
+                                                        
+                        #Та же работа, но с выводом в БД. Опишу некоторые
+                        #особенности. Aggregation-инструкция обогащается
+                        #этапом вывода в конечную коллекцию. Метастроки
+                        #складываются в список, а он, в свою очередь,
+                        #встраивается в первый документ коллекции. Если
+                        #этот документ так и остаётся в гордом одиночестве,
+                        #коллекция удаляется. Для непустых конечных коллекций
+                        #создаются обязательные и пользовательские индексы.
+                        elif hasattr(self, 'trg_db_name'):
+                                trg_db_obj = client[self.trg_db_name]
+                                mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
+                                                                           'coll': None}}})
+                                for src_line in src_file_opened:
+                                        if '{' not in src_line:
+                                                continue
+                                        mongo_aggr_arg[0]['$match'] = eval(src_line)
+                                        src_line_num += 1
+                                        for src_coll_name in self.src_coll_names:
+                                                src_coll_obj = src_db_obj[src_coll_name]
+                                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
+                                                trg_coll_name = f'file_{src_file_base}__query_{src_line_num}__coll_{src_coll_base}.{self.trg_file_fmt}'
+                                                mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
+                                                trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
+                                                                                            storageEngine={'wiredTiger':
+                                                                                                           {'configString':
+                                                                                                            'block_compressor=zstd'}})
+                                                meta_lines = {'meta': []}
+                                                if self.trg_file_fmt == 'vcf':
+                                                        meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
+                                                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                                meta_lines['meta'].append(f'##src_file_name={src_file_name}')
+                                                meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
+                                                meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
+                                                meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
+                                                trg_coll_obj.insert_one(meta_lines)
+                                                src_coll_obj.aggregate(mongo_aggr_arg)
+                                                if trg_coll_obj.count_documents({}) == 1:
+                                                        trg_db_obj.drop_collection(trg_coll_name)
+                                                else:
+                                                        index_models = create_index_models(self.trg_file_fmt,
+                                                                                           self.ind_field_names)
+                                                        if index_models != []:
+                                                                trg_coll_obj.create_indexes(index_models)
+                                                                
                 #Дисконнект.
                 client.close()
                 
-####################################################################################################
-
-import sys, locale, os, datetime, copy
-sys.dont_write_bytecode = True
-from cli.query_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
-from bson.decimal128 import Decimal128
-from multiprocessing import Pool
-from bson.son import SON
-from backend.doc_to_line import restore_line
-from backend.create_index_models import create_index_models
-
-#Подготовительный этап: обработка
-#аргументов командной строки,
-#создание экземпляра содержащего
-#ключевую функцию класса,
-#получение имён и количества
-#парсимых коллекций, определение
-#оптимального числа процессов.
-if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
-else:
-        args = add_args_en(__version__)
-max_proc_quan = args.max_proc_quan
-prep_single_proc = PrepSingleProc(args,
-                                  __version__)
-src_coll_names = prep_single_proc.src_coll_names
-colls_quan = len(src_coll_names)
-if max_proc_quan > colls_quan <= 8:
-        proc_quan = colls_quan
-elif max_proc_quan > 8:
-        proc_quan = 8
-else:
-        proc_quan = max_proc_quan
-        
-print(f'\nQueriing by {prep_single_proc.src_db_name} database')
-print(f'\tnumber of parallel processes: {proc_quan}')
-
-#Параллельный запуск поиска. Замер времени
-#выполнения вычислений с точностью до микросекунды.
-with Pool(proc_quan) as pool_obj:
-        exec_time_start = datetime.datetime.now()
-        pool_obj.map(prep_single_proc.search, src_coll_names)
-        exec_time = datetime.datetime.now() - exec_time_start
-        
-print(f'\tparallel computation time: {exec_time}')
+#Обработка аргументов командной строки.
+#Создание экземпляра содержащего ключевую
+#функцию класса. Параллельный запуск
+#поиска. Замер времени выполнения
+#вычислений с точностью до микросекунды.
+if __name__ == '__main__':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = add_args_ru(__version__)
+        else:
+                args = add_args_en(__version__)
+        main = Main(args, __version__)
+        proc_quan = main.proc_quan
+        print(f'\nQueriing by {main.src_db_name} DB')
+        print(f'\tquantity of parallel processes: {proc_quan}')
+        with Pool(proc_quan) as pool_obj:
+                exec_time_start = datetime.datetime.now()
+                pool_obj.map(main.search, main.src_file_names)
+                exec_time = datetime.datetime.now() - exec_time_start
+        print(f'\tparallel computation time: {exec_time}')
