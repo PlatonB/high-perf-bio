@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -20,14 +20,14 @@ def add_args_ru(ver):
 
 Аннотируемый столбец:
 - должен занимать одно и то же положение во всех исходных таблицах;
-- целиком размещается в оперативную память, что может замедлить работу компьютера.
+- после конвертации в документ не должен весить более 16 МБ.
 
 Также в качестве эксперимента существует возможность пересечения
 по координатам. Поддерживаются все 4 комбинации VCF и BED.
 
 Каждая аннотируемая таблица обязана быть сжатой с помощью GZIP.
 
-Источником характеристик должна быть база данных, созданная с помощью create_db.
+Источником характеристик должна быть БД, созданная с помощью create_db.
 
 Чтобы программа работала быстро, нужны индексы вовлечённых в запрос полей.
 
@@ -66,7 +66,7 @@ trg-FMT - конечные таблицы определённого форма�
         opt_grp.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
                              help='Имя поля БД, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF: не применяется; src-db-BED: trg-(db-)TSV; поле _id не выведется)')
+                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
@@ -92,7 +92,7 @@ Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
 Annotated column:
 - must be in the same position in all source tables;
-- is placed entirely in RAM, which may slow down the computer's performance.
+- must not weigh more than 16 MB after conversion into a document.
 
 Also as an experiment there is the possibility of intersection
 by coordinates. All 4 combinations of VCF and BED are supported.
@@ -138,10 +138,10 @@ the argument is ignored or causes an error
         opt_grp.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
                              help='Name of the DB field by which to annotate (applied without -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
         opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Selectable fields (comma separated without spaces; src-db-VCF: not applicable; src-db-BED: trg-(db-)TSV; _id field will not be output)')
+                             help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed; trg-db-BED: chrom+start+end and name will be indexed)')
         args = arg_parser.parse_args()
         return args
