@@ -1,4 +1,4 @@
-__version__ = 'v6.2'
+__version__ = 'v6.3'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -94,7 +94,7 @@ class Main():
                 if self.by_loc:
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
-                        self.mongo_aggregate_draft = [{'$match': {'$or': []}}]
+                        self.mongo_aggr_draft = [{'$match': {'$or': []}}]
                 else:
                         if args.ann_col_num is None:
                                 if self.src_file_fmt == 'vcf':
@@ -114,20 +114,20 @@ class Main():
                                         self.ann_field_name = 'rsID'
                         else:
                                 self.ann_field_name = args.ann_field_name
-                        self.mongo_aggregate_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
+                        self.mongo_aggr_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
                 if self.src_coll_ext == 'vcf':
-                        self.mongo_aggregate_draft.append({'$sort': SON([('#CHROM', ASCENDING),
-                                                                         ('POS', ASCENDING)])})
+                        self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
+                                                                    ('POS', ASCENDING)])})
                 elif self.src_coll_ext == 'bed':
-                        self.mongo_aggregate_draft.append({'$sort': SON([('chrom', ASCENDING),
-                                                                         ('start', ASCENDING),
-                                                                         ('end', ASCENDING)])})
+                        self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
+                                                                    ('start', ASCENDING),
+                                                                    ('end', ASCENDING)])})
                 if args.proj_fields is None:
                         self.mongo_findone_args = [None, None]
                         self.trg_file_fmt = self.src_coll_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
-                        self.mongo_aggregate_draft.append({'$project': mongo_project})
+                        self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [None, mongo_project]
                         self.trg_file_fmt = 'tsv'
                 if args.sec_delimiter == 'colon':
@@ -181,7 +181,7 @@ class Main():
                         #БД для каждого значения устанавливался оптимальный тип данных. При работе с MongoDB
                         #важно соблюдать соответствие типа данных запрашиваемого слова и размещённых в базе
                         #значений. Для этого присвоим подходящий тип данных каждому аннотируемому элементу.
-                        mongo_aggr_arg = copy.deepcopy(self.mongo_aggregate_draft)
+                        mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
                         for src_line in src_file_opened:
                                 src_row = src_line.rstrip().split('\t')
                                 if self.by_loc:
@@ -239,7 +239,7 @@ class Main():
                                 
                                 #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                trg_file_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}.gz'
+                                trg_file_name = f'file_{src_file_base}__coll_{src_coll_base}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
@@ -250,14 +250,14 @@ class Main():
                                         #файла. Прописываем также табличную шапку.
                                         if self.trg_file_fmt == 'vcf':
                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                        trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                                        trg_file_opened.write(f'##table={src_file_name}\n')
-                                        trg_file_opened.write(f'##database={self.src_db_name}\n')
-                                        trg_file_opened.write(f'##collection={src_coll_name}\n')
+                                        trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                        trg_file_opened.write(f'##src_file_name={src_file_name}\n')
+                                        trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
+                                        trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
                                         if not self.by_loc:
-                                                trg_file_opened.write(f'##field={self.ann_field_name}\n')
+                                                trg_file_opened.write(f'##ann_field_name={self.ann_field_name}\n')
                                         if self.mongo_findone_args[1] is not None:
-                                                trg_file_opened.write(f'##project={self.mongo_findone_args[1]}\n')
+                                                trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
                                         trg_file_opened.write(header_line + '\n')
                                         
                                         #Извлечение из объекта курсора отвечающих запросу документов,
@@ -278,19 +278,23 @@ class Main():
                                 if empty_res:
                                         os.remove(trg_file_path)
                                         
-                #Создание конечной базы и коллекций. При
-                #работе с каждой исходной коллекцией делается
-                #обогащение aggregation-инструкции этапом
-                #вывода в конечную коллекцию. Последняя,
-                #если не пополнилась результатами, удаляется.
-                #Для непустых конечных коллекций создаются
-                #обязательные и пользовательские индексы.
+                #Та же работа, но с выводом в БД. Опишу некоторые
+                #особенности. Aggregation-инструкция обогащается
+                #этапом вывода в конечную коллекцию. Метастроки
+                #складываются в список, а он, в свою очередь,
+                #встраивается в первый документ коллекции. Если
+                #этот документ так и остаётся в гордом одиночестве,
+                #коллекция удаляется. Для непустых конечных коллекций
+                #создаются обязательные и пользовательские индексы.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
+                        mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
+                                                                   'coll': None}}})
                         for src_coll_name in self.src_coll_names:
-                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                trg_coll_name = f'{src_file_base}_ann_by_{src_coll_base}.{self.trg_file_fmt}'
                                 src_coll_obj = src_db_obj[src_coll_name]
+                                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
+                                trg_coll_name = f'file_{src_file_base}__coll_{src_coll_base}.{self.trg_file_fmt}'
+                                mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                             storageEngine={'wiredTiger':
                                                                                            {'configString':
@@ -298,17 +302,15 @@ class Main():
                                 meta_lines = {'meta': []}
                                 if self.trg_file_fmt == 'vcf':
                                         meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
-                                meta_lines['meta'].append(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>')
-                                meta_lines['meta'].append(f'##table={src_file_name}')
-                                meta_lines['meta'].append(f'##database={self.src_db_name}')
-                                meta_lines['meta'].append(f'##collection={src_coll_name}')
+                                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                meta_lines['meta'].append(f'##src_file_name={src_file_name}')
+                                meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
+                                meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                 if not self.by_loc:
-                                        meta_lines['meta'].append(f'##field={self.ann_field_name}')
+                                        meta_lines['meta'].append(f'##ann_field_name={self.ann_field_name}')
                                 if self.mongo_findone_args[1] is not None:
-                                        meta_lines['meta'].append(f'##project={self.mongo_findone_args[1]}')
+                                        meta_lines['meta'].append(f'##mongo_project={self.mongo_findone_args[1]}')
                                 trg_coll_obj.insert_one(meta_lines)
-                                mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
-                                                                           'coll': trg_coll_name}}})
                                 src_coll_obj.aggregate(mongo_aggr_arg)
                                 if trg_coll_obj.count_documents({}) == 1:
                                         trg_db_obj.drop_collection(trg_coll_name)
@@ -317,8 +319,7 @@ class Main():
                                                                            self.ind_field_names)
                                         if index_models != []:
                                                 trg_coll_obj.create_indexes(index_models)
-                                del mongo_aggr_arg[-1]
-                                
+                                                
                 #Дисконнект.
                 client.close()
                 
@@ -327,16 +328,17 @@ class Main():
 #функцию класса. Параллельный запуск
 #аннотирования. Замер времени выполнения
 #вычислений с точностью до микросекунды.
-if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
-else:
-        args = add_args_en(__version__)
-main = Main(args, __version__)
-proc_quan = main.proc_quan
-print(f'\nAnnotation by {main.src_db_name} DB')
-print(f'\tquantity of parallel processes: {proc_quan}')
-with Pool(proc_quan) as pool_obj:
-        exec_time_start = datetime.datetime.now()
-        pool_obj.map(main.annotate, main.src_file_names)
-        exec_time = datetime.datetime.now() - exec_time_start
-print(f'\tparallel computation time: {exec_time}')
+if __name__ == '__main__':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = add_args_ru(__version__)
+        else:
+                args = add_args_en(__version__)
+        main = Main(args, __version__)
+        proc_quan = main.proc_quan
+        print(f'\nAnnotation by {main.src_db_name} DB')
+        print(f'\tquantity of parallel processes: {proc_quan}')
+        with Pool(proc_quan) as pool_obj:
+                exec_time_start = datetime.datetime.now()
+                pool_obj.map(main.annotate, main.src_file_names)
+                exec_time = datetime.datetime.now() - exec_time_start
+        print(f'\tparallel computation time: {exec_time}')
