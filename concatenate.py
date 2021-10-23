@@ -1,90 +1,126 @@
-__version__ = 'v2.2'
+__version__ = 'v3.0'
 
-import sys, locale, datetime
+import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
 from cli.concatenate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from backend.create_index_models import create_index_models
 
-#CLI.
-if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
-else:
-        args = add_args_en(__version__)
-        
-#Основополагающие для всей программы переменные. Получаются
-#они в основном из указанных исследователем аргументов.
-#Некоторые неочевидные, но важные детали об этих переменных.
-#Квази-расширение конечной коллекции. Оно нужно, чтобы потом
-#парсеры знали, как её обрабатывать. Проджекшен (отбор полей).
-#Что касается как src-db-VCF, так и src-db-BED, когда мы
-#оставляем только часть полей, невозможно гарантировать
-#соблюдение спецификаций этих форматов, поэтому вывод будет
-#формироваться не более, чем просто табулированным (trg-db-TSV).
-client = MongoClient()
-src_db_name = args.src_db_name
-src_coll_names = client[src_db_name].list_collection_names()
-src_coll_ext = src_coll_names[0].rsplit('.', maxsplit=1)[1]
-if args.trg_db_name != src_db_name:
-        trg_db_name = args.trg_db_name
-        resolve_db_existence(trg_db_name)
-else:
-        raise DbAlreadyExistsError()
-if args.proj_fields is None:
-        mongo_project = {'_id': 0}
-        trg_coll_ext = src_coll_ext
-else:
-        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
-        mongo_project['_id'] = 0
-        trg_coll_ext = 'tsv'
-mongo_aggr_arg = [{'$project': mongo_project}]
-if args.ind_field_names is None:
-        ind_field_names = args.ind_field_names
-else:
-        ind_field_names = args.ind_field_names.split(',')
-        
-print(f'\nConcatenating {src_db_name} database')
-
-#Конкатенацию можно произвести в двух режимах - с сохранением повторяющихся
-#конечных MongoDB-документов и без. Со вторым не так всё очевидно. 1. Сравнение
-#идёт по документам как единому целому, т.е. несоответствие хотя бы по одному полю
-#позволит обоим документам сосуществовать. 2. Идентификаторы всех документов уникальны
-#и при сопоставлении не учитываются. 3. Документы становятся неполными после применения
-#проджекшена и сверяются уже в таком виде. 4. Unique-индексы конечной коллекции
-#блокируют заливку вложенных структур, а значит, trg-db-VCF уникализировать нельзя.
-exec_time_start = datetime.datetime.now()
-src_db_obj = client[src_db_name]
-trg_db_obj = client[trg_db_name]
-trg_coll_name = f'{trg_db_name}.{trg_coll_ext}'
-trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
-                                            storageEngine={'wiredTiger':
-                                                           {'configString':
-                                                            'block_compressor=zstd'}})
-if not args.del_copies:
-        mongo_on = '_id'
-        mongo_when_match = 'keepExisting'
-else:
-        mongo_on = list(src_db_obj[src_coll_names[0]].find_one(None, mongo_project))
-        mongo_when_match = 'replace'
-        trg_coll_obj.create_index([(field_name, ASCENDING) for field_name in mongo_on],
-                                  unique=True)
-mongo_merge = {'into': {'db': trg_db_name,
-                        'coll': trg_coll_name},
-               'on': mongo_on,
-               'whenMatched': mongo_when_match}
-mongo_aggr_arg.append({'$merge': mongo_merge})
-for src_coll_name in src_coll_names:
-        src_db_obj[src_coll_name].aggregate(mongo_aggr_arg)
-if trg_coll_obj.count_documents({}) == 0:
-        trg_db_obj.drop_collection(trg_coll_name)
-else:
-        index_models = create_index_models(trg_coll_ext,
-                                           ind_field_names)
-        if index_models != []:
-                trg_coll_obj.create_indexes(index_models)
-exec_time = datetime.datetime.now() - exec_time_start
-
-print(f'\tcomputation time: {exec_time}')
-
-client.close()
+class Main():
+        '''
+        Основной класс. args, подаваемый иниту на вход, не обязательно
+        должен формироваться argparse. Этим объектом может быть экземпляр
+        класса из стороннего Python-модуля, в т.ч. имеющего отношение к GUI.
+        Кстати, написание сообществом всевозможных графических интерфейсов
+        к high-perf-bio люто, бешено приветствуется! В ините на основе args
+        создаются как атрибуты, используемые главной функцией, так и атрибуты,
+        нужные для кода, её запускающего. Что касается этой функции, её
+        можно запросто пристроить в качестве коллбэка кнопки в GUI.
+        '''
+        def __init__(self, args, ver):
+                '''
+                Получение атрибутов как для основной функции программы, так и для
+                блока запуска таковой. Некоторые неочевидные, но важные детали об
+                этих атрибутах. Квази-расширение конечной коллекции. Оно нужно,
+                чтобы потом парсеры знали, как её обрабатывать. Проджекшен (отбор
+                полей). Что касается как src-db-VCF, так и src-db-BED, когда мы
+                оставляем только часть полей, невозможно гарантировать соблюдение
+                спецификаций этих форматов, поэтому вывод будет формироваться не
+                более, чем просто табулированным (trg-db-TSV). Конкатенирующий запрос
+                формируется тоже в __init__. Конкатенацию можно произвести в двух
+                режимах - с сохранением повторяющихся конечных MongoDB-документов
+                и без. Со вторым не так уж всё интуитивно понятно. 1. Сравнение идёт
+                по документам как единому целому, т.е. несоответствие хотя бы по
+                одному полю позволит обоим документам сосуществовать. 2. Уникальные
+                идентификаторы документов при сопоставлении не учитываются. 3. Документы
+                становятся неполными после применения проджекшена и сверяются уже в
+                таком виде. 4. Unique-индексы конечной коллекции блокируют заливку
+                вложенных структур, а значит, trg-db-VCF уникализировать нельзя.
+                '''
+                client = MongoClient()
+                self.src_db_name = args.src_db_name
+                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                if args.trg_db_name != self.src_db_name:
+                        self.trg_db_name = args.trg_db_name
+                        resolve_db_existence(self.trg_db_name)
+                else:
+                        raise DbAlreadyExistsError()
+                self.mongo_aggr_draft = [{'$skip': 1}]
+                if args.proj_fields is None:
+                        mongo_project = {'_id': 0}
+                        self.trg_coll_ext = src_coll_ext
+                else:
+                        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
+                        mongo_project['_id'] = 0
+                        self.trg_coll_ext = 'tsv'
+                self.mongo_aggr_draft.append({'$project': mongo_project})
+                if not args.del_copies:
+                        self.mongo_on = '_id'
+                        self.mongo_when_match = 'keepExisting'
+                else:
+                        self.mongo_on = list(client[self.src_db_name][self.src_coll_names[0]].find_one(None, mongo_project))
+                        self.mongo_when_match = 'replace'
+                self.trg_coll_name = f'db_{self.src_db_name}__wm_{self.mongo_when_match}.{self.trg_coll_ext}'
+                mongo_merge = {'into': {'db': self.trg_db_name,
+                                        'coll': self.trg_coll_name},
+                               'on': self.mongo_on,
+                               'whenMatched': self.mongo_when_match}
+                self.mongo_aggr_draft.append({'$merge': mongo_merge})
+                if args.ind_field_names is None:
+                        self.ind_field_names = args.ind_field_names
+                else:
+                        self.ind_field_names = args.ind_field_names.split(',')
+                self.ver = ver
+                client.close()
+                
+        def concatenate(self):
+                '''
+                Функция объединения коллекций с размещением результатов
+                в новую БД. Отдельный набор MongoDB-объектов, а также
+                глубокая копия объекта запроса нужны для унификации
+                структуры кода с остальными программами проекта.
+                '''
+                client = MongoClient()
+                src_db_obj = client[self.src_db_name]
+                trg_db_obj = client[self.trg_db_name]
+                mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
+                trg_coll_obj = trg_db_obj.create_collection(self.trg_coll_name,
+                                                            storageEngine={'wiredTiger':
+                                                                           {'configString':
+                                                                            'block_compressor=zstd'}})
+                meta_lines = {'meta': []}
+                if self.trg_coll_ext == 'vcf':
+                        meta_lines['meta'].append(f'##fileformat={self.trg_coll_ext.upper()}')
+                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
+                meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
+                trg_coll_obj.insert_one(meta_lines)
+                if self.mongo_when_match == 'replace':
+                        trg_coll_obj.create_index([(field_name, ASCENDING) for field_name in self.mongo_on],
+                                                  unique=True)
+                for src_coll_name in self.src_coll_names:
+                        src_db_obj[src_coll_name].aggregate(mongo_aggr_arg)
+                index_models = create_index_models(self.trg_coll_ext,
+                                                   self.ind_field_names)
+                if index_models != []:
+                        trg_coll_obj.create_indexes(index_models)
+                client.close()
+                
+#Обработка аргументов командной строки.
+#Создание экземпляра содержащего ключевую
+#функцию класса. Запуск объединения.
+#Замер времени выполнения вычислений
+#с точностью до микросекунды.
+if __name__ == '__main__':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = add_args_ru(__version__)
+        else:
+                args = add_args_en(__version__)
+        main = Main(args, __version__)
+        print(f'\nConcatenating {main.src_db_name} DB')
+        exec_time_start = datetime.datetime.now()
+        main.concatenate()
+        exec_time = datetime.datetime.now() - exec_time_start
+        print(f'\tcomputation time: {exec_time}')
