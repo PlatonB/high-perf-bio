@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -72,7 +72,8 @@ class Main():
                                 self.field_name = 'rsID'
                 else:
                         self.field_name = args.field_name
-                self.mongo_aggr_draft = [{'$group': {'_id': f'${self.field_name}',
+                self.mongo_aggr_draft = [{'$skip': 1},
+                                         {'$group': {'_id': f'${self.field_name}',
                                                      'quantity': {'$sum': 1}}}]
                 self.header_row = [self.field_name, 'quantity']
                 if args.quan_thres > 1 and args.freq_thres is not None:
@@ -92,7 +93,7 @@ class Main():
                 self.ver = ver
                 client.close()
                 
-        def count(self, src_coll_name):
+        def count(self):
                 '''
                 Функция нахождения количества и
                 частоты элементов поля одной коллекции,
@@ -104,15 +105,15 @@ class Main():
                 #создаём отдельный набор MongoDB-объектов.
                 client = MongoClient()
                 src_db_obj = client[self.src_db_name]
-                src_coll_obj = src_db_obj[src_coll_name]
+                src_coll_obj = src_db_obj[self.src_coll_name]
                 
                 #С той же целью выносим запрос в новый объект.
                 mongo_aggr_arg = copy.deepcopy(self.mongo_aggr_draft)
                 
                 #Получаем имя конечного файла, правда, без .gz.
                 #Оно же при необходимости - имя конечной коллекции.
-                src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                trg_file_name = f'{src_coll_base}_count_res.tsv'
+                src_coll_base = self.src_coll_name.rsplit('.', maxsplit=1)[0]
+                trg_file_name = f'coll_{src_coll_base}__quan.tsv'
                 
                 #Этот большой блок осуществляет
                 #запрос с выводом результатов в файл.
@@ -135,10 +136,10 @@ class Main():
                                 #Формируем и прописываем метастроки,
                                 #повествующие о происхождении конечного
                                 #файла. Прописываем также табличную шапку.
-                                trg_file_opened.write(f'##tool=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
-                                trg_file_opened.write(f'##database={self.src_db_name}\n')
-                                trg_file_opened.write(f'##collection={src_coll_name}\n')
-                                trg_file_opened.write(f'##pipeline={mongo_aggr_arg}\n')
+                                trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
+                                trg_file_opened.write(f'##src_coll_name={self.src_coll_name}\n')
+                                trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                 trg_file_opened.write('\t'.join(self.header_row) + '\n')
                                 
                                 #Извлечение из объекта курсора результатов, преобразование их значений
@@ -155,25 +156,29 @@ class Main():
                         if empty_res:
                                 os.remove(trg_file_path)
                                 
-                #Создание конечной базы и коллекции. Обогащение aggregation-инструкции
-                #этапом вывода в конечную коллекцию. Последняя, если не пополнилась
-                #результатами, удаляется. Для полей непустой коллекции создаются индексы.
+                #Та же работа, но с выводом в БД. Опишу некоторые особенности.
+                #Aggregation-инструкция обогащается этапом вывода в конечную
+                #коллекцию. Метастроки складываются в список, а он, в свою
+                #очередь, встраивается в первый документ коллекции. Для конечной
+                #коллекции создаются раздельные индексы всех получившихся полей.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
+                        mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
+                                                                   'coll': trg_file_name}}})
                         trg_coll_obj = trg_db_obj.create_collection(trg_file_name,
                                                                     storageEngine={'wiredTiger':
                                                                                    {'configString':
                                                                                     'block_compressor=zstd'}})
-                        mongo_aggr_arg.append({'$out': {'db': self.trg_db_name,
-                                                        'coll': trg_file_name}})
-                        src_coll_obj.aggregate(mongo_aggr_arg,
-                                               allowDiskUse=True)
-                        if trg_coll_obj.count_documents({}) == 0:
-                                trg_db_obj.drop_collection(trg_file_name)
-                        else:
-                                trg_coll_obj.create_indexes([IndexModel([(ind_field_name,
-                                                                          self.quan_sort_order)]) for ind_field_name in self.header_row[1:]])
-                                
+                        meta_lines = {'meta': []}
+                        meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                        meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
+                        meta_lines['meta'].append(f'##src_coll_name={self.src_coll_name}')
+                        meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
+                        trg_coll_obj.insert_one(meta_lines)
+                        src_coll_obj.aggregate(mongo_aggr_arg, allowDiskUse=True)
+                        trg_coll_obj.create_indexes([IndexModel([(ind_field_name,
+                                                                  self.quan_sort_order)]) for ind_field_name in self.header_row[1:]])
+                        
                 #Дисконнект.
                 client.close()
                 
@@ -187,8 +192,8 @@ if __name__ == '__main__':
         else:
                 args = add_args_en(__version__)
         main = Main(args, __version__)
-        print(f'\nCounting values in {main.src_db_name} database')
+        print(f'\nCounting values in {main.src_db_name} DB')
         exec_time_start = datetime.datetime.now()
-        main.count(main.src_coll_name)
+        main.count()
         exec_time = datetime.datetime.now() - exec_time_start
         print(f'\tcomputation time: {exec_time}')
