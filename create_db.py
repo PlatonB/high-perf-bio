@@ -1,4 +1,4 @@
-__version__ = 'v5.3'
+__version__ = 'v5.4'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -97,7 +97,7 @@ class Main():
         так и атрибуты, нужные для кода, её запускающего. Что касается этой
         функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args):
+        def __init__(self, args, ver):
                 '''
                 Получение атрибутов как для основной функции программы, так и для блока
                 многопроцессового запуска таковой. Первые из перечисленных ни в коем
@@ -156,6 +156,7 @@ class Main():
                         self.ind_col_names = args.ind_col_names
                 else:
                         self.ind_col_names = args.ind_col_names.split(',')
+                self.ver = ver
                 client.close()
                 
         def create_collection(self, src_file_name):
@@ -176,38 +177,43 @@ class Main():
                 #Открытие исходной архивированной таблицы на чтение.
                 with gzip.open(os.path.join(self.src_dir_path, src_file_name), mode='rt') as src_file_opened:
                         
-                        #Политика обработки метастрок задаётся исследователем.
-                        #В любом случае, всё сводится к их холостому прочтению.
-                        #Программа либо выявляет идущие в игнор строки по
-                        #характерным для биоинформатических форматов комментирующим
-                        #символам, либо скипает фиксированное количество строк
-                        #начала файла. После метастрок, по-хорошему, должна
-                        #следовать шапка, но во многих BED-файлах её нет. Для BED
-                        #приходится вручную вписывать в код референсную шапку.
+                        #Комментирующие символы строк метаинформации (далее - метастрок) VCF - всегда ##.
+                        #Для других, более вольных, форматов число метастрок поступает от исследователя.
+                        #Метастроки добавляются в объект, становящийся в недалёком будущем первым документом
+                        #коллекции. После метастрок, по-хорошему, должна следовать шапка, но во многих
+                        #BED-файлах её нет. Для BED пришлось вручную вписывать в код референсную шапку.
+                        meta_lines = {'meta': []}
                         if self.src_file_fmt == 'vcf':
                                 for line in src_file_opened:
-                                        if not line.startswith('##'):
+                                        if line.startswith('##'):
+                                                meta_lines['meta'].append(line.rstrip())
+                                        else:
                                                 header_row = line.rstrip().split('\t')
                                                 if len(header_row) > 8:
                                                         del header_row[8]
                                                 break
                         else:
                                 for meta_line_index in range(self.meta_lines_quan):
-                                        src_file_opened.readline()
+                                        meta_lines['meta'].append(src_file_opened.readline().rstrip())
                                 if self.src_file_fmt == 'bed':
                                         header_row = ['chrom', 'start', 'end', 'name',
                                                       'score', 'strand', 'thickStart', 'thickEnd',
                                                       'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
                                 else:
                                         header_row = src_file_opened.readline().rstrip().split('\t')
-                                        
+                        meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                        
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
                         #я выбрал в качестве алгоритма сжатия Zstandard.
-                        coll_obj = trg_db_obj.create_collection(src_file_name[:-3],
-                                                                storageEngine={'wiredTiger':
-                                                                               {'configString':
-                                                                                'block_compressor=zstd'}})
+                        trg_coll_obj = trg_db_obj.create_collection(src_file_name[:-3],
+                                                                    storageEngine={'wiredTiger':
+                                                                                   {'configString':
+                                                                                    'block_compressor=zstd'}})
+                        
+                        #Добавление в новоиспечённую
+                        #коллекцию объекта с метастроками.
+                        trg_coll_obj.insert_one(meta_lines)
                         
                         #Данные будут поступать в коллекцию
                         #базы одним или более фрагментами.
@@ -295,7 +301,7 @@ class Main():
                                 #прописываем фрагмент в коллекцию,
                                 #очищаем его и обнуляем счётчик.
                                 if fragment_len == self.max_fragment_len:
-                                        coll_obj.insert_many(fragment)
+                                        trg_coll_obj.insert_many(fragment)
                                         fragment.clear()
                                         fragment_len = 0
                                         
@@ -304,14 +310,14 @@ class Main():
                 #непрописанный фрагмент.
                 #Исправляем ситуацию.
                 if fragment_len > 0:
-                        coll_obj.insert_many(fragment)
+                        trg_coll_obj.insert_many(fragment)
                         
                 #Создание обязательных и (при наличии
                 #таковых) пользовательских индексов.
                 index_models = create_index_models(self.src_file_fmt,
                                                    self.ind_col_names)
                 if index_models != []:
-                        coll_obj.create_indexes(index_models)
+                        trg_coll_obj.create_indexes(index_models)
                         
                 #Дисконнект.
                 client.close()
@@ -326,7 +332,7 @@ if __name__ == '__main__':
                 args = add_args_ru(__version__)
         else:
                 args = add_args_en(__version__)
-        main = Main(args)
+        main = Main(args, __version__)
         proc_quan = main.proc_quan
         print(f'\nReplenishment and indexing {main.trg_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
