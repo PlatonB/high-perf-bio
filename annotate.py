@@ -1,4 +1,4 @@
-__version__ = 'v6.3'
+__version__ = 'v6.4'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -30,6 +30,15 @@ class ByLocTsvError(Exception):
         '''
         def __init__(self):
                 err_msg = '\nIntersection by location is not possible for src-TSV or src-db-TSV'
+                super().__init__(err_msg)
+                
+class NoSuchFieldError(Exception):
+        '''
+        Если исследователь, допустим, опечатавшись,
+        указал поле, которого нет в коллекциях.
+        '''
+        def __init__(self, ann_field_name):
+                err_msg = f'\nThe field {ann_field_name} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -91,6 +100,8 @@ class Main():
                         self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
+                mongo_exclude_meta = {'meta': {'$exists': False}}
+                src_field_names = list(client[self.src_db_name][self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.by_loc:
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
@@ -111,9 +122,11 @@ class Main():
                                 elif self.src_coll_ext == 'bed':
                                         self.ann_field_name = 'name'
                                 else:
-                                        self.ann_field_name = 'rsID'
+                                        self.ann_field_name = src_field_names[1]
                         else:
                                 self.ann_field_name = args.ann_field_name
+                                if self.ann_field_name not in src_field_names:
+                                        raise NoSuchFieldError(self.ann_field_name)
                         self.mongo_aggr_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
                 if self.src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
@@ -123,12 +136,12 @@ class Main():
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
                 if args.proj_fields is None:
-                        self.mongo_findone_args = [None, None]
+                        self.mongo_findone_args = [mongo_exclude_meta, None]
                         self.trg_file_fmt = self.src_coll_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
-                        self.mongo_findone_args = [None, mongo_project]
+                        self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
                 if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
