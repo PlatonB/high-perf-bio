@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -41,6 +41,10 @@ Decimal128("any_str")
 Пример запроса:
 {{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
+Не добавляйте в запрос условие
+{'meta': {'$exists': False}}.
+Программа сама сделает это.
+
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
 {{допустимые значения}};
@@ -73,7 +77,7 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name)')
         args = arg_parser.parse_args()
         return args
 
@@ -116,6 +120,10 @@ Call the nested field using a point:
 Example of query:
 {{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
+Do not add to the query condition
+{'meta': {'$exists': False}}.
+The program will do this itself.
+
 The notation in the CLI help:
 [default value];
 {{permissible values}};
@@ -148,6 +156,6 @@ f1+f2+f3 - fields of the DB collections with a compound index.
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed); trg-db-BED: meta, chrom+start+end, name <...>)')
         args = arg_parser.parse_args()
         return args
