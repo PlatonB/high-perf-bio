@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v6.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -69,13 +69,14 @@ class Main():
                         self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
+                self.mongo_exclude_meta = {'meta': {'$exists': False}}
                 if args.proj_fields is None:
-                        self.mongo_findone_args = [None, None]
+                        self.mongo_findone_args = [self.mongo_exclude_meta, None]
                         self.trg_file_fmt = src_coll_ext
                 else:
                         mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
-                        self.mongo_findone_args = [None, mongo_project]
+                        self.mongo_findone_args = [self.mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
                 if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
@@ -141,7 +142,7 @@ class Main():
                                 for src_line in src_file_opened:
                                         if '{' not in src_line:
                                                 continue
-                                        mongo_aggr_arg[0]['$match'] = eval(src_line)
+                                        mongo_aggr_arg[0]['$match'] = self.mongo_exclude_meta | eval(src_line)
                                         src_line_num += 1
                                         
                                         #Каждый запрос делается по всем
@@ -219,7 +220,7 @@ class Main():
                                 for src_line in src_file_opened:
                                         if '{' not in src_line:
                                                 continue
-                                        mongo_aggr_arg[0]['$match'] = eval(src_line)
+                                        mongo_aggr_arg[0]['$match'] = self.mongo_exclude_meta | eval(src_line)
                                         src_line_num += 1
                                         for src_coll_name in self.src_coll_names:
                                                 src_coll_obj = src_db_obj[src_coll_name]
