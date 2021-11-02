@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -74,8 +74,8 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
-        opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
+        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name; trg-db-TSV: <...> meta)')
         args = arg_parser.parse_args()
         return args
 
@@ -151,7 +151,7 @@ f1+f2+f3 - fields of the DB collections with a compound index
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark for dividing a cell to a list (src-VCF, src-BED: not applicable)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Maximum number of rows of uploaded table fragment')
-        opt_grp.add_argument('-i', '--ind-col-names', metavar='[None]', dest='ind_col_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
+        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed); trg-db-BED: meta, chrom+start+end, name <...>; trg-db-TSV: meta <...>)')
         args = arg_parser.parse_args()
         return args
