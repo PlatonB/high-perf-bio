@@ -1,4 +1,4 @@
-__version__ = 'v5.4'
+__version__ = 'v5.5'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -152,10 +152,10 @@ class Main():
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
                 self.max_fragment_len = args.max_fragment_len
-                if args.ind_col_names is None:
-                        self.ind_col_names = args.ind_col_names
+                if args.ind_field_names is None:
+                        self.ind_field_names = args.ind_field_names
                 else:
-                        self.ind_col_names = args.ind_col_names.split(',')
+                        self.ind_field_names = args.ind_field_names.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -315,10 +315,9 @@ class Main():
                 #Создание обязательных и (при наличии
                 #таковых) пользовательских индексов.
                 index_models = create_index_models(self.src_file_fmt,
-                                                   self.ind_col_names)
-                if index_models != []:
-                        trg_coll_obj.create_indexes(index_models)
-                        
+                                                   self.ind_field_names)
+                trg_coll_obj.create_indexes(index_models)
+                
                 #Дисконнект.
                 client.close()
                 
