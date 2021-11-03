@@ -1,4 +1,4 @@
-__version__ = 'v4.1'
+__version__ = 'v4.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -63,16 +63,18 @@ class Main():
                         resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
+                mongo_exclude_meta = {'meta': {'$exists': False}}
+                src_field_names = list(client[self.src_db_name][self.src_coll_name].find_one(mongo_exclude_meta))
                 if args.field_name is None:
                         if src_coll_ext == 'vcf':
                                 self.field_name = 'ID'
                         elif src_coll_ext == 'bed':
                                 self.field_name = 'name'
                         else:
-                                self.field_name = 'rsID'
+                                self.field_name = src_field_names[1]
                 else:
                         self.field_name = args.field_name
-                self.mongo_aggr_draft = [{'$skip': 1},
+                self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
                                          {'$group': {'_id': f'${self.field_name}',
                                                      'quantity': {'$sum': 1}}}]
                 self.header_row = [self.field_name, 'quantity']
@@ -160,7 +162,9 @@ class Main():
                 #Aggregation-инструкция обогащается этапом вывода в конечную
                 #коллекцию. Метастроки складываются в список, а он, в свою
                 #очередь, встраивается в первый документ коллекции. Для конечной
-                #коллекции создаются раздельные индексы всех получившихся полей.
+                #коллекции создаются раздельные индексы полей quantity и, если
+                #сформировалось, frequency. К обсчитанному полю, посколько оно
+                #выступает в роли _id, по-умолчанию добавляется unique-индекс.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
                         mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
@@ -176,8 +180,10 @@ class Main():
                         meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                         trg_coll_obj.insert_one(meta_lines)
                         src_coll_obj.aggregate(mongo_aggr_arg, allowDiskUse=True)
-                        trg_coll_obj.create_indexes([IndexModel([(ind_field_name,
-                                                                  self.quan_sort_order)]) for ind_field_name in self.header_row[1:]])
+                        index_models = [IndexModel([('meta', ASCENDING)])]
+                        index_models += [IndexModel([(ind_field_name,
+                                                      self.quan_sort_order)]) for ind_field_name in self.header_row[1:]]
+                        trg_coll_obj.create_indexes(index_models)
                         
                 #Дисконнект.
                 client.close()
