@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
@@ -104,8 +104,7 @@ class Main():
                         src_db_obj[src_coll_name].aggregate(mongo_aggr_arg)
                 index_models = create_index_models(self.trg_coll_ext,
                                                    self.ind_field_names)
-                if index_models != []:
-                        trg_coll_obj.create_indexes(index_models)
+                trg_coll_obj.create_indexes(index_models)
                 client.close()
                 
 #Обработка аргументов командной строки.
