@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -46,7 +46,7 @@ field_1.field_2.(...).field_N
                              help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                             help='Имя поля, для которого считать количество каждого значения (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
+                             help='Имя поля, для которого считать количество каждого значения (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
                              help='Нижняя граница количества каждого значения (применяется без -r)')
         opt_grp.add_argument('-q', '--samp-quan', metavar='[None]', dest='samp_quan', type=int,
@@ -102,7 +102,7 @@ The notation in the CLI help:
                              help='Path to directory or name of the DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                             help='Name of field, for which to count the quantity of each value (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[rsID]])')
+                             help='Name of field, for which to count the quantity of each value (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
                              help='Lower threshold of quantity of each value (applicable without -r)')
         opt_grp.add_argument('-q', '--samp-quan', metavar='[None]', dest='samp_quan', type=int,
