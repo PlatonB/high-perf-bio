@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -46,7 +46,7 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
                              help='Удалить дубли конечных документов (-k применяется ранее; вложенные структуры не поддерживаются; _id при сравнении не учитывается)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name)')
         args = arg_parser.parse_args()
         return args
 
@@ -94,6 +94,6 @@ f1+f2+f3 - fields of the DB collections with a compound index
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
                              help='Remove duplicates of target documents (-k is applied previously; nested structures are not supported; _id is not taken into account when comparing)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed); trg-db-BED: chrom+start+end and name will be indexed)')
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed; trg-db-BED: meta, chrom+start+end, name <...>)')
         args = arg_parser.parse_args()
         return args
