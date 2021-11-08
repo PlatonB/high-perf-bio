@@ -1,8 +1,8 @@
-__version__ = 'v5.1'
+__version__ = 'v5.2'
 
 import sys, locale
 sys.dont_write_bytecode = True
-from cli.print_db_info_cli import add_args_ru
+from cli.print_db_info_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
 
 def conv_data_measure(size):
@@ -12,15 +12,15 @@ def conv_data_measure(size):
         наиболее компактным/читабельным.
         '''
         if size < 1000:
-                return f'{size} Б'
+                return f'{size} B'
         elif size < 1000000:
-                return f'{round(size/1000, 1)} КБ'
+                return f'{round(size/1000, 1)} KB'
         elif size < 1000000000:
-                return f'{round(size/1000000, 1)} МБ'
+                return f'{round(size/1000000, 1)} MB'
         elif size < 1000000000000:
-                return f'{round(size/1000000000, 1)} ГБ'
+                return f'{round(size/1000000000, 1)} GB'
         else:
-                return f'{round(size/1000000000000, 1)} ТБ'
+                return f'{round(size/1000000000000, 1)} TB'
         
 #CLI.
 if locale.getdefaultlocale()[0][:2] == 'ru':
@@ -39,7 +39,7 @@ else:
 client = MongoClient()
 if args.src_db_name is None:
         all_db_names = sorted(client.list_database_names())
-        print('\nИмена всех MongoDB-баз:',
+        print('\nNames of all MongoDB databases:',
               f'\n{", ".join(all_db_names)}')
 else:
         src_db_name = args.src_db_name
@@ -50,8 +50,8 @@ else:
         src_db_indexsize = conv_data_measure(src_db_obj.command('dbstats')['indexSize'])
         src_db_totalsize = conv_data_measure(src_db_obj.command('dbstats')['totalSize'])
         src_coll_ext = src_coll_names[0].rsplit('.', maxsplit=1)[1]
-        print(f'\nХарактеристики БД {src_db_name}:')
-        print('\n\tКоличество коллекций:',
+        print(f'\nCharacteristics of {src_db_name} DB:')
+        print('\n\tQuantity of collections:',
               f'\n\t{src_colls_quan}')
         print('\n\tstorageSize:',
               f'\n\t{src_db_storagesize}')
@@ -59,9 +59,9 @@ else:
               f'\n\t{src_db_indexsize}')
         print('\n\ttotalSize:',
               f'\n\t{src_db_totalsize}')
-        print('\n\tКвазирасширение коллекций:',
+        print('\n\tQuasi-extension of collections:',
               f'\n\t{src_coll_ext}')
-        print('\n\tХарактеристики первых коллекций:')
+        print('\n\tCharacteristics of the first collections:')
         if args.colls_quan_limit == 0 or args.colls_quan_limit > src_colls_quan:
                 colls_quan_limit = src_colls_quan
         else:
@@ -77,7 +77,7 @@ else:
                                                                                src_coll_name)['totalIndexSize'])
                 src_coll_totalsize = conv_data_measure(src_db_obj.command('collstats',
                                                                           src_coll_name)['totalSize'])
-                field_names = src_coll_obj.find_one().keys()
+                field_names = src_coll_obj.find_one({'meta': {'$exists': False}}).keys()
                 ind_info = src_coll_obj.index_information()
                 ind_field_names, ind_names = [], []
                 for ind_name, ind_details in ind_info.items():
@@ -86,8 +86,8 @@ else:
                                         ind_field_names.append(tup[0])
                         ind_names.append(ind_name)
                 curs_obj = src_coll_obj.find(limit=docs_quan_limit)
-                print(f'\n\t\tКоллекция {src_coll_name}:')
-                print('\n\t\t\tКоличество документов:',
+                print(f'\n\t\t{src_coll_name} collection:')
+                print('\n\t\t\tQuantity of documents:',
                       f'\n\t\t\t{docs_quan}')
                 print('\n\t\t\tstorageSize:',
                       f'\n\t\t\t{src_coll_storagesize}')
@@ -95,13 +95,13 @@ else:
                       f'\n\t\t\t{src_coll_totalindexsize}')
                 print('\n\t\t\ttotalSize:',
                       f'\n\t\t\t{src_coll_totalsize}')
-                print('\n\t\t\tИмена полей первого документа:',
+                print('\n\t\t\tField names of the second document:',
                       f'\n\t\t\t{", ".join(field_names)}')
-                print('\n\t\t\tИмена проиндексированных полей:',
+                print('\n\t\t\tNames of indexed fields:',
                       f'\n\t\t\t{", ".join(ind_field_names)}')
-                print('\n\t\t\tИмена индексов:',
+                print('\n\t\t\tNames of indexes:',
                       f'\n\t\t\t{", ".join(ind_names)}')
-                print('\n\t\t\tПервые документы:')
+                print('\n\t\t\tThe first documents:')
                 for doc in curs_obj:
                         print(f'\n\t\t\t\t{doc}')
 client.close()
