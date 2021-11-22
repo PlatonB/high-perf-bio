@@ -1,4 +1,4 @@
-__version__ = 'v4.2'
+__version__ = 'v5.0'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -14,6 +14,15 @@ class MoreThanOneCollError(Exception):
         '''
         def __init__(self, src_colls_quan):
                 err_msg = f'\nThere are {src_colls_quan} collections in the DB, but it must be 1'
+                super().__init__(err_msg)
+                
+class NoSuchFieldError(Exception):
+        '''
+        Если исследователь, допустим, опечатавшись,
+        указал поле, которого нет в коллекциях.
+        '''
+        def __init__(self, field_name):
+                err_msg = f'\nThe field {field_name} does not exist'
                 super().__init__(err_msg)
                 
 class CombFiltersError(Exception):
@@ -40,13 +49,13 @@ class Main():
         '''
         def __init__(self, args, ver):
                 '''
-                Получение атрибутов как для основной функции программы, так и
-                для блока запуска таковой. В ините собирается пайплайн, который
-                при выполнении способен будет не только подсчитать количество и
-                частоту каждого значения нужного поля, но и поработать над этими
-                результатами: отфильтровать по минимальному порогу, плюс отсортировать
-                вверх или вниз. Чтобы избежать лишних вычислений, поле частоты
-                формируется уже после возможной фильтрации абсолютных значений.
+                Получение атрибутов как для основной функции программы, так и для
+                блока запуска таковой. В ините собирается пайплайн, который при
+                выполнении способен будет не только подсчитать количество и частоту
+                каждого набора связанных значений нужных полей, но и поработать
+                над этими результатами: отфильтровать по минимальному порогу, плюс
+                отсортировать вверх или вниз. Чтобы избежать лишних вычислений, поле
+                частоты формируется уже после возможной фильтрации абсолютных значений.
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
@@ -65,19 +74,42 @@ class Main():
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_names = list(client[self.src_db_name][self.src_coll_name].find_one(mongo_exclude_meta))
-                if args.field_name is None:
+                if args.cnt_field_names is None:
                         if src_coll_ext == 'vcf':
-                                self.field_name = 'ID'
+                                self.cnt_field_names = ['ID', 'REF', 'ALT']
                         elif src_coll_ext == 'bed':
-                                self.field_name = 'name'
+                                self.cnt_field_names = ['name']
                         else:
-                                self.field_name = src_field_names[1]
+                                self.cnt_field_names = [src_field_names[1]]
                 else:
-                        self.field_name = args.field_name
+                        self.cnt_field_names = args.cnt_field_names.split(',')
+                        for cnt_field_name in self.cnt_field_names:
+                                if cnt_field_name not in src_field_names:
+                                        raise NoSuchFieldError(cnt_field_name)
+                cnt_field_names_quan = len(self.cnt_field_names)
+                if args.sec_delimiter == 'colon':
+                        self.sec_delimiter = ':'
+                elif args.sec_delimiter == 'comma':
+                        self.sec_delimiter = ','
+                elif args.sec_delimiter == 'low_line':
+                        self.sec_delimiter = '_'
+                elif args.sec_delimiter == 'pipe':
+                        self.sec_delimiter = '|'
+                elif args.sec_delimiter == 'semicolon':
+                        self.sec_delimiter = ';'
+                if cnt_field_names_quan > 1:
+                        mongo_id = {'$concat': []}
+                        for cnt_field_name_ind in range(cnt_field_names_quan):
+                                mongo_id['$concat'].append({'$toString': f'${self.cnt_field_names[cnt_field_name_ind]}'})
+                                if cnt_field_name_ind < cnt_field_names_quan - 1:
+                                        mongo_id['$concat'].append(self.sec_delimiter)
+                else:
+                        mongo_id = f'${self.cnt_field_names[0]}'
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
-                                         {'$group': {'_id': f'${self.field_name}',
+                                         {'$group': {'_id': mongo_id,
                                                      'quantity': {'$sum': 1}}}]
-                self.header_row = [self.field_name, 'quantity']
+                self.header_row = [self.sec_delimiter.join(self.cnt_field_names),
+                                   'quantity']
                 if args.quan_thres > 1 and args.freq_thres is not None:
                         raise CombFiltersError()
                 elif args.quan_thres > 1:
@@ -97,8 +129,8 @@ class Main():
                 
         def count(self):
                 '''
-                Функция нахождения количества и
-                частоты элементов поля одной коллекции,
+                Функция нахождения количества и частоты
+                связок элементов полей одной коллекции,
                 а также фильтрации полученных значений.
                 '''
                 
@@ -163,8 +195,8 @@ class Main():
                 #коллекцию. Метастроки складываются в список, а он, в свою
                 #очередь, встраивается в первый документ коллекции. Для конечной
                 #коллекции создаются раздельные индексы полей quantity и, если
-                #сформировалось, frequency. К обсчитанному полю, посколько оно
-                #выступает в роли _id, по-умолчанию добавляется unique-индекс.
+                #сформировалось, frequency. К полю, подлежащему обсчёту, посколько
+                #оно выступает в роли _id, по-умолчанию добавляется unique-индекс.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
                         mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
@@ -198,7 +230,7 @@ if __name__ == '__main__':
         else:
                 args = add_args_en(__version__)
         main = Main(args, __version__)
-        print(f'\nCounting values in {main.src_db_name} DB')
+        print(f'\nCounting sets of related values in {main.src_db_name} DB')
         exec_time_start = datetime.datetime.now()
         main.count()
         exec_time = datetime.datetime.now() - exec_time_start
