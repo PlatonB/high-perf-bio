@@ -1,4 +1,4 @@
-__version__ = 'v4.1'
+__version__ = 'v5.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -7,8 +7,8 @@ def add_args_ru(ver):
         Работа с аргументами командной строки.
         '''
         arg_parser = ArgumentParser(description=f'''
-Программа, считающая количество и, опционально, частоту
-каждого значения заданного поля в пределах каждой коллекции.
+Программа, считающая количество и, опционально, частоту каждого набора
+соответствующих значений заданных полей в пределах единственной коллекции.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
@@ -18,7 +18,7 @@ def add_args_ru(ver):
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
-Основное применение программы - определение количества и частот rsIDs.
+Основное применение программы - определение количества и частот вариантов.
 Предполагается, что обрабатываемая коллекция была получена конкатенацией
 многочисленных VCF. Разумеется, возможны и другие сценарии работы.
 
@@ -45,16 +45,19 @@ field_1.field_2.(...).field_N
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                             help='Имя поля, для которого считать количество каждого значения (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+        opt_grp.add_argument('-f', '--cnt-field-names', metavar='[None]', dest='cnt_field_names', type=str,
+                             help='''Имена полей, для которых считать количество каждого набора взаимосвязанных значений (через запятую без пробела;
+src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])''')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
-                             help='Нижняя граница количества каждого значения (применяется без -r)')
+                             help='Нижняя граница количества каждого набора (применяется без -r)')
         opt_grp.add_argument('-q', '--samp-quan', metavar='[None]', dest='samp_quan', type=int,
-                             help='Количество образцов (нужно для расчёта частоты каждого значения)')
+                             help='Количество образцов (нужно для расчёта частоты каждого набора)')
         opt_grp.add_argument('-r', '--freq-thres', metavar='[None]', dest='freq_thres', type=str,
-                             help='Нижняя граница частоты каждого значения (применяется с -q; применяется без -a)')
+                             help='Нижняя граница частоты каждого набора (применяется с -q; применяется без -a)')
         opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
-                             help='{asc, desc} Порядок сортировки по количеству каждого значения')
+                             help='{asc, desc} Порядок сортировки по количеству каждого набора')
         args = arg_parser.parse_args()
         return args
 
@@ -63,8 +66,8 @@ def add_args_en(ver):
         Работа с аргументами командной строки.
         '''
         arg_parser = ArgumentParser(description=f'''
-A program that counts the quantity and, optionally, the
-frequency of each value of a given field within each collection.
+A program that counts the quantity and, optionally, the frequency of each
+set of corresponding values of given fields within a single collection.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
@@ -75,7 +78,7 @@ Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
 The main use of the program is to determine the quantity and frequencies of
-rsIDs. It is assumed that processed collection was obtained by concatenation
+variants. It is assumed that processed collection was obtained by concatenation
 of multiple VCFs. Of course, other work scenarios are also possible.
 
 The counted DB must be produced by create_db or concatenate.
@@ -101,15 +104,18 @@ The notation in the CLI help:
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Path to directory or name of the DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-f', '--field-name', metavar='[None]', dest='field_name', type=str,
-                             help='Name of field, for which to count the quantity of each value (src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+        opt_grp.add_argument('-f', '--cnt-field-names', metavar='[None]', dest='cnt_field_names', type=str,
+                             help='''Names of fields for which to count the quantity of each set of related values (comma separated without spaces;
+src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])''')
+        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
+                             help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
-                             help='Lower threshold of quantity of each value (applicable without -r)')
+                             help='Lower threshold of quantity of each set (applicable without -r)')
         opt_grp.add_argument('-q', '--samp-quan', metavar='[None]', dest='samp_quan', type=int,
-                             help='Quantity of samples (required to calculate the frequency of each value)')
+                             help='Quantity of samples (required to calculate the frequency of each set)')
         opt_grp.add_argument('-r', '--freq-thres', metavar='[None]', dest='freq_thres', type=str,
-                             help='Lower threshold of frequency of each value (applicable with -q; applicable without -a)')
+                             help='Lower threshold of frequency of each set (applicable with -q; applicable without -a)')
         opt_grp.add_argument('-o', '--quan-sort-order', metavar='[desc]', choices=['asc', 'desc'], default='desc', dest='quan_sort_order', type=str,
-                             help='{asc, desc} Order of sorting by quantity of each value')
+                             help='{asc, desc} Order of sorting by quantity of each set')
         args = arg_parser.parse_args()
         return args
