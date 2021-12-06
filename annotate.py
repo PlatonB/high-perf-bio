@@ -1,4 +1,4 @@
-__version__ = 'v6.4'
+__version__ = 'v6.5'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -37,8 +37,8 @@ class NoSuchFieldError(Exception):
         Если исследователь, допустим, опечатавшись,
         указал поле, которого нет в коллекциях.
         '''
-        def __init__(self, ann_field_name):
-                err_msg = f'\nThe field {ann_field_name} does not exist'
+        def __init__(self, field_name):
+                err_msg = f'\nThe field {field_name} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -80,7 +80,8 @@ class Main():
                         raise DifFmtsError(src_file_fmts)
                 self.src_file_fmt = list(src_file_fmts)[0]
                 self.src_db_name = args.src_db_name
-                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                src_db_obj = client[self.src_db_name]
+                self.src_coll_names = src_db_obj.list_collection_names()
                 self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
@@ -101,7 +102,7 @@ class Main():
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
                 mongo_exclude_meta = {'meta': {'$exists': False}}
-                src_field_names = list(client[self.src_db_name][self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                src_field_names = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.by_loc:
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
@@ -123,10 +124,10 @@ class Main():
                                         self.ann_field_name = 'name'
                                 else:
                                         self.ann_field_name = src_field_names[1]
+                        elif args.ann_field_name not in src_field_names:
+                                raise NoSuchFieldError(args.ann_field_name)
                         else:
                                 self.ann_field_name = args.ann_field_name
-                                if self.ann_field_name not in src_field_names:
-                                        raise NoSuchFieldError(self.ann_field_name)
                         self.mongo_aggr_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
                 if self.src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
@@ -135,11 +136,15 @@ class Main():
                         self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
-                if args.proj_fields is None:
+                if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
                         self.trg_file_fmt = self.src_coll_ext
                 else:
-                        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
+                        proj_field_names = args.proj_field_names.split(',')
+                        for proj_field_name in proj_field_names:
+                                if proj_field_name not in src_field_names:
+                                        raise NoSuchFieldError(proj_field_name)
+                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -252,7 +257,7 @@ class Main():
                                 
                                 #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                trg_file_name = f'file_{src_file_base}__coll_{src_coll_base}.{self.trg_file_fmt}.gz'
+                                trg_file_name = f'file-{src_file_base}__coll-{src_coll_base}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
@@ -306,7 +311,7 @@ class Main():
                         for src_coll_name in self.src_coll_names:
                                 src_coll_obj = src_db_obj[src_coll_name]
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                trg_coll_name = f'file_{src_file_base}__coll_{src_coll_base}.{self.trg_file_fmt}'
+                                trg_coll_name = f'file-{src_file_base}__coll-{src_coll_base}.{self.trg_file_fmt}'
                                 mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                             storageEngine={'wiredTiger':
