@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -18,8 +18,8 @@ def add_args_ru(ver):
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
-Разделяемые данные должны находиться
-в базе, созданной с помощью create_db.
+Разделяемые данные должны находиться в базе, созданной с
+помощью create_db или других инструментов high-perf-bio.
 
 Чтобы программа работала быстро, нужен индекс
 поля, по которому осуществляется деление.
@@ -50,12 +50,12 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Максимальное количество параллельно делимых коллекций')
         opt_grp.add_argument('-f', '--spl-field-name', metavar='[None]', dest='spl_field_name', type=str,
                              help='Имя поля, по которому делить (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[первое после _id поле]])')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS и ID; trg-db-BED: проиндексируются chrom+start+end и name)')
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS,ID; trg-db-BED: проиндексируются chrom+start+end,name)')
         args = arg_parser.parse_args()
         return args
 
@@ -75,7 +75,8 @@ Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
-The divided data must be in the DB produced by create_db.
+The divided data must be in the DB produced
+by "create_db" or other high-perf-bio tools.
 
 For the program to process quickly, there needs
 index of the field by which the splitting is done.
@@ -106,11 +107,11 @@ f1+f2+f3 - fields of the DB collections with a compound index
                              help='Maximum quantity of collections splitted in parallel')
         opt_grp.add_argument('-f', '--spl-field-name', metavar='[None]', dest='spl_field_name', type=str,
                              help='Name of the field by which to split (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[first field after _id]])')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS and ID will be indexed; trg-db-BED: chrom+start+end and name will be indexed)')
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS,ID will be indexed; trg-db-BED: chrom+start+end,name will be indexed)')
         args = arg_parser.parse_args()
         return args
