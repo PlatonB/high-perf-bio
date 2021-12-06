@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -15,8 +15,8 @@ class NoSuchFieldError(Exception):
         Если исследователь, допустим, опечатавшись,
         указал поле, которого нет в коллекциях.
         '''
-        def __init__(self, spl_field_name):
-                err_msg = f'\nThe field {spl_field_name} does not exist'
+        def __init__(self, field_name):
+                err_msg = f'\nThe field {field_name} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -48,7 +48,8 @@ class Main():
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
-                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                src_db_obj = client[self.src_db_name]
+                self.src_coll_names = src_db_obj.list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
@@ -67,7 +68,7 @@ class Main():
                 else:
                         self.proc_quan = max_proc_quan
                 mongo_exclude_meta = {'meta': {'$exists': False}}
-                src_field_names = list(client[self.src_db_name][self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                src_field_names = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if args.spl_field_name is None:
                         if src_coll_ext == 'vcf':
                                 self.spl_field_name = '#CHROM'
@@ -75,10 +76,10 @@ class Main():
                                 self.spl_field_name = 'chrom'
                         else:
                                 self.spl_field_name = src_field_names[1]
+                elif args.spl_field_name not in src_field_names:
+                        raise NoSuchFieldError(args.spl_field_name)
                 else:
                         self.spl_field_name = args.spl_field_name
-                        if self.spl_field_name not in src_field_names:
-                                raise NoSuchFieldError(self.spl_field_name)
                 self.mongo_aggr_draft = [{'$match': {self.spl_field_name: None}}]
                 if src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
@@ -87,11 +88,15 @@ class Main():
                         self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
-                if args.proj_fields is None:
+                if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
                         self.trg_file_fmt = src_coll_ext
                 else:
-                        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
+                        proj_field_names = args.proj_field_names.split(',')
+                        for proj_field_name in proj_field_names:
+                                if proj_field_name not in src_field_names:
+                                        raise NoSuchFieldError(proj_field_name)
+                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -168,7 +173,7 @@ class Main():
                                 curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
                                 
                                 #Конструируем имя конечного архива и абсолютный путь.
-                                trg_file_name = f'coll_{src_coll_base}__{self.spl_field_name}_{sep_val}.{self.trg_file_fmt}.gz'
+                                trg_file_name = f'coll-{src_coll_base}__{self.spl_field_name}-{sep_val}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
@@ -205,7 +210,7 @@ class Main():
                                                                    'coll': None}}})
                         for sep_val in sep_vals:
                                 mongo_aggr_arg[0]['$match'][self.spl_field_name] = sep_val
-                                trg_coll_name = f'coll_{src_coll_base}__{self.spl_field_name}_{sep_val}.{self.trg_file_fmt}'
+                                trg_coll_name = f'coll-{src_coll_base}__{self.spl_field_name}-{sep_val}.{self.trg_file_fmt}'
                                 mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                             storageEngine={'wiredTiger':
