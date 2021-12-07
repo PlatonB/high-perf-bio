@@ -1,4 +1,4 @@
-__version__ = 'v2.4'
+__version__ = 'v2.5'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -28,7 +28,8 @@ def add_args_ru(ver):
 
 Каждая аннотируемая таблица обязана быть сжатой с помощью GZIP.
 
-Источником характеристик должна быть БД, созданная с помощью create_db.
+Источником характеристик должна быть БД, созданная с
+помощью create_db или других инструментов high-perf-bio.
 
 Чтобы программа работала быстро, нужны индексы вовлечённых в запрос полей.
 
@@ -64,14 +65,14 @@ trg-FMT - конечные таблицы определённого форма�
                              help='Пересекать по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
                              help='Номер аннотируемого столбца (применяется без -n; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
-        opt_grp.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
-                             help='Имя поля коллекций, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+        opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
+                             help='Точечный путь к полю, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS,ID; trg-db-BED: проиндексируются chrom+start+end,name)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS,ID; trg-db-BED: проиндексируются chrom+start+end,name)')
         args = arg_parser.parse_args()
         return args
 
@@ -101,9 +102,11 @@ by coordinates. All 4 combinations of VCF and BED are supported.
 
 Each annotated table must be compressed using GZIP.
 
-The source of the characteristics should be the DB produced by create_db.
+The source of the characteristics must be the DB
+produced by "create_db" or other high-perf-bio tools.
 
-For the program to work fast, it needs indexes of the fields involved in the query.
+For the program to work fast, it needs
+indexes of the fields involved in the query.
 
 The notation in the CLI help:
 [default value in the argument parsing step];
@@ -137,13 +140,13 @@ the argument is ignored or causes an error
                              help='Intersect by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
                              help='Number of the annotated column (applied without -n; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
-        opt_grp.add_argument('-f', '--ann-field-name', metavar='[None]', dest='ann_field_name', type=str,
-                             help='Name of the collections field by which to annotate (applied without -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+        opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
+                             help='Dot path to the field by which to annotate (applied without -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS,ID will be indexed; trg-db-BED: chrom+start+end,name will be indexed)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Dot paths to indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS,ID will be indexed; trg-db-BED: chrom+start+end,name will be indexed)')
         args = arg_parser.parse_args()
         return args
