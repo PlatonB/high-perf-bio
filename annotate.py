@@ -1,4 +1,4 @@
-__version__ = 'v6.5'
+__version__ = 'v6.6'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -7,6 +7,7 @@ from pymongo import MongoClient, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from multiprocessing import Pool
 from bson.son import SON
+from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
 from backend.create_index_models import create_index_models
@@ -102,7 +103,7 @@ class Main():
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
                 mongo_exclude_meta = {'meta': {'$exists': False}}
-                src_field_names = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.by_loc:
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
@@ -117,18 +118,18 @@ class Main():
                                         self.ann_col_index = 0
                         else:
                                 self.ann_col_index = args.ann_col_num - 1
-                        if args.ann_field_name is None:
+                        if args.ann_field_path is None:
                                 if self.src_coll_ext == 'vcf':
-                                        self.ann_field_name = 'ID'
+                                        self.ann_field_path = 'ID'
                                 elif self.src_coll_ext == 'bed':
-                                        self.ann_field_name = 'name'
+                                        self.ann_field_path = 'name'
                                 else:
-                                        self.ann_field_name = src_field_names[1]
-                        elif args.ann_field_name not in src_field_names:
-                                raise NoSuchFieldError(args.ann_field_name)
+                                        self.ann_field_path = src_field_paths[1]
+                        elif args.ann_field_path not in src_field_paths:
+                                raise NoSuchFieldError(args.ann_field_path)
                         else:
-                                self.ann_field_name = args.ann_field_name
-                        self.mongo_aggr_draft = [{'$match': {self.ann_field_name: {'$in': []}}}]
+                                self.ann_field_path = args.ann_field_path
+                        self.mongo_aggr_draft = [{'$match': {self.ann_field_path: {'$in': []}}}]
                 if self.src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
@@ -142,7 +143,7 @@ class Main():
                 else:
                         proj_field_names = args.proj_field_names.split(',')
                         for proj_field_name in proj_field_names:
-                                if proj_field_name not in src_field_names:
+                                if proj_field_name not in src_field_paths:
                                         raise NoSuchFieldError(proj_field_name)
                         mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
@@ -158,10 +159,10 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                if args.ind_field_paths is None:
+                        self.ind_field_paths = args.ind_field_paths
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
+                        self.ind_field_paths = args.ind_field_paths.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -223,7 +224,7 @@ class Main():
                                                                                                    'start': {'$lt': src_end},
                                                                                                    'end': {'$gt': src_start}})
                                 else:
-                                        mongo_aggr_arg[0]['$match'][self.ann_field_name]['$in'].append(def_data_type(src_row[self.ann_col_index]))
+                                        mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'].append(def_data_type(src_row[self.ann_col_index]))
                                         
                 #Название исходной коллекции (без квазирасширения) потом
                 #пригодится для построения имени конечного файла или коллекции.
@@ -273,7 +274,7 @@ class Main():
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
                                         if not self.by_loc:
-                                                trg_file_opened.write(f'##ann_field_name={self.ann_field_name}\n')
+                                                trg_file_opened.write(f'##ann_field_path={self.ann_field_path}\n')
                                         if self.mongo_findone_args[1] is not None:
                                                 trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
                                         trg_file_opened.write(header_line + '\n')
@@ -325,7 +326,7 @@ class Main():
                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                 if not self.by_loc:
-                                        meta_lines['meta'].append(f'##ann_field_name={self.ann_field_name}')
+                                        meta_lines['meta'].append(f'##ann_field_path={self.ann_field_path}')
                                 if self.mongo_findone_args[1] is not None:
                                         meta_lines['meta'].append(f'##mongo_project={self.mongo_findone_args[1]}')
                                 trg_coll_obj.insert_one(meta_lines)
@@ -334,7 +335,7 @@ class Main():
                                         trg_db_obj.drop_collection(trg_coll_name)
                                 else:
                                         index_models = create_index_models(self.trg_file_fmt,
-                                                                           self.ind_field_names)
+                                                                           self.ind_field_paths)
                                         if index_models != []:
                                                 trg_coll_obj.create_indexes(index_models)
                                                 
