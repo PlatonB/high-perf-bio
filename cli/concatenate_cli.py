@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -18,7 +18,8 @@ def add_args_ru(ver):
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
-Конкатенируемая база должна быть создана с помощью create_db.
+Конкатенируемая база должна быть создана с помощью
+create_db или других инструментов high-perf-bio.
 
 Набор полей объединяемых коллекций должен быть одинаковым.
 
@@ -41,12 +42,12 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         man_grp.add_argument('-T', '--trg-db-name', required=True, metavar='str', dest='trg_db_name', type=str,
                              help='Имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-db-TSV)')
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
+                             help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
                              help='Удалить дубли конечных документов (-k применяется ранее; вложенные структуры не поддерживаются; _id при сравнении не учитывается)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
         args = arg_parser.parse_args()
         return args
 
@@ -66,7 +67,7 @@ Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
-Concatenated DB must be produced by create_db.
+Concatenated DB must be produced by create_db or other high-perf-bio tools.
 
 The set of fields of merged collections must be the same.
 
@@ -89,11 +90,11 @@ f1+f2+f3 - fields of the DB collections with a compound index
         man_grp.add_argument('-T', '--trg-db-name', required=True, metavar='str', dest='trg_db_name', type=str,
                              help='Name of DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Selectable fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-db-TSV)')
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
+                             help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
                              help='Remove duplicates of target documents (-k is applied previously; nested structures are not supported; _id is not taken into account when comparing)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed; trg-db-BED: meta, chrom+start+end, name <...>)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Dot paths to indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed; trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
         args = arg_parser.parse_args()
         return args
