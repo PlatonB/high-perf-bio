@@ -1,12 +1,22 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
 from cli.concatenate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.get_field_paths import parse_nested_objs
 from backend.create_index_models import create_index_models
 
+class NoSuchFieldError(Exception):
+        '''
+        Если исследователь, допустим, опечатавшись,
+        указал поле, которого нет в коллекциях.
+        '''
+        def __init__(self, field_path):
+                err_msg = f'\nThe field {field_path} does not exist'
+                super().__init__(err_msg)
+                
 class Main():
         '''
         Основной класс. args, подаваемый иниту на вход, не обязательно
@@ -40,38 +50,46 @@ class Main():
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
-                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                src_db_obj = client[self.src_db_name]
+                self.src_coll_names = src_db_obj.list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
                 if args.trg_db_name != self.src_db_name:
                         self.trg_db_name = args.trg_db_name
                         resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
-                self.mongo_aggr_draft = [{'$skip': 1}]
-                if args.proj_fields is None:
+                mongo_exclude_meta = {'meta': {'$exists': False}}
+                src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                if args.proj_field_names is None:
                         mongo_project = {'_id': 0}
                         self.trg_coll_ext = src_coll_ext
                 else:
-                        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
+                        proj_field_names = args.proj_field_names.split(',')
+                        for proj_field_name in proj_field_names:
+                                if proj_field_name not in src_field_paths:
+                                        raise NoSuchFieldError(proj_field_name)
+                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         mongo_project['_id'] = 0
                         self.trg_coll_ext = 'tsv'
-                self.mongo_aggr_draft.append({'$project': mongo_project})
                 if not args.del_copies:
                         self.mongo_on = '_id'
                         self.mongo_when_match = 'keepExisting'
                 else:
-                        self.mongo_on = list(client[self.src_db_name][self.src_coll_names[0]].find_one(None, mongo_project))
+                        self.mongo_on = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta,
+                                                                                         mongo_project))
                         self.mongo_when_match = 'replace'
-                self.trg_coll_name = f'db_{self.src_db_name}__wm_{self.mongo_when_match}.{self.trg_coll_ext}'
+                self.trg_coll_name = f'db-{self.src_db_name}__wm-{self.mongo_when_match}.{self.trg_coll_ext}'
                 mongo_merge = {'into': {'db': self.trg_db_name,
                                         'coll': self.trg_coll_name},
                                'on': self.mongo_on,
                                'whenMatched': self.mongo_when_match}
-                self.mongo_aggr_draft.append({'$merge': mongo_merge})
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
+                                         {'$project': mongo_project},
+                                         {'$merge': mongo_merge}]
+                if args.ind_field_paths is None:
+                        self.ind_field_paths = args.ind_field_paths
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
+                        self.ind_field_paths = args.ind_field_paths.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -103,7 +121,7 @@ class Main():
                 for src_coll_name in self.src_coll_names:
                         src_db_obj[src_coll_name].aggregate(mongo_aggr_arg)
                 index_models = create_index_models(self.trg_coll_ext,
-                                                   self.ind_field_names)
+                                                   self.ind_field_paths)
                 trg_coll_obj.create_indexes(index_models)
                 client.close()
                 
