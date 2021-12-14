@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -45,8 +45,8 @@ field_1.field_2.(...).field_N
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Путь к папке или имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-f', '--cnt-field-names', metavar='[None]', dest='cnt_field_names', type=str,
-                             help='''Имена полей, для которых считать количество каждого набора взаимосвязанных значений (через запятую без пробела;
+        opt_grp.add_argument('-f', '--cnt-field-paths', metavar='[None]', dest='cnt_field_paths', type=str,
+                             help='''Точечные пути к полям, для которых считать количество каждого набора взаимосвязанных значений (через запятую без пробела;
 src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])''')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка')
@@ -81,9 +81,9 @@ The main use of the program is to determine the quantity and frequencies of
 variants. It is assumed that processed collection was obtained by concatenation
 of multiple VCFs. Of course, other work scenarios are also possible.
 
-The counted DB must be produced by create_db or concatenate.
+The counted DB must be produced by "create_db" or "concatenate".
 
-Call the nested field using a point:
+Call the nested field using a dot:
 field_1.field_2.(...).field_N
 
 Due to limitations on the MongoDB side, the program does not use indexes.
@@ -104,8 +104,8 @@ The notation in the CLI help:
         man_grp.add_argument('-T', '--trg-place', required=True, metavar='str', dest='trg_place', type=str,
                              help='Path to directory or name of the DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-f', '--cnt-field-names', metavar='[None]', dest='cnt_field_names', type=str,
-                             help='''Names of fields for which to count the quantity of each set of related values (comma separated without spaces;
+        opt_grp.add_argument('-f', '--cnt-field-paths', metavar='[None]', dest='cnt_field_paths', type=str,
+                             help='''Dot paths to fields for which to count the quantity of each set of related values (comma separated without spaces;
 src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])''')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list')
