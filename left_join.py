@@ -1,4 +1,4 @@
-__version__ = 'v9.0'
+__version__ = 'v9.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -6,6 +6,7 @@ from cli.left_join_cli import add_args_ru
 from pymongo import MongoClient, ASCENDING
 from multiprocessing import Pool
 from bson.son import SON
+from backend.get_field_paths import parse_nested_objs
 from backend.doc_to_line import restore_line
 
 class NotEnoughCollsError(Exception):
@@ -37,8 +38,8 @@ class NoSuchFieldError(Exception):
         Если исследователь, допустим, опечатавшись,
         указал поле, которого нет в коллекциях.
         '''
-        def __init__(self, field_name):
-                err_msg = f'\nThe field {field_name} does not exist'
+        def __init__(self, field_path):
+                err_msg = f'\nThe field {field_path} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -103,21 +104,21 @@ class Main():
                 right_colls_quan = len(self.right_coll_names)
                 self.by_loc = args.by_loc
                 mongo_exclude_meta = {'meta': {'$exists': False}}
-                src_field_names = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.by_loc:
                         if self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
-                elif args.lookup_field_name is None:
+                elif args.lookup_field_path is None:
                         if self.src_coll_ext == 'vcf':
-                                self.lookup_field_name = 'ID'
+                                self.lookup_field_path = 'ID'
                         elif self.src_coll_ext == 'bed':
-                                self.lookup_field_name = 'name'
+                                self.lookup_field_path = 'name'
                         else:
-                                self.lookup_field_name = src_field_names[1]
-                elif args.lookup_field_name not in src_field_names:
-                        raise NoSuchFieldError(args.lookup_field_name)
+                                self.lookup_field_path = src_field_paths[1]
+                elif args.lookup_field_path not in src_field_paths:
+                        raise NoSuchFieldError(args.lookup_field_path)
                 else:
-                        self.lookup_field_name = args.lookup_field_name
+                        self.lookup_field_path = args.lookup_field_path
                 self.action = args.action
                 if args.coverage == 0 or args.coverage > right_colls_quan:
                         self.coverage = right_colls_quan
@@ -140,7 +141,7 @@ class Main():
                 else:
                         proj_field_names = args.proj_field_names.split(',')
                         for proj_field_name in proj_field_names:
-                                if proj_field_name not in src_field_names:
+                                if proj_field_name not in src_field_paths:
                                         raise NoSuchFieldError(proj_field_name)
                         mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
@@ -209,8 +210,8 @@ class Main():
                                                                         'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                         else:
                                 mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
-                                                                'localField': self.lookup_field_name,
-                                                                'foreignField': self.lookup_field_name,
+                                                                'localField': self.lookup_field_path,
+                                                                'foreignField': self.lookup_field_path,
                                                                 'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                                 
                         #Выполняем пайплайн из скипа метадокумента,
@@ -225,16 +226,16 @@ class Main():
                         #коллекция, создадим её из имён полей. Projection при этом учтём.
                         #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
                         #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                        header_row = list(left_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                        if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                header_row.insert(8, 'FORMAT')
-                        header_line = '\t'.join(header_row)
+                        trg_header_row = list(left_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                        if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
+                                trg_header_row.insert(8, 'FORMAT')
+                        trg_header_line = '\t'.join(trg_header_row)
                         
                         #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                         #Происхождение имени файла от имени левой коллекции будет указывать на
                         #то, что все данные, попадающие в файл, берутся исключительно из неё.
                         left_coll_base = left_coll_name.rsplit('.', maxsplit=1)[0]
-                        trg_file_name = f'leftcoll_{left_coll_base}__act_{self.action}__cov_{self.coverage}.{self.trg_file_fmt}.gz'
+                        trg_file_name = f'leftcoll-{left_coll_base}__act-{self.action}__cov-{self.coverage}.{self.trg_file_fmt}.gz'
                         trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                         
                         #Открытие конечного файла на запись.
@@ -253,7 +254,7 @@ class Main():
                                 trg_file_opened.write(f'##coverage={self.coverage}\n')
                                 if self.mongo_findone_args[1] is not None:
                                         trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
-                                trg_file_opened.write(header_line + '\n')
+                                trg_file_opened.write(trg_header_line + '\n')
                                 
                                 #Создаём флаг, по которому далее будет
                                 #определено, оказались ли в конечном
