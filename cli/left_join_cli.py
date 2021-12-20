@@ -1,4 +1,4 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -19,8 +19,8 @@ def add_args_ru(ver):
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
-Программу можно применять только для
-баз, созданных с помощью create_db.
+Программу можно применять только для баз, созданных с
+помощью create_db или других инструментов high-perf-bio.
 
 --------------------------------------------------
 
@@ -107,14 +107,14 @@ trg-FMT - конечные таблицы определённого форма�
                              help='Имена правых коллекций (через запятую без пробела; [[все коллекции БД]]; правая, совпадающая с текущей левой, проигнорируется)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
                              help='Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется)')
-        opt_grp.add_argument('-f', '--lookup-field-name', metavar='[None]', dest='lookup_field_name', type=str,
-                             help='Имя поля, по которому пересекать или вычитать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[первое после _id поле]])')
+        opt_grp.add_argument('-f', '--lookup-field-path', metavar='[None]', dest='lookup_field_path', type=str,
+                             help='Точечный путь к полю, по которому пересекать или вычитать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                              help='{intersect, subtract} Пересекать или вычитать')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
                              help='Охват (1 <= c <= количество правых; 0 - приравнять к количеству правых; вычтется 1, если правые и левые совпадают при 1 < c = количество правых)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-TSV; поле _id не выведется)')
+                             help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         args = arg_parser.parse_args()
