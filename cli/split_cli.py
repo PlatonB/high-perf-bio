@@ -1,4 +1,4 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -24,6 +24,9 @@ def add_args_ru(ver):
 Чтобы программа работала быстро, нужен индекс
 поля, по которому осуществляется деление.
 
+К вложенному полю обращайтесь через точку:
+"field_1.field_2.(...).field_N"
+
 Условные обозначения в справке по CLI:
 [значение по умолчанию на этапе парсинга аргументов];
 [[конкретизированное значение по умолчанию]];
@@ -48,14 +51,14 @@ f1+f2+f3 - поля коллекций БД с составным индексо
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно делимых коллекций')
-        opt_grp.add_argument('-f', '--spl-field-name', metavar='[None]', dest='spl_field_name', type=str,
-                             help='Имя поля, по которому делить (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[первое после _id поле]])')
+        opt_grp.add_argument('-f', '--spl-field-path', metavar='[None]', dest='spl_field_path', type=str,
+                             help='Точечный путь к полю, по которому делить (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
+                             help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются #CHROM+POS,ID; trg-db-BED: проиндексируются chrom+start+end,name)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
         args = arg_parser.parse_args()
         return args
 
@@ -81,6 +84,9 @@ by "create_db" or other high-perf-bio tools.
 For the program to process quickly, there needs
 index of the field by which the splitting is done.
 
+Call the nested field using a point:
+"field_1.field_2.(...).field_N"
+
 The notation in the CLI help:
 [default value in the argument parsing step];
 [[final default value]];
@@ -105,13 +111,13 @@ f1+f2+f3 - fields of the DB collections with a compound index
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum quantity of collections splitted in parallel')
-        opt_grp.add_argument('-f', '--spl-field-name', metavar='[None]', dest='spl_field_name', type=str,
-                             help='Name of the field by which to split (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[first field after _id]])')
+        opt_grp.add_argument('-f', '--spl-field-path', metavar='[None]', dest='spl_field_path', type=str,
+                             help='Dot path to the field by which to split (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
-                             help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
+                             help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: #CHROM+POS,ID will be indexed; trg-db-BED: chrom+start+end,name will be indexed)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Dot paths to indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed; trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
         args = arg_parser.parse_args()
         return args
