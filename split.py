@@ -1,12 +1,13 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
 from cli.split_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from multiprocessing import Pool
 from bson.son import SON
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.get_field_paths import parse_nested_objs
 from backend.doc_to_line import restore_line
 from backend.create_index_models import create_index_models
 
@@ -15,8 +16,8 @@ class NoSuchFieldError(Exception):
         Если исследователь, допустим, опечатавшись,
         указал поле, которого нет в коллекциях.
         '''
-        def __init__(self, field_name):
-                err_msg = f'\nThe field {field_name} does not exist'
+        def __init__(self, field_path):
+                err_msg = f'\nThe field {field_path} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -68,19 +69,19 @@ class Main():
                 else:
                         self.proc_quan = max_proc_quan
                 mongo_exclude_meta = {'meta': {'$exists': False}}
-                src_field_names = list(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
-                if args.spl_field_name is None:
+                src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                if args.spl_field_path is None:
                         if src_coll_ext == 'vcf':
-                                self.spl_field_name = '#CHROM'
+                                self.spl_field_path = '#CHROM'
                         elif src_coll_ext == 'bed':
-                                self.spl_field_name = 'chrom'
+                                self.spl_field_path = 'chrom'
                         else:
-                                self.spl_field_name = src_field_names[1]
-                elif args.spl_field_name not in src_field_names:
-                        raise NoSuchFieldError(args.spl_field_name)
+                                self.spl_field_path = src_field_paths[1]
+                elif args.spl_field_path not in src_field_paths:
+                        raise NoSuchFieldError(args.spl_field_path)
                 else:
-                        self.spl_field_name = args.spl_field_name
-                self.mongo_aggr_draft = [{'$match': {self.spl_field_name: None}}]
+                        self.spl_field_path = args.spl_field_path
+                self.mongo_aggr_draft = [{'$match': {self.spl_field_path: None}}]
                 if src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
@@ -94,7 +95,7 @@ class Main():
                 else:
                         proj_field_names = args.proj_field_names.split(',')
                         for proj_field_name in proj_field_names:
-                                if proj_field_name not in src_field_names:
+                                if proj_field_name not in src_field_paths:
                                         raise NoSuchFieldError(proj_field_name)
                         mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
@@ -110,10 +111,10 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                if args.ind_field_paths is None:
+                        self.ind_field_paths = args.ind_field_paths
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
+                        self.ind_field_paths = args.ind_field_paths.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -135,8 +136,8 @@ class Main():
                 #коллекции. _id - null, т.к. нам не нужно растаскивание этих значений по каким-либо
                 #группам. Операция не является частью пайплайна $match-$sort(-$project)(-$out).
                 get_sep_vals = [{'$group': {'_id': 'null',
-                                            self.spl_field_name: {'$addToSet': f'${self.spl_field_name}'}}}]
-                sep_vals = [doc for doc in src_coll_obj.aggregate(get_sep_vals)][0][self.spl_field_name]
+                                            'spl_field': {'$addToSet': f'${self.spl_field_path}'}}}]
+                sep_vals = [doc for doc in src_coll_obj.aggregate(get_sep_vals)][0]['spl_field']
                 
                 #Запрос, вынесенный в отдельный объект,
                 #можно будет спокойно модифицировать
@@ -155,10 +156,10 @@ class Main():
                         #коллекция, создадим её из имён полей. Projection при этом учтём.
                         #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
                         #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                        header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                        if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                header_row.insert(8, 'FORMAT')
-                        header_line = '\t'.join(header_row)
+                        trg_header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                        if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
+                                trg_header_row.insert(8, 'FORMAT')
+                        trg_header_line = '\t'.join(trg_header_row)
                         
                         #Один конечный файл будет
                         #содержать данные, соответствующие
@@ -167,13 +168,13 @@ class Main():
                                 
                                 #Внедряем в фильтрационную стадию
                                 #пайплайна текущее раздельное значение.
-                                mongo_aggr_arg[0]['$match'][self.spl_field_name] = sep_val
+                                mongo_aggr_arg[0]['$match'][self.spl_field_path] = sep_val
                                 
                                 #Создаём объект курсора.
                                 curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
                                 
                                 #Конструируем имя конечного архива и абсолютный путь.
-                                trg_file_name = f'coll-{src_coll_base}__{self.spl_field_name}-{sep_val}.{self.trg_file_fmt}.gz'
+                                trg_file_name = f'coll-{src_coll_base}__{self.spl_field_path}-{sep_val.replace("/", "s")}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
@@ -184,11 +185,11 @@ class Main():
                                         #файла. Прописываем также табличную шапку.
                                         if self.trg_file_fmt == 'vcf':
                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                        trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
                                         trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
-                                        trg_file_opened.write(header_line + '\n')
+                                        trg_file_opened.write(trg_header_line + '\n')
                                         
                                         #Извлечение из объекта курсора отвечающих запросу
                                         #документов, преобразование их значений в обычные
@@ -209,8 +210,8 @@ class Main():
                         mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
                                                                    'coll': None}}})
                         for sep_val in sep_vals:
-                                mongo_aggr_arg[0]['$match'][self.spl_field_name] = sep_val
-                                trg_coll_name = f'coll-{src_coll_base}__{self.spl_field_name}-{sep_val}.{self.trg_file_fmt}'
+                                mongo_aggr_arg[0]['$match'][self.spl_field_path] = sep_val
+                                trg_coll_name = f'coll-{src_coll_base}__{self.spl_field_path}-{sep_val.replace("/", "s")}.{self.trg_file_fmt}'
                                 mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                             storageEngine={'wiredTiger':
@@ -219,14 +220,14 @@ class Main():
                                 meta_lines = {'meta': []}
                                 if self.trg_file_fmt == 'vcf':
                                         meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
-                                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                meta_lines['meta'].append(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>')
                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                                 trg_coll_obj.insert_one(meta_lines)
                                 src_coll_obj.aggregate(mongo_aggr_arg)
                                 index_models = create_index_models(self.trg_file_fmt,
-                                                                   self.ind_field_names)
+                                                                   self.ind_field_paths)
                                 if index_models != []:
                                         trg_coll_obj.create_indexes(index_models)
                                         
