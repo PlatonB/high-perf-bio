@@ -1,4 +1,4 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -20,7 +20,8 @@ def add_args_ru(ver):
 В исходных файлах каждый запрос должен располагаться в отдельной строке.
 Допустимы пустые строки (например, для повышения читаемости наборов запросов).
 
-Источником отбираемых данных должна быть база, созданная с помощью create_db.
+Источником отбираемых данных должна быть база, созданная
+с помощью create_db или других инструментов high-perf-bio.
 
 Чтобы программа работала быстро, нужны индексы вовлечённых в запрос полей.
 
@@ -42,7 +43,7 @@ Decimal128("any_str")
 {{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
 Не добавляйте в запрос условие
-{'meta': {'$exists': False}}.
+{{'meta': {{'$exists': False}}}}.
 Программа сама сделает это.
 
 Условные обозначения в справке по CLI:
@@ -72,12 +73,12 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Максимальное количество параллельно считываемых файлов с запросами')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации файлов с запросами')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Отбираемые поля (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
+                             help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
         args = arg_parser.parse_args()
         return args
 
@@ -99,12 +100,13 @@ Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 In the source files, each query must be on a separate line.
 Blank lines are allowed (e.g., to make query sets more human readable).
 
-The source of the retrieved data should be the DB produced by create_db.
+The source of the retrieved data should be the DB
+produced by "create_db" or other high-perf-bio tools.
 
 For the program to work fast, it needs indexes of the fields involved in the query.
 
 Only Python dialect of MongoDB query language is
-supported (press Select your language --> Python):
+supported (press "Select your language" --> "Python"):
 https://docs.mongodb.com/manual/tutorial/query-documents/
 
 Allowed MongoDB operators:
@@ -121,7 +123,7 @@ Example of query:
 {{"$or": [{{"INFO.0.AF_AFR": {{"$gte": Decimal128("0.02")}}}}, {{"INFO.0.AF_EUR": {{"$lte": Decimal128("0.3")}}}}, {{"INFO.0.AF_EAS": {{"$lte": Decimal128("0.3")}}}}]}}
 
 Do not add to the query condition
-{'meta': {'$exists': False}}.
+{{'meta': {{'$exists': False}}}}.
 The program will do this itself.
 
 The notation in the CLI help:
@@ -151,11 +153,11 @@ f1+f2+f3 - fields of the DB collections with a compound index.
                              help='Maximum quantity of files with queries read in parallel')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of files with queries')
-        opt_grp.add_argument('-k', '--proj-fields', metavar='[None]', dest='proj_fields', type=str,
-                             help='Selected fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
+        opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
+                             help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed); trg-db-BED: meta, chrom+start+end, name <...>)')
+        opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Dot paths to indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed; trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
         args = arg_parser.parse_args()
         return args
