@@ -1,16 +1,26 @@
-__version__ = 'v6.1'
+__version__ = 'v6.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
 from cli.query_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from multiprocessing import Pool
 from bson.son import SON
 from bson.decimal128 import Decimal128
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.get_field_paths import parse_nested_objs
 from backend.doc_to_line import restore_line
 from backend.create_index_models import create_index_models
 
+class NoSuchFieldError(Exception):
+        '''
+        Если исследователь, допустим, опечатавшись,
+        указал поле, которого нет в коллекциях.
+        '''
+        def __init__(self, field_path):
+                err_msg = f'\nThe field {field_path} does not exist'
+                super().__init__(err_msg)
+                
 class Main():
         '''
         Основной класс. args, подаваемый иниту на вход, не обязательно
@@ -42,7 +52,8 @@ class Main():
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
                 self.src_file_names = os.listdir(self.src_dir_path)
                 self.src_db_name = args.src_db_name
-                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                src_db_obj = client[self.src_db_name]
+                self.src_coll_names = src_db_obj.list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
@@ -70,11 +81,16 @@ class Main():
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
                 self.mongo_exclude_meta = {'meta': {'$exists': False}}
-                if args.proj_fields is None:
+                src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(self.mongo_exclude_meta))
+                if args.proj_field_names is None:
                         self.mongo_findone_args = [self.mongo_exclude_meta, None]
                         self.trg_file_fmt = src_coll_ext
                 else:
-                        mongo_project = {field_name: 1 for field_name in args.proj_fields.split(',')}
+                        proj_field_names = args.proj_field_names.split(',')
+                        for proj_field_name in proj_field_names:
+                                if proj_field_name not in src_field_paths:
+                                        raise NoSuchFieldError(proj_field_name)
+                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [self.mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -88,10 +104,10 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                if args.ind_field_paths is None:
+                        self.ind_field_paths = args.ind_field_paths
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
+                        self.ind_field_paths = args.ind_field_paths.split(',')
                 self.ver = ver
                 client.close()
                 
@@ -161,17 +177,17 @@ class Main():
                                                 #коллекция, создадим её из имён полей. Projection при этом учтём.
                                                 #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
                                                 #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                                                header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                                                if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                                        header_row.insert(8, 'FORMAT')
-                                                header_line = '\t'.join(header_row)
+                                                trg_header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                                                if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
+                                                        trg_header_row.insert(8, 'FORMAT')
+                                                trg_header_line = '\t'.join(trg_header_row)
                                                 
                                                 #Конструируем имя конечного архива и абсолютный путь.
                                                 #Пытаться поместить в имя запрос абсурдно, поэтому
                                                 #ограничимся номером запроса. Пайплайн, содержащий запрос,
                                                 #пропишется потом вовнутрь файла как строка метаинформации.
                                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                                trg_file_name = f'file_{src_file_base}__query_{src_line_num}__coll_{src_coll_base}.{self.trg_file_fmt}.gz'
+                                                trg_file_name = f'file-{src_file_base}__query-{src_line_num}__coll-{src_coll_base}.{self.trg_file_fmt}.gz'
                                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                                 
                                                 #Открытие конечного файла на запись.
@@ -182,12 +198,12 @@ class Main():
                                                         #файла. Прописываем также табличную шапку.
                                                         if self.trg_file_fmt == 'vcf':
                                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                                        trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                                         trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
-                                                        trg_file_opened.write(header_line + '\n')
+                                                        trg_file_opened.write(trg_header_line + '\n')
                                                         
                                                         #Извлечение из объекта курсора отвечающих запросу
                                                         #документов, преобразование их значений в обычные
@@ -225,7 +241,7 @@ class Main():
                                         for src_coll_name in self.src_coll_names:
                                                 src_coll_obj = src_db_obj[src_coll_name]
                                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
-                                                trg_coll_name = f'file_{src_file_base}__query_{src_line_num}__coll_{src_coll_base}.{self.trg_file_fmt}'
+                                                trg_coll_name = f'file-{src_file_base}__query-{src_line_num}__coll-{src_coll_base}.{self.trg_file_fmt}'
                                                 mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                                             storageEngine={'wiredTiger':
@@ -234,7 +250,7 @@ class Main():
                                                 meta_lines = {'meta': []}
                                                 if self.trg_file_fmt == 'vcf':
                                                         meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
-                                                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                                meta_lines['meta'].append(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>')
                                                 meta_lines['meta'].append(f'##src_file_name={src_file_name}')
                                                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
@@ -245,7 +261,7 @@ class Main():
                                                         trg_db_obj.drop_collection(trg_coll_name)
                                                 else:
                                                         index_models = create_index_models(self.trg_file_fmt,
-                                                                                           self.ind_field_names)
+                                                                                           self.ind_field_paths)
                                                         if index_models != []:
                                                                 trg_coll_obj.create_indexes(index_models)
                                                                 
