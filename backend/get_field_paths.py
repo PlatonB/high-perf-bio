@@ -1,8 +1,8 @@
-__version__ = 'v1.0'
+__version__ = 'v2.0'
 
 import copy
 
-def parse_nested_objs(obj, parent_field_path=None, all_field_paths=[]):
+def parse_nested_objs(obj, parent_field_path=None, all_field_paths=None):
         '''
         Функция, собирающая пути ко всем полям документа. Пути оформляются
         в виде поддерживаемой PyMongo точечной нотации. Если поле соответствует
@@ -14,7 +14,10 @@ def parse_nested_objs(obj, parent_field_path=None, all_field_paths=[]):
                                 child_field_path = copy.deepcopy(key)
                         else:
                                 child_field_path = f'{parent_field_path}.{key}'
-                        all_field_paths.append(child_field_path)
+                        if all_field_paths is None:
+                                all_field_paths = [child_field_path]
+                        else:
+                                all_field_paths.append(child_field_path)
                         if type(val) in [dict, list]:
                                 parse_nested_objs(val,
                                                   parent_field_path=child_field_path,
