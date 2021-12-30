@@ -1,102 +1,103 @@
-__version__ = 'v4.1'
+__version__ = 'v5.0'
 
-class PrepSingleProc():
+import sys, locale, os, datetime
+sys.dont_write_bytecode = True
+from cli.reindex_db_cli import add_args_ru, add_args_en
+from pymongo import MongoClient, IndexModel, ASCENDING
+from multiprocessing import Pool
+
+class Main():
         '''
-        Класс, спроектированный под
-        безопасную параллельную индексацию.
+        Основной класс. args, подаваемый иниту на вход,
+        не обязательно должен формироваться argparse. Этим
+        объектом может быть экземпляр класса из стороннего
+        Python-модуля, в т.ч. имеющего отношение к GUI. Кстати,
+        написание сообществом всевозможных графических интерфейсов
+        к high-perf-bio люто, бешено приветствуется! В ините
+        на основе args создаются как атрибуты, используемые
+        двумя функциями, так и атрибуты, нужные для кода,
+        их запускающего. Что касается этих функций, их можно
+        запросто пристроить в качестве коллбэков кнопок в GUI.
         '''
         def __init__(self, args):
                 '''
-                Получение атрибутов, необходимых заточенной под
-                многопроцессовое выполнение функции индексации всех
-                коллекций MongoDB-базы. Атрибуты ни в коем случае не
-                должны будут потом в параллельных процессах изменяться.
-                Получаются они в основном из указанных исследователем опций.
+                Получение атрибутов для функций удаления и создания
+                индексов, а также блока, в котором эти функции
+                запускаются. Используемые функцией создания
+                индексов атрибуты ни в коем случае не должны
+                будут потом в параллельных процессах изменяться.
                 '''
-                self.db_name = args.db_name
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                client = MongoClient()
+                self.src_db_name = args.src_db_name
+                self.src_coll_names = client[self.src_db_name].list_collection_names()
+                max_proc_quan = args.max_proc_quan
+                src_colls_quan = len(self.src_coll_names)
+                cpus_quan = os.cpu_count()
+                if max_proc_quan > src_colls_quan <= cpus_quan:
+                        self.proc_quan = src_colls_quan
+                elif max_proc_quan > cpus_quan:
+                        self.proc_quan = cpus_quan
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
-                        
-        def add_indices(self, coll_name):
+                        self.proc_quan = max_proc_quan
+                if args.del_ind_names is None:
+                        self.del_ind_names = args.del_ind_names
+                else:
+                        self.del_ind_names = args.del_ind_names.split(',')
+                if args.ind_field_paths is None:
+                        self.ind_field_paths = args.ind_field_paths
+                else:
+                        self.ind_field_paths = args.ind_field_paths.split(',')
+                client.close()
+                
+        def del_indices(self):
+                '''
+                Функция удаления
+                выбранных исследователем
+                индексов всех коллекций.
+                '''
+                client = MongoClient()
+                src_db_obj = client[self.src_db_name]
+                for src_coll_name in self.src_coll_names:
+                        for del_ind_name in self.del_ind_names:
+                                src_db_obj[src_coll_name].drop_index(del_ind_name)
+                client.close()
+                
+        def add_indices(self, src_coll_name):
                 '''
                 Функция создания индексов
                 выбранных исследователем
                 полей одной коллекции.
                 '''
                 client = MongoClient()
-                db_obj = client[self.db_name]
-                ind_objs = [IndexModel([(ind_field_name, ASCENDING) for ind_field_name in element.split('+')]) \
-                            for element in self.ind_field_names]
-                db_obj[coll_name].create_indexes(ind_objs)
+                ind_objs = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
+                            for ind_field_group in self.ind_field_paths]
+                client[self.src_db_name][src_coll_name].create_indexes(ind_objs)
                 client.close()
                 
-####################################################################################################
-
-import sys, locale, datetime
-sys.dont_write_bytecode = True
-from cli.reindex_db_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, IndexModel, ASCENDING
-from multiprocessing import Pool
-
-#Подготовительный этап: обработка
-#аргументов командной строки, создание
-#экземпляра содержащего ключевую
-#функцию класса и MongoDB-объектов,
-#получение имён всех коллекций.
+#Обработка аргументов командной строки. Создание
+#экземпляра содержащего ключевые функции класса.
 if locale.getdefaultlocale()[0][:2] == 'ru':
         args = add_args_ru(__version__)
 else:
         args = add_args_en(__version__)
-client = MongoClient()
-prep_single_proc = PrepSingleProc(args)
-db_name = prep_single_proc.db_name
-db_obj = client[db_name]
-coll_names = db_obj.list_collection_names()
+main = Main(args)
+src_db_name = main.src_db_name
 
 #По запросу исследователя удаляем индексы.
 #Это - очень быстрый процесс, поэтому
 #в распараллеливании не нуждается.
-if args.del_ind_names is not None:
-        del_ind_names = args.del_ind_names.split(',')
-        print(f'\nRemoving indexes from {db_name} database')
-        for coll_name in coll_names:
-                for del_ind_name in del_ind_names:
-                        db_obj[coll_name].drop_index(del_ind_name)
-                        
-#Необходимости в подключении
-#к серверу MongoDB больше нет,
-#поэтому дисконнектимся.
-#Если дальше последует
-#этап многопроцессовой
-#индексации, то там уже
-#надо будет подключаться
-#на уровне каждого процесса.
-client.close()
-
-#Если исследователь пожелал индексировать поля, то
-#сейчас будет произведена подготовка к параллельному
-#выполнению этой процедуры. Количество процессов будет
-#определено по заданному исследователем максимуму этого
-#значения и количеству коллекций переиндексируемой БД.
-if prep_single_proc.ind_field_names is not None:
-        max_proc_quan = args.max_proc_quan
-        colls_quan = len(coll_names)
-        if max_proc_quan > colls_quan <= 8:
-                proc_quan = colls_quan
-        elif max_proc_quan > 8:
-                proc_quan = 8
-        else:
-                proc_quan = max_proc_quan
-                
-        print(f'\nIndexing {db_name} database')
-        print(f'\tnumber of parallel processes: {proc_quan}')
+if main.del_ind_names is not None:
+        print(f'\nRemoving indexes from {src_db_name} DB')
+        main.del_indices()
         
-        #Параллельный запуск индексации коллекций.
+#Параллельный запуск поиска, если это действие задал исследователь.
+#Замер времени выполнения вычислений с точностью до микросекунды.
+if main.ind_field_paths is not None:
+        proc_quan = main.proc_quan
+        print(f'\nIndexing {src_db_name} DB')
+        print(f'\tquantity of parallel processes: {proc_quan}')
         with Pool(proc_quan) as pool_obj:
                 exec_time_start = datetime.datetime.now()
-                pool_obj.map(prep_single_proc.add_indices, coll_names)
+                pool_obj.map(main.add_indices, main.src_coll_names)
                 exec_time = datetime.datetime.now() - exec_time_start
-                
         print(f'\tparallel computation time: {exec_time}')
