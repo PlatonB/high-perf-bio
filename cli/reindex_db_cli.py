@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -33,15 +33,15 @@ print_db_info из состава high-perf-bio, либо MongoDB Compass.
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Вывести справку и выйти')
         man_grp = arg_parser.add_argument_group('Обязательные аргументы')
-        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+        man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Имя переиндексируемой БД')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
-                             help='Имена удаляемых индексов (через запятую без пробела)')
-        opt_grp.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; для составного индекса: через плюс без пробелов)')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно индексируемых коллекций')
+        opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
+                             help='Имена удаляемых индексов (через запятую без пробела)')
+        opt_grp.add_argument('-a', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую без пробела; для составного индекса: через плюс без пробелов)')
         args = arg_parser.parse_args()
         return args
 
@@ -63,7 +63,7 @@ Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 Do not confuse the concepts of field name and index name.
 
 To print names of databases, indexes and fields I recommend
-to use print_db_info from high-perf-bio or MongoDB Compass.
+to use "print_db_info" from high-perf-bio or MongoDB Compass.
 
 The creation/deletion of both single and compound indexes is supported.
 
@@ -76,14 +76,14 @@ The notation in the CLI help:
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Show this help message and exit')
         man_grp = arg_parser.add_argument_group('Mandatory arguments')
-        man_grp.add_argument('-D', '--db-name', required=True, metavar='str', dest='db_name', type=str,
+        man_grp.add_argument('-D', '--src-db-name', required=True, metavar='str', dest='src_db_name', type=str,
                              help='Name of the reindexed DB')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
+        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
+                             help='Maximum quantity of parallel indexed collections')
         opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
                              help='Names of deleted indexes (comma separated without spaces)')
-        opt_grp.add_argument('-a', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; for a compound index: plus separated without spaces)')
-        opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
-                             help='Maximum number of parallel indexed collections')
+        opt_grp.add_argument('-a', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+                             help='Dot paths to indexed fields (comma separated without spaces; for a compound index: plus separated without spaces)')
         args = arg_parser.parse_args()
         return args
