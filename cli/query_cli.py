@@ -1,4 +1,4 @@
-__version__ = 'v3.2'
+__version__ = 'v4.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -54,7 +54,8 @@ scr/trg-db-FMT - исходная/конечная БД с коллекциям�
 trg-FMT - конечные таблицы определённого формата;
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку;
-f1+f2+f3 - поля коллекций БД с составным индексом.
+f1+f2+f3 - сортируемые поля, а также поля,
+для которых создавать составной индекс.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -73,9 +74,13 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Максимальное количество параллельно считываемых файлов с запросами')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации файлов с запросами')
+        opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
+                             help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV)')
+        opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
+                             help='{asc, desc} Порядок сортировки (применяется с -s)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV; поле _id не выведется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+        opt_grp.add_argument('-,', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
                              help='Точечные пути к индексируемых полям (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
@@ -134,7 +139,8 @@ matching by structure to the tables in a certain format;
 trg-FMT - target tables in a certain format;
 not applicable - under the specified conditions
 the argument is ignored or causes an error;
-f1+f2+f3 - fields of the DB collections with a compound index.
+f1+f2+f3 - sorted fields, as well as fields,
+for which to create a compound index.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -153,9 +159,13 @@ f1+f2+f3 - fields of the DB collections with a compound index.
                              help='Maximum quantity of files with queries read in parallel')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of files with queries')
+        opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
+                             help='Dot paths to sorted fields (plus separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV)')
+        opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
+                             help='{asc, desc} Order of sorting (applicable with -s)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV; _id field will not be output)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+        opt_grp.add_argument('-,', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark to restore a cell from a list (src-db-VCF, src-db-BED (trg-BED): not applicable)')
         opt_grp.add_argument('-i', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
                              help='Dot paths to indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed; trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
