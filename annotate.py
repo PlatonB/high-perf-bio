@@ -1,47 +1,19 @@
-__version__ = 'v6.6'
+__version__ = 'v7.0'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
 from cli.annotate_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
-from multiprocessing import Pool
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.collation import Collation
 from bson.son import SON
+from multiprocessing import Pool
+from backend.common_errors import DifFmtsError, ByLocTsvError, NoSuchFieldError
+from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
 from backend.create_index_models import create_index_models
 
-class DifFmtsError(Exception):
-        '''
-        Аннотировать по базе можно только одноформатные таблицы.
-        '''
-        def __init__(self, src_file_fmts):
-                err_msg = f'\nSource files are in different formats: {src_file_fmts}'
-                super().__init__(err_msg)
-                
-class ByLocTsvError(Exception):
-        '''
-        В исследуемом TSV или основанной на TSV
-        коллекции может не быть геномных координат.
-        Ну или бывает, когда координатные столбцы
-        располагаются, где попало. Поэтому нельзя,
-        чтобы при пересечении по локации хоть в одном
-        из этих двух мест витал вольноформатный дух.
-        '''
-        def __init__(self):
-                err_msg = '\nIntersection by location is not possible for src-TSV or src-db-TSV'
-                super().__init__(err_msg)
-                
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
-        '''
-        def __init__(self, field_name):
-                err_msg = f'\nThe field {field_name} does not exist'
-                super().__init__(err_msg)
-                
 class Main():
         '''
         Основной класс. args, подаваемый иниту на вход, не обязательно
@@ -64,12 +36,13 @@ class Main():
                 столбцам и полям выбраны на основе здравого смысла: к примеру, аннотировать
                 src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец и поле, оба
                 из которых с идентификаторами вариантов. Сортировка src-db-VCF и src-db-BED
-                делается по координатам для обеспечения поддержки tabix-индексации конечных
-                таблиц. Важные замечания по проджекшену. Поля src-db-VCF я, скрепя сердце,
-                позволил отбирать, но документы со вложенными объектами, как, например, в INFO,
-                не сконвертируются в обычные строки, а сериализуются как есть. Что касается
-                и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей, невозможно
-                гарантировать соблюдение спецификаций соответствующих форматов, поэтому
+                дефолтно делается по координатам для обеспечения поддержки tabix-индексации
+                конечных таблиц. Но если задан кастомный порядок сортировки, то результат будет
+                уже не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля src-db-VCF я,
+                скрепя сердце, позволил отбирать, но документы со вложенными объектами, как,
+                например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
+                Что касается и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей,
+                невозможно гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
                 '''
                 client = MongoClient()
@@ -84,6 +57,7 @@ class Main():
                 src_db_obj = client[self.src_db_name]
                 self.src_coll_names = src_db_obj.list_collection_names()
                 self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                self.trg_file_fmt = self.src_coll_ext
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
                 elif args.trg_place != self.src_db_name:
@@ -130,7 +104,21 @@ class Main():
                         else:
                                 self.ann_field_path = args.ann_field_path
                         self.mongo_aggr_draft = [{'$match': {self.ann_field_path: {'$in': []}}}]
-                if self.src_coll_ext == 'vcf':
+                if args.srt_field_group is not None:
+                        self.srt_field_group = args.srt_field_group.split('+')
+                        mongo_sort = SON([])
+                        if args.srt_order == 'asc':
+                                srt_order = ASCENDING
+                        elif args.srt_order == 'desc':
+                                srt_order = DESCENDING
+                        for srt_field_path in self.srt_field_group:
+                                if srt_field_path not in src_field_paths:
+                                        raise NoSuchFieldError(srt_field_path)
+                                else:
+                                        mongo_sort[srt_field_path] = srt_order
+                        self.mongo_aggr_draft.append({'$sort': mongo_sort})
+                        self.trg_file_fmt = 'tsv'
+                elif self.src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
                 elif self.src_coll_ext == 'bed':
@@ -139,13 +127,14 @@ class Main():
                                                                     ('end', ASCENDING)])})
                 if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
-                        self.trg_file_fmt = self.src_coll_ext
                 else:
                         proj_field_names = args.proj_field_names.split(',')
+                        mongo_project = {}
                         for proj_field_name in proj_field_names:
                                 if proj_field_name not in src_field_paths:
                                         raise NoSuchFieldError(proj_field_name)
-                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
+                                else:
+                                        mongo_project[proj_field_name] = 1
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -244,8 +233,14 @@ class Main():
                         for src_coll_name in self.src_coll_names:
                                 
                                 #Создание двух объектов: текущей коллекции и курсора.
+                                #allowDiskUse пригодится для сортировки больших
+                                #непроиндексированных полей. numericOrdering нужен
+                                #для того, чтобы после условного rs19 не оказался rs2.
                                 src_coll_obj = src_db_obj[src_coll_name]
-                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
+                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg,
+                                                                  allowDiskUse=True,
+                                                                  collation=Collation(locale='en_US',
+                                                                                      numericOrdering=True))
                                 
                                 #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                                 #коллекция, создадим её из имён полей. Projection при этом учтём.
@@ -269,12 +264,14 @@ class Main():
                                         #файла. Прописываем также табличную шапку.
                                         if self.trg_file_fmt == 'vcf':
                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                        trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
                                         if not self.by_loc:
                                                 trg_file_opened.write(f'##ann_field_path={self.ann_field_path}\n')
+                                        if hasattr(self, 'srt_field_group'):
+                                                trg_file_opened.write(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}\n')
                                         if self.mongo_findone_args[1] is not None:
                                                 trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
                                         trg_file_opened.write(header_line + '\n')
@@ -321,24 +318,28 @@ class Main():
                                 meta_lines = {'meta': []}
                                 if self.trg_file_fmt == 'vcf':
                                         meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
-                                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                meta_lines['meta'].append(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>')
                                 meta_lines['meta'].append(f'##src_file_name={src_file_name}')
                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                 if not self.by_loc:
                                         meta_lines['meta'].append(f'##ann_field_path={self.ann_field_path}')
+                                if hasattr(self, 'srt_field_group'):
+                                        meta_lines['meta'].append(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}')
                                 if self.mongo_findone_args[1] is not None:
                                         meta_lines['meta'].append(f'##mongo_project={self.mongo_findone_args[1]}')
                                 trg_coll_obj.insert_one(meta_lines)
-                                src_coll_obj.aggregate(mongo_aggr_arg)
+                                src_coll_obj.aggregate(mongo_aggr_arg,
+                                                       allowDiskUse=True,
+                                                       collation=Collation(locale='en_US',
+                                                                           numericOrdering=True))
                                 if trg_coll_obj.count_documents({}) == 1:
                                         trg_db_obj.drop_collection(trg_coll_name)
                                 else:
                                         index_models = create_index_models(self.trg_file_fmt,
                                                                            self.ind_field_paths)
-                                        if index_models != []:
-                                                trg_coll_obj.create_indexes(index_models)
-                                                
+                                        trg_coll_obj.create_indexes(index_models)
+                                        
                 #Дисконнект.
                 client.close()
                 
