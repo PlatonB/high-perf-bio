@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -11,7 +11,7 @@ def add_args_ru(ver):
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2022
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -75,7 +75,7 @@ f1+f2+f3 - сортируемые поля, а также поля,
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации файлов с запросами')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
-                             help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV)')
+                             help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF: [[#CHROM+POS]]; src-db-BED: [[chrom+start+end]]; src-db-VCF, src-db-BED: trg-(db-)TSV)')
         opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
                              help='{asc, desc} Порядок сортировки (применяется с -s)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
@@ -96,7 +96,7 @@ A program that runs query sets to all collections of MongoDB database.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2020-2021
+Author: Platon Bykadorov (platon.work@gmail.com), 2020-2022
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
@@ -160,7 +160,7 @@ for which to create a compound index.
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of files with queries')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
-                             help='Dot paths to sorted fields (plus separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV)')
+                             help='Dot paths to sorted fields (plus separated without spaces; src-db-VCF: [[#CHROM+POS]]; src-db-BED: [[chrom+start+end]]; src-db-VCF, src-db-BED: trg-(db-)TSV)')
         opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
                              help='{asc, desc} Order of sorting (applicable with -s)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
