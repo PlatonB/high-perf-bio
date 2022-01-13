@@ -1,4 +1,4 @@
-__version__ = 'v7.0'
+__version__ = 'v7.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -186,11 +186,13 @@ class Main():
                                         #после обращения к последней коллекции.
                                         for src_coll_name in self.src_coll_names:
                                                 
-                                                #Создание двух объектов: текущей коллекции
-                                                #и курсора. numericOrdering нужен для того,
-                                                #чтобы после условного rs19 не оказался rs2.
+                                                #Создание двух объектов: текущей коллекции и курсора.
+                                                #allowDiskUse пригодится для сортировки больших
+                                                #непроиндексированных полей. numericOrdering нужен
+                                                #для того, чтобы после условного rs19 не оказался rs2.
                                                 src_coll_obj = src_db_obj[src_coll_name]
                                                 curs_obj = src_coll_obj.aggregate(mongo_aggr_arg,
+                                                                                  allowDiskUse=True,
                                                                                   collation=Collation(locale='en_US',
                                                                                                       numericOrdering=True))
                                                 
@@ -278,6 +280,7 @@ class Main():
                                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                                 trg_coll_obj.insert_one(meta_lines)
                                                 src_coll_obj.aggregate(mongo_aggr_arg,
+                                                                       allowDiskUse=True,
                                                                        collation=Collation(locale='en_US',
                                                                                            numericOrdering=True))
                                                 if trg_coll_obj.count_documents({}) == 1:
@@ -285,9 +288,8 @@ class Main():
                                                 else:
                                                         index_models = create_index_models(self.trg_file_fmt,
                                                                                            self.ind_field_paths)
-                                                        if index_models != []:
-                                                                trg_coll_obj.create_indexes(index_models)
-                                                                
+                                                        trg_coll_obj.create_indexes(index_models)
+                                                        
                 #Дисконнект.
                 client.close()
                 
