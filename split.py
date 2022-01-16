@@ -1,25 +1,18 @@
-__version__ = 'v3.2'
+__version__ = 'v4.0'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
 from cli.split_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.collation import Collation
 from multiprocessing import Pool
 from bson.son import SON
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from backend.get_field_paths import parse_nested_objs
+from backend.common_errors import NoSuchFieldError
 from backend.doc_to_line import restore_line
 from backend.create_index_models import create_index_models
 
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
-        '''
-        def __init__(self, field_path):
-                err_msg = f'\nThe field {field_path} does not exist'
-                super().__init__(err_msg)
-                
 class Main():
         '''
         Основной класс. args, подаваемый иниту на вход, не обязательно
@@ -33,25 +26,31 @@ class Main():
         '''
         def __init__(self, args, ver):
                 '''
-                Получение атрибутов как для основной функции программы, так и для блока
-                многопроцессового запуска таковой. Первые из перечисленных ни в коем
-                случае не должны будут потом в параллельных процессах изменяться. Некоторые
-                неочевидные, но важные детали об атрибутах. Квази-расширение коллекций.
-                Оно нужно, как минимум, для определения правил сортировки и форматирования
-                конечных файлов. Сортировка src-db-VCF и src-db-BED. Она делается по
-                координатам для обеспечения поддержки tabix-индексации конечных таблиц.
-                Проджекшен (отбор полей). Поля src-db-VCF я, скрепя сердце, позволил
-                отбирать, но документы со вложенными объектами, как, например, в INFO,
-                не сконвертируются в обычные строки, а сериализуются как есть. Что касается
-                и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей, невозможно
-                гарантировать соблюдение спецификаций соответствующих форматов, поэтому
-                вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
+                Получение атрибутов как для основной функции программы,
+                так и для блока многопроцессового запуска таковой. Первые
+                из перечисленных ни в коем случае не должны будут потом в
+                параллельных процессах изменяться. Некоторые неочевидные,
+                но важные детали об атрибутах. Квази-расширение коллекций.
+                Оно нужно, как минимум, для определения правил сортировки
+                и форматирования конечных файлов. Сортировка src-db-VCF и
+                src-db-BED. Дефолтно она делается по координатам для обеспечения
+                поддержки tabix-индексации конечных таблиц. Но если задан
+                кастомный порядок сортировки, то результат будет уже не
+                trg-(db-)VCF/BED. Проджекшен (отбор полей). Поля src-db-VCF
+                я, скрепя сердце, позволил отбирать, но документы со вложенными
+                объектами, как, например, в INFO, не сконвертируются в обычные
+                строки, а сериализуются как есть. Что касается и src-db-VCF, и
+                src-db-BED, когда мы оставляем только часть полей, невозможно
+                гарантировать соблюдение спецификаций соответствующих
+                форматов, поэтому вывод будет формироваться не
+                более, чем просто табулированным (trg-(db-)TSV).
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
                 src_db_obj = client[self.src_db_name]
                 self.src_coll_names = src_db_obj.list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                self.trg_file_fmt = src_coll_ext
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
                 elif args.trg_place != self.src_db_name:
@@ -82,7 +81,21 @@ class Main():
                 else:
                         self.spl_field_path = args.spl_field_path
                 self.mongo_aggr_draft = [{'$match': {self.spl_field_path: None}}]
-                if src_coll_ext == 'vcf':
+                if args.srt_field_group is not None:
+                        self.srt_field_group = args.srt_field_group.split('+')
+                        mongo_sort = SON([])
+                        if args.srt_order == 'asc':
+                                srt_order = ASCENDING
+                        elif args.srt_order == 'desc':
+                                srt_order = DESCENDING
+                        for srt_field_path in self.srt_field_group:
+                                if srt_field_path not in src_field_paths:
+                                        raise NoSuchFieldError(srt_field_path)
+                                else:
+                                        mongo_sort[srt_field_path] = srt_order
+                        self.mongo_aggr_draft.append({'$sort': mongo_sort})
+                        self.trg_file_fmt = 'tsv'
+                elif src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
                 elif src_coll_ext == 'bed':
@@ -91,13 +104,14 @@ class Main():
                                                                     ('end', ASCENDING)])})
                 if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
-                        self.trg_file_fmt = src_coll_ext
                 else:
                         proj_field_names = args.proj_field_names.split(',')
+                        mongo_project = {}
                         for proj_field_name in proj_field_names:
                                 if proj_field_name not in src_field_paths:
                                         raise NoSuchFieldError(proj_field_name)
-                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
+                                else:
+                                        mongo_project[proj_field_name] = 1
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -170,11 +184,16 @@ class Main():
                                 #пайплайна текущее раздельное значение.
                                 mongo_aggr_arg[0]['$match'][self.spl_field_path] = sep_val
                                 
-                                #Создаём объект курсора.
-                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
+                                #Создаём объект курсора. allowDiskUse пригодится для сортировки
+                                #больших непроиндексированных полей. numericOrdering нужен
+                                #для того, чтобы после условного rs19 не оказался rs2.
+                                curs_obj = src_coll_obj.aggregate(mongo_aggr_arg,
+                                                                  allowDiskUse=True,
+                                                                  collation=Collation(locale='en_US',
+                                                                                      numericOrdering=True))
                                 
                                 #Конструируем имя конечного архива и абсолютный путь.
-                                trg_file_name = f'coll-{src_coll_base}__{self.spl_field_path}-{sep_val.replace("/", "s")}.{self.trg_file_fmt}.gz'
+                                trg_file_name = f'coll-{src_coll_base}__{self.spl_field_path}-{str(sep_val).replace("/", "s")}.{self.trg_file_fmt}.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 
                                 #Открытие конечного файла на запись.
@@ -211,7 +230,7 @@ class Main():
                                                                    'coll': None}}})
                         for sep_val in sep_vals:
                                 mongo_aggr_arg[0]['$match'][self.spl_field_path] = sep_val
-                                trg_coll_name = f'coll-{src_coll_base}__{self.spl_field_path}-{sep_val.replace("/", "s")}.{self.trg_file_fmt}'
+                                trg_coll_name = f'coll-{src_coll_base}__{self.spl_field_path}-{str(sep_val).replace("/", "s")}.{self.trg_file_fmt}'
                                 mongo_aggr_arg[-1]['$merge']['into']['coll'] = trg_coll_name
                                 trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                             storageEngine={'wiredTiger':
@@ -225,12 +244,14 @@ class Main():
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
                                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                                 trg_coll_obj.insert_one(meta_lines)
-                                src_coll_obj.aggregate(mongo_aggr_arg)
+                                src_coll_obj.aggregate(mongo_aggr_arg,
+                                                       allowDiskUse=True,
+                                                       collation=Collation(locale='en_US',
+                                                                           numericOrdering=True))
                                 index_models = create_index_models(self.trg_file_fmt,
                                                                    self.ind_field_paths)
-                                if index_models != []:
-                                        trg_coll_obj.create_indexes(index_models)
-                                        
+                                trg_coll_obj.create_indexes(index_models)
+                                
                 #Дисконнект.
                 client.close()
                 
