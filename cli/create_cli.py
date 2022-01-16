@@ -1,4 +1,4 @@
-__version__ = 'v2.2'
+__version__ = 'v2.3'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -11,7 +11,7 @@ def add_args_ru(ver):
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2022
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -49,7 +49,7 @@ trg-db-FMT - конечная БД с коллекциями, соответст
 по структуре таблицам определённого формата;
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку;
-f1+f2+f3 - поля коллекций БД с составным индексом
+f1+f2+f3 - поля, для которых создавать составной индекс.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -70,12 +70,12 @@ f1+f2+f3 - поля коллекций БД с составным индексо
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
                              help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
+        opt_grp.add_argument('-,', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta, #CHROM+POS, ID; trg-db-BED: <...> meta, chrom+start+end, name; trg-db-TSV: <...> meta)')
+                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
         args = arg_parser.parse_args()
         return args
 
@@ -88,7 +88,7 @@ A program that creates a MongoDB database from VCF, BED or any other tables.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2020-2021
+Author: Platon Bykadorov (platon.work@gmail.com), 2020-2022
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
@@ -126,7 +126,7 @@ trg-db-FMT - target DB with collections matching
 by structure to the tables in a certain format;
 not applicable - under the specified conditions
 the argument is ignored or causes an error;
-f1+f2+f3 - fields of the DB collections with a compound index
+f1+f2+f3 - fields, for which to create a compound index.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -147,11 +147,11 @@ f1+f2+f3 - fields of the DB collections with a compound index
                              help='Number of metainformation lines (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
                              help='Upload only the minimum set of columns allowed by the format (src-VCF: 1st 8; src-BED: 1st 3; src-TSV: not applicable)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
+        opt_grp.add_argument('-,', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark for dividing a cell to a list (src-VCF, src-BED: not applicable)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Maximum number of rows of uploaded table fragment')
         opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta, #CHROM+POS, ID will be indexed); trg-db-BED: meta, chrom+start+end, name <...>; trg-db-TSV: meta <...>)')
+                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed); trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
         args = arg_parser.parse_args()
         return args
