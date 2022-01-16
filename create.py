@@ -1,22 +1,15 @@
-__version__ = 'v5.5'
+__version__ = 'v5.6'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
-from cli.create_db_cli import add_args_ru, add_args_en
+from cli.create_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
-from backend.resolve_db_existence import resolve_db_existence
 from multiprocessing import Pool
+from backend.common_errors import DifFmtsError
+from backend.resolve_db_existence import resolve_db_existence
 from backend.def_data_type import def_data_type
 from backend.create_index_models import create_index_models
 
-class DifFmtsError(Exception):
-        '''
-        Создавать базу можно только по одноформатным таблицам.
-        '''
-        def __init__(self, src_file_fmts):
-                err_msg = f'\nSource files are in different formats: {src_file_fmts}'
-                super().__init__(err_msg)
-                
 class NoDataToUploadError(Exception):
         '''
         Это исключение предусмотрено, в основном, на случай,
