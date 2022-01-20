@@ -1,12 +1,14 @@
-__version__ = 'v9.1'
+__version__ = 'v10.0'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
-from cli.left_join_cli import add_args_ru
-from pymongo import MongoClient, ASCENDING
+from cli.ljoin_cli import add_args_ru
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.collation import Collation
 from multiprocessing import Pool
 from bson.son import SON
 from backend.get_field_paths import parse_nested_objs
+from backend.common_errors import ByLocTsvError, NoSuchFieldError
 from backend.doc_to_line import restore_line
 
 class NotEnoughCollsError(Exception):
@@ -18,28 +20,6 @@ class NotEnoughCollsError(Exception):
         def __init__(self):
                 err_msg = '''\nAt least two collections are required
 for intersection or subtraction'''
-                super().__init__(err_msg)
-                
-class ByLocTsvError(Exception):
-        '''
-        В основанной на TSV коллекции может не быть
-        геномных координат. Ну или бывает, когда
-        координатные поля располагаются, где попало.
-        Поэтому нельзя, чтобы при джойне по локации
-        среди коллекций витал вольноформатный дух.
-        '''
-        def __init__(self):
-                err_msg = '''\nIntersection or subtraction by
-location is not possible for src-db-TSV'''
-                super().__init__(err_msg)
-                
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
-        '''
-        def __init__(self, field_path):
-                err_msg = f'\nThe field {field_path} does not exist'
                 super().__init__(err_msg)
                 
 class Main():
@@ -55,26 +35,33 @@ class Main():
         '''
         def __init__(self, args, ver):
                 '''
-                Получение атрибутов как для основной функции программы, так и для
-                блока многопроцессового запуска таковой. Первые из перечисленных
-                ни в коем случае не должны будут потом в параллельных процессах
-                изменяться. Некоторые неочевидные, но важные детали об атрибутах.
-                Квази-расширение коллекций. Оно нужно, как минимум, для определения
-                правил сортировки и форматирования конечных файлов. Сортировка.
-                Её лучше ставить ближе к началу пайплайна: она тогда задействует
-                индекс сама и не отбирает эту возможность у других стадий. Набор
-                правых коллекций. На этапе создания атрибутов он не окончательный.
-                Впоследствии в каждом потоке отбирается свой список правых, не
-                поглядывающих налево. Пересекаемое/вычитаемое поле по-умолчанию.
-                Оно подобрано на основании здравого смысла. К примеру, вряд
-                ли придёт в голову пересекать src-db-VCF по полю, отличному
-                от ID. Проджекшен (отбор полей). Поля src-db-VCF я, скрепя
-                сердце, позволил отбирать, но документы со вложенными объектами,
-                как, например, в INFO, не сконвертируются в обычные строки, а
-                сериализуются как есть. Что касается и src-db-VCF, и src-db-BED,
-                когда мы оставляем только часть полей, невозможно гарантировать
-                соблюдение спецификаций соответствующих форматов, поэтому вывод
-                будет формироваться не более, чем просто табулированным (trg-TSV).
+                Получение атрибутов как для основной функции программы,
+                так и для блока многопроцессового запуска таковой. Первые
+                из перечисленных ни в коем случае не должны будут потом
+                в параллельных процессах изменяться. Некоторые неочевидные,
+                но важные детали об атрибутах. Квази-расширение коллекций.
+                Оно нужно, как минимум, для определения правил сортировки
+                и форматирования конечных файлов. Сортировка. Её лучше
+                ставить ближе к началу пайплайна: она тогда задействует
+                индекс сама и не отбирает эту возможность у других стадий.
+                Набор правых коллекций. На этапе создания атрибутов он не
+                окончательный. Впоследствии в каждом потоке отбирается свой
+                список правых, не поглядывающих налево. Пересекаемое/вычитаемое
+                поле по-умолчанию. Оно подобрано на основании здравого смысла.
+                К примеру, вряд ли придёт в голову пересекать src-db-VCF по
+                полю, отличному от ID. Проджекшен (отбор полей). Поля src-db-VCF
+                я, скрепя сердце, позволил отбирать, но документы со вложенными
+                объектами, как, например, в INFO, не сконвертируются в обычные
+                строки, а сериализуются как есть. Реализован проджекшен несколько
+                экзотически. Если в остальных компонентах тулкита напрямую
+                отбираются указанные исследователем поля, то здесь применяется,
+                наоборот, удаление всех неуказанных. Иначе потом после объединения
+                левого документа с правыми, представления последних срежутся,
+                и программе не удастся подсчитать совпадения (или несовпадения).
+                Что касается и src-db-VCF, и src-db-BED, когда мы оставляем
+                только часть полей, невозможно гарантировать соблюдение
+                спецификаций соответствующих форматов, поэтому вывод будет
+                формироваться не более, чем просто табулированным (trg-TSV).
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
@@ -83,6 +70,7 @@ class Main():
                 if len(self.src_coll_names) < 2:
                         raise NotEnoughCollsError()
                 self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
+                self.trg_file_fmt = self.src_coll_ext
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
                 if args.left_coll_names is None:
                         self.left_coll_names = set(self.src_coll_names)
@@ -128,7 +116,21 @@ class Main():
                    and 1 < self.coverage == right_colls_quan:
                         self.coverage -= 1
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta}]
-                if self.src_coll_ext == 'vcf':
+                if args.srt_field_group is not None:
+                        self.srt_field_group = args.srt_field_group.split('+')
+                        mongo_sort = SON([])
+                        if args.srt_order == 'asc':
+                                srt_order = ASCENDING
+                        elif args.srt_order == 'desc':
+                                srt_order = DESCENDING
+                        for srt_field_path in self.srt_field_group:
+                                if srt_field_path not in src_field_paths:
+                                        raise NoSuchFieldError(srt_field_path)
+                                else:
+                                        mongo_sort[srt_field_path] = srt_order
+                        self.mongo_aggr_draft.append({'$sort': mongo_sort})
+                        self.trg_file_fmt = 'tsv'
+                elif self.src_coll_ext == 'vcf':
                         self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
                                                                     ('POS', ASCENDING)])})
                 elif self.src_coll_ext == 'bed':
@@ -137,13 +139,17 @@ class Main():
                                                                     ('end', ASCENDING)])})
                 if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
-                        self.trg_file_fmt = self.src_coll_ext
                 else:
                         proj_field_names = args.proj_field_names.split(',')
+                        del_field_names = list(filter(lambda src_field_path: '.' not in src_field_path,
+                                                      src_field_paths))
                         for proj_field_name in proj_field_names:
-                                if proj_field_name not in src_field_paths:
+                                if proj_field_name not in del_field_names:
                                         raise NoSuchFieldError(proj_field_name)
-                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
+                                else:
+                                        del_field_names.remove(proj_field_name)
+                        mongo_project = {del_field_name: 0 for del_field_name in del_field_names}
+                        mongo_project['_id'] = 1
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
                 if args.sec_delimiter == 'colon':
@@ -214,13 +220,20 @@ class Main():
                                                                 'foreignField': self.lookup_field_path,
                                                                 'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                                 
-                        #Выполняем пайплайн из скипа метадокумента,
-                        #сортировки (для src-db-VCF и src-db-BED)
-                        #и левостороннего объединения. Проджекшен,
-                        #если запрошен исследователем, будет потом
-                        #организован отдельно - на этапе Python-
-                        #фильтрации объединённых документов.
-                        curs_obj = left_coll_obj.aggregate(mongo_aggr_arg)
+                        #Завершаем пайплайн этапом удаления ненужных или
+                        #переставших быть нужными исследователю полей.
+                        if self.mongo_findone_args[1] is not None:
+                                mongo_aggr_arg.append({'$project': self.mongo_findone_args[1]})
+                                
+                        #Выполняем пайплайн из скипа метадокумента, сортировки (кастомной,
+                        #дефолтной или вообще никакой), левостороннего объединения, и,
+                        #быть может, проджекшена. allowDiskUse подстрахует при сортировке
+                        #больших непроиндексированных полей. numericOrdering нужен
+                        #для того, чтобы после условного rs19 не оказался rs2.
+                        curs_obj = left_coll_obj.aggregate(mongo_aggr_arg,
+                                                           allowDiskUse=True,
+                                                           collation=Collation(locale='en_US',
+                                                                               numericOrdering=True))
                         
                         #Чтобы шапка повторяла шапку той таблицы, по которой делалась
                         #коллекция, создадим её из имён полей. Projection при этом учтём.
@@ -246,14 +259,12 @@ class Main():
                                 #файла. Прописываем также табличную шапку.
                                 if self.trg_file_fmt == 'vcf':
                                         trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                trg_file_opened.write(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                 trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                 trg_file_opened.write(f'##left_coll_name={left_coll_name}\n')
                                 trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                 trg_file_opened.write(f'##action={self.action}\n')
                                 trg_file_opened.write(f'##coverage={self.coverage}\n')
-                                if self.mongo_findone_args[1] is not None:
-                                        trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
                                 trg_file_opened.write(trg_header_line + '\n')
                                 
                                 #Создаём флаг, по которому далее будет
@@ -268,10 +279,7 @@ class Main():
                                 #списками при пересечении и пустыми в случае вычитания. Второй
                                 #фильтр - охват: левый документ получит приглашение в конечный
                                 #файл, только если будет достигнут порог количества непустых/пустых
-                                #результирующих списков. Подробности - в readme проекта. Проджекшн
-                                #реализован здесь же в кустарно-питоновском виде. Было бы ошибочно
-                                #навешивать его на aggregation pipeline, т.к. это спровоцировало бы
-                                #конфликт как раз сейчас - при фильтрации объединённых документов.
+                                #результирующих списков. Подробности - в readme проекта.
                                 for doc in curs_obj:
                                         cov_meter = 0
                                         for right_coll_name in right_coll_names:
@@ -281,10 +289,6 @@ class Main():
                                                         cov_meter += 1
                                                 del doc[right_coll_alias]
                                         if cov_meter >= self.coverage:
-                                                if self.mongo_findone_args[1] is not None:
-                                                        for field_name in list(doc):
-                                                                if field_name not in self.mongo_findone_args[1]:
-                                                                        del doc[field_name]
                                                 trg_file_opened.write(restore_line(doc,
                                                                                    self.trg_file_fmt,
                                                                                    self.sec_delimiter))
@@ -314,7 +318,7 @@ if __name__ == '__main__':
                 args = add_args_en(__version__)
         main = Main(args, __version__)
         proc_quan = main.proc_quan
-        print(f'\n{main.action}ing collections of {main.src_db_name} DB')
+        print(f'\n{main.action.capitalize()}ing collections of {main.src_db_name} DB')
         print(f'\tcoverage: {main.coverage}')
         print(f'\tquantity of parallel processes: {proc_quan}')
         with Pool(proc_quan) as pool_obj:
