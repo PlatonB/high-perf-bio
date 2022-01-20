@@ -1,4 +1,4 @@
-__version__ = 'v1.2'
+__version__ = 'v2.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -13,7 +13,7 @@ def add_args_ru(ver):
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
+Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2022
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -86,7 +86,8 @@ src-db-FMT - исходная БД с коллекциями, соответст
 по структуре таблицам определённого формата;
 trg-FMT - конечные таблицы определённого формата;
 не применяется - при обозначенных условиях
-аргумент проигнорируется или вызовет ошибку.
+аргумент проигнорируется или вызовет ошибку;
+f1+f2+f3 - сортируемые поля.
 ''',
                                    formatter_class=RawTextHelpFormatter,
                                    add_help=False)
@@ -113,9 +114,13 @@ trg-FMT - конечные таблицы определённого форма�
                              help='{intersect, subtract} Пересекать или вычитать')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
                              help='Охват (1 <= c <= количество правых; 0 - приравнять к количеству правых; вычтется 1, если правые и левые совпадают при 1 < c = количество правых)')
+        opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
+                             help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF: [[#CHROM+POS]]; src-db-BED: [[chrom+start+end]]; src-db-VCF, src-db-BED: trg-TSV)')
+        opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
+                             help='{asc, desc} Порядок сортировки (применяется с -s)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-TSV; поле _id не выведется)')
-        opt_grp.add_argument('-s', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
+        opt_grp.add_argument('-,', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для восстановления ячейки из списка (src-db-VCF, src-db-BED (trg-BED): не применяется)')
         args = arg_parser.parse_args()
         return args
