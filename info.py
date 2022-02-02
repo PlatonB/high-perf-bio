@@ -1,8 +1,8 @@
-__version__ = 'v5.3'
+__version__ = 'v5.4'
 
 import sys, locale
 sys.dont_write_bytecode = True
-from cli.print_db_info_cli import add_args_ru, add_args_en
+from cli.info_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
 from backend.get_field_paths import parse_nested_objs
 
