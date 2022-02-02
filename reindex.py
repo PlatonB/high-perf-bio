@@ -1,8 +1,8 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 import sys, locale, os, datetime
 sys.dont_write_bytecode = True
-from cli.reindex_db_cli import add_args_ru, add_args_en
+from cli.reindex_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
 from multiprocessing import Pool
 
