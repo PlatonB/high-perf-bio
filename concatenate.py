@@ -1,22 +1,14 @@
-__version__ = 'v3.2'
+__version__ = 'v3.3'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
 from cli.concatenate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.common_errors import NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 from backend.create_index_models import create_index_models
 
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
-        '''
-        def __init__(self, field_path):
-                err_msg = f'\nThe field {field_path} does not exist'
-                super().__init__(err_msg)
-                
 class Main():
         '''
         Основной класс. args, подаваемый иниту на вход, не обязательно
@@ -90,6 +82,9 @@ class Main():
                         self.ind_field_paths = args.ind_field_paths
                 else:
                         self.ind_field_paths = args.ind_field_paths.split(',')
+                        for ind_field_path in self.ind_field_paths:
+                                if ind_field_path not in src_field_paths:
+                                        raise NoSuchFieldError(ind_field_path)
                 self.ver = ver
                 client.close()
                 

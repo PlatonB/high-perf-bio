@@ -1,4 +1,4 @@
-__version__ = 'v7.1'
+__version__ = 'v7.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -125,6 +125,9 @@ class Main():
                         self.ind_field_paths = args.ind_field_paths
                 else:
                         self.ind_field_paths = args.ind_field_paths.split(',')
+                        for ind_field_path in self.ind_field_paths:
+                                if ind_field_path not in src_field_paths:
+                                        raise NoSuchFieldError(ind_field_path)
                 self.ver = ver
                 client.close()
                 
