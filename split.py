@@ -1,4 +1,4 @@
-__version__ = 'v4.1'
+__version__ = 'v4.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -155,7 +155,9 @@ class Main():
                 get_sep_vals = [{'$group': {'_id': 'null',
                                             'spl_field': {'$addToSet': f'${self.spl_field_path}'}}}]
                 sep_vals = [doc for doc in src_coll_obj.aggregate(get_sep_vals)][0]['spl_field']
-                
+                if type(sep_vals[0]) is list:
+                        sep_vals = [sep_val for row in sep_vals for sep_val in row]
+                        
                 #Запрос, вынесенный в отдельный объект,
                 #можно будет спокойно модифицировать
                 #внутри распараллеливаемой функции.
