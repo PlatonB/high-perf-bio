@@ -1,3 +1,4 @@
+# [Readme in English→](https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md)
 # Синопсис.
 ## Компоненты.
 ### Ядро.
