@@ -1,9 +1,9 @@
-__version__ = 'v7.1'
+__version__ = 'v8.0'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
 from cli.annotate_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
 from multiprocessing import Pool
@@ -12,7 +12,6 @@ from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsEr
 from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
-from backend.create_index_models import create_index_models
 
 class Main():
         '''
@@ -31,16 +30,14 @@ class Main():
                 многопроцессового запуска таковой. Первые из перечисленных ни в коем случае
                 не должны будут потом в параллельных процессах изменяться. Немного о наиболее
                 значимых атрибутах. Расширение исходных таблиц и квази-расширение коллекций
-                нужны, как минимум, для выбора формат-ориентированного пересекательного запроса,
-                определения правил сортировки и форматирования конечных файлов. Умолчания по
-                столбцам и полям выбраны на основе здравого смысла: к примеру, аннотировать
-                src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец и поле, оба
-                из которых с идентификаторами вариантов. Сортировка src-db-VCF и src-db-BED
-                дефолтно делается по координатам для обеспечения поддержки tabix-индексации
-                конечных таблиц. Но если задан кастомный порядок сортировки, то результат будет
-                уже не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля src-db-VCF я,
-                скрепя сердце, позволил отбирать, но документы со вложенными объектами, как,
-                например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
+                нужны, как минимум, для выбора формат-ориентированного пересекательного запроса
+                и определения правил форматирования конечных файлов. Умолчания по столбцам и полям
+                выбраны на основе здравого смысла: к примеру, аннотировать src-VCF по src-db-VCF
+                или src-db-BED логично, пересекая столбец и поле, оба из которых с идентификаторами
+                вариантов. Сортировка. Если задан кастомный порядок сортировки src-db-VCF/src-db-BED,
+                то результат будет уже не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля
+                src-db-VCF я, скрепя сердце, позволил отбирать, но документы со вложенными объектами,
+                как, например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
                 Что касается и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей,
                 невозможно гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
@@ -118,13 +115,6 @@ class Main():
                                         mongo_sort[srt_field_path] = srt_order
                         self.mongo_aggr_draft.append({'$sort': mongo_sort})
                         self.trg_file_fmt = 'tsv'
-                elif self.src_coll_ext == 'vcf':
-                        self.mongo_aggr_draft.append({'$sort': SON([('#CHROM', ASCENDING),
-                                                                    ('POS', ASCENDING)])})
-                elif self.src_coll_ext == 'bed':
-                        self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
-                                                                    ('start', ASCENDING),
-                                                                    ('end', ASCENDING)])})
                 if args.proj_field_names is None:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
                 else:
@@ -148,13 +138,29 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_paths is None:
-                        self.ind_field_paths = args.ind_field_paths
+                if args.ind_field_groups is None:
+                        if self.trg_file_fmt == 'vcf':
+                                self.index_models = [IndexModel([('#CHROM', ASCENDING),
+                                                                 ('POS', ASCENDING)]),
+                                                     IndexModel([('ID', ASCENDING)])]
+                        elif self.trg_file_fmt == 'bed':
+                                self.index_models = [IndexModel([('chrom', ASCENDING),
+                                                                 ('start', ASCENDING),
+                                                                 ('end', ASCENDING)]),
+                                                     IndexModel([('name', ASCENDING)])]
+                        else:
+                                self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
                 else:
-                        self.ind_field_paths = args.ind_field_paths.split(',')
-                        for ind_field_path in self.ind_field_paths:
-                                if ind_field_path not in src_field_paths:
-                                        raise NoSuchFieldError(ind_field_path)
+                        self.ind_field_groups = args.ind_field_groups.split(',')
+                        self.index_models = []
+                        for ind_field_group in self.ind_field_groups:
+                                index_tups = []
+                                for ind_field_path in ind_field_group.split('+'):
+                                        if ind_field_path not in src_field_paths:
+                                                raise NoSuchFieldError(ind_field_path)
+                                        else:
+                                                index_tups.append((ind_field_path, ASCENDING))
+                                self.index_models.append(IndexModel(index_tups))
                 self.ver = ver
                 client.close()
                 
@@ -249,10 +255,10 @@ class Main():
                                 #коллекция, создадим её из имён полей. Projection при этом учтём.
                                 #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
                                 #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                                header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                                if self.trg_file_fmt == 'vcf' and len(header_row) > 8:
-                                        header_row.insert(8, 'FORMAT')
-                                header_line = '\t'.join(header_row)
+                                trg_header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                                if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
+                                        trg_header_row.insert(8, 'FORMAT')
+                                trg_header_line = '\t'.join(trg_header_row)
                                 
                                 #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
@@ -277,7 +283,7 @@ class Main():
                                                 trg_file_opened.write(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}\n')
                                         if self.mongo_findone_args[1] is not None:
                                                 trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
-                                        trg_file_opened.write(header_line + '\n')
+                                        trg_file_opened.write(trg_header_line + '\n')
                                         
                                         #Извлечение из объекта курсора отвечающих запросу документов,
                                         #преобразование их значений в обычные строки и прописывание
@@ -304,7 +310,7 @@ class Main():
                 #встраивается в первый документ коллекции. Если
                 #этот документ так и остаётся в гордом одиночестве,
                 #коллекция удаляется. Для непустых конечных коллекций
-                #создаются обязательные и пользовательские индексы.
+                #создаются дефолтные или пользовательские индексы.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
                         mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
@@ -339,9 +345,7 @@ class Main():
                                 if trg_coll_obj.count_documents({}) == 1:
                                         trg_db_obj.drop_collection(trg_coll_name)
                                 else:
-                                        index_models = create_index_models(self.trg_file_fmt,
-                                                                           self.ind_field_paths)
-                                        trg_coll_obj.create_indexes(index_models)
+                                        trg_coll_obj.create_indexes(self.index_models)
                                         
                 #Дисконнект.
                 client.close()
