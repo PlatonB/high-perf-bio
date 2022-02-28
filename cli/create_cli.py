@@ -1,4 +1,4 @@
-__version__ = 'v2.3'
+__version__ = 'v3.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -45,7 +45,7 @@ HGVS accession numbers конвертируются в обычные хромо
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}};
 src-FMT - исходные таблицы определённого формата (VCF, BED, TSV);
-trg-db-FMT - конечная БД с коллекциями, соответствующими
+trg-db-FMT - коллекции конечной БД, соответствующие
 по структуре таблицам определённого формата;
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку;
@@ -74,8 +74,8 @@ f1+f2+f3 - поля, для которых создавать составной
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для разбиения ячейки на список (src-VCF, src-BED: не применяется)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Максимальное количество строк фрагмента заливаемой таблицы')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Имена индексируемых полей (через запятую без пробела; trg-db-VCF: проиндексируются meta,#CHROM+POS,ID; trg-db-BED: <...> meta,chrom+start+end,name; trg-db-TSV: <...> meta)')
+        opt_grp.add_argument('-i', '--ind-field-groups', metavar='[None]', dest='ind_field_groups', type=str,
+                             help='Точечные пути к индексируемых полям (через запятую и/или плюс без пробела; trg-db-VCF: [[#CHROM+POS,ID]]; trg-db-BED: [[chrom+start+end]])')
         args = arg_parser.parse_args()
         return args
 
@@ -122,7 +122,7 @@ The notation in the CLI help:
 [[final default value]];
 {{permissible values}};
 src-FMT - source tables in a certain format (VCF, BED, TSV);
-trg-db-FMT - target DB with collections matching
+trg-db-FMT - collections of target DB, matching
 by structure to the tables in a certain format;
 not applicable - under the specified conditions
 the argument is ignored or causes an error;
@@ -151,7 +151,7 @@ f1+f2+f3 - fields, for which to create a compound index.
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark for dividing a cell to a list (src-VCF, src-BED: not applicable)')
         opt_grp.add_argument('-c', '--max-fragment-len', metavar='[100000]', default=100000, dest='max_fragment_len', type=int,
                              help='Maximum number of rows of uploaded table fragment')
-        opt_grp.add_argument('-i', '--ind-field-names', metavar='[None]', dest='ind_field_names', type=str,
-                             help='Names of indexed fields (comma separated without spaces; trg-db-VCF: meta,#CHROM+POS,ID will be indexed); trg-db-BED: meta,chrom+start+end,name <...>; trg-db-TSV: meta <...>)')
+        opt_grp.add_argument('-i', '--ind-field-groups', metavar='[None]', dest='ind_field_groups', type=str,
+                             help='Dot paths to indexed fields (comma and/or plus separated without spaces; trg-db-VCF: [[#CHROM+POS,ID]]; trg-db-BED: [[chrom+start+end]])')
         args = arg_parser.parse_args()
         return args
