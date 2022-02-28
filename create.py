@@ -1,14 +1,13 @@
-__version__ = 'v5.6'
+__version__ = 'v6.0'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
 from cli.create_cli import add_args_ru, add_args_en
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, IndexModel
 from multiprocessing import Pool
 from backend.common_errors import DifFmtsError
 from backend.resolve_db_existence import resolve_db_existence
 from backend.def_data_type import def_data_type
-from backend.create_index_models import create_index_models
 
 class NoDataToUploadError(Exception):
         '''
@@ -145,10 +144,19 @@ class Main():
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
                 self.max_fragment_len = args.max_fragment_len
-                if args.ind_field_names is None:
-                        self.ind_field_names = args.ind_field_names
+                if args.ind_field_groups is None:
+                        if self.src_file_fmt == 'vcf':
+                                self.index_models = [IndexModel([('#CHROM', ASCENDING),
+                                                                 ('POS', ASCENDING)]),
+                                                     IndexModel([('ID', ASCENDING)])]
+                        elif self.src_file_fmt == 'bed':
+                                self.index_models = [IndexModel([('chrom', ASCENDING),
+                                                                 ('start', ASCENDING),
+                                                                 ('end', ASCENDING)]),
+                                                     IndexModel([('name', ASCENDING)])]
                 else:
-                        self.ind_field_names = args.ind_field_names.split(',')
+                        self.index_models = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
+                                             for ind_field_group in args.ind_field_groups.split(',')]
                 self.ver = ver
                 client.close()
                 
@@ -305,12 +313,10 @@ class Main():
                 if fragment_len > 0:
                         trg_coll_obj.insert_many(fragment)
                         
-                #Создание обязательных и (при наличии
-                #таковых) пользовательских индексов.
-                index_models = create_index_models(self.src_file_fmt,
-                                                   self.ind_field_names)
-                trg_coll_obj.create_indexes(index_models)
-                
+                #Создание дефолтных или пользовательских индексов.
+                if hasattr(self, 'index_models'):
+                        trg_coll_obj.create_indexes(self.index_models)
+                        
                 #Дисконнект.
                 client.close()
                 
