@@ -1,4 +1,4 @@
-__version__ = 'v8.0'
+__version__ = 'v8.1'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -151,9 +151,8 @@ class Main():
                         else:
                                 self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
                 else:
-                        self.ind_field_groups = args.ind_field_groups.split(',')
                         self.index_models = []
-                        for ind_field_group in self.ind_field_groups:
+                        for ind_field_group in args.ind_field_groups.split(','):
                                 index_tups = []
                                 for ind_field_path in ind_field_group.split('+'):
                                         if ind_field_path not in src_field_paths:
