@@ -1,4 +1,4 @@
-__version__ = 'v3.3'
+__version__ = 'v4.0'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
@@ -7,7 +7,6 @@ from pymongo import MongoClient, IndexModel, ASCENDING
 from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
 from backend.common_errors import NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
-from backend.create_index_models import create_index_models
 
 class Main():
         '''
@@ -78,13 +77,30 @@ class Main():
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
                                          {'$project': mongo_project},
                                          {'$merge': mongo_merge}]
-                if args.ind_field_paths is None:
-                        self.ind_field_paths = args.ind_field_paths
+                if args.ind_field_groups is None:
+                        if self.trg_coll_ext == 'vcf':
+                                self.index_models = [IndexModel([('#CHROM', ASCENDING),
+                                                                 ('POS', ASCENDING)]),
+                                                     IndexModel([('ID', ASCENDING)])]
+                        elif self.trg_coll_ext == 'bed':
+                                self.index_models = [IndexModel([('chrom', ASCENDING),
+                                                                 ('start', ASCENDING),
+                                                                 ('end', ASCENDING)]),
+                                                     IndexModel([('name', ASCENDING)])]
+                        elif args.proj_field_names is None:
+                                self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
+                        else:
+                                self.index_models = [IndexModel([(proj_field_names[0], ASCENDING)])]
                 else:
-                        self.ind_field_paths = args.ind_field_paths.split(',')
-                        for ind_field_path in self.ind_field_paths:
-                                if ind_field_path not in src_field_paths:
-                                        raise NoSuchFieldError(ind_field_path)
+                        self.index_models = []
+                        for ind_field_group in args.ind_field_groups.split(','):
+                                index_tups = []
+                                for ind_field_path in ind_field_group.split('+'):
+                                        if ind_field_path not in src_field_paths:
+                                                raise NoSuchFieldError(ind_field_path)
+                                        else:
+                                                index_tups.append((ind_field_path, ASCENDING))
+                                self.index_models.append(IndexModel(index_tups))
                 self.ver = ver
                 client.close()
                 
@@ -115,9 +131,7 @@ class Main():
                                                   unique=True)
                 for src_coll_name in self.src_coll_names:
                         src_db_obj[src_coll_name].aggregate(mongo_aggr_arg)
-                index_models = create_index_models(self.trg_coll_ext,
-                                                   self.ind_field_paths)
-                trg_coll_obj.create_indexes(index_models)
+                trg_coll_obj.create_indexes(self.index_models)
                 client.close()
                 
 #Обработка аргументов командной строки.
