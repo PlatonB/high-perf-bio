@@ -1,4 +1,4 @@
-__version__ = 'v2.2'
+__version__ = 'v2.3'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -40,7 +40,7 @@ def add_args_ru(ver):
                              help='Максимальное количество параллельно индексируемых коллекций')
         opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
                              help='Имена удаляемых индексов (через запятую без пробела)')
-        opt_grp.add_argument('-a', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+        opt_grp.add_argument('-a', '--ind-field-groups', metavar='[None]', dest='ind_field_groups', type=str,
                              help='Точечные пути к индексируемых полям (через запятую без пробела; для составного индекса: через плюс без пробелов)')
         args = arg_parser.parse_args()
         return args
@@ -83,7 +83,7 @@ The notation in the CLI help:
                              help='Maximum quantity of parallel indexed collections')
         opt_grp.add_argument('-r', '--del-ind-names', metavar='[None]', dest='del_ind_names', type=str,
                              help='Names of deleted indexes (comma separated without spaces)')
-        opt_grp.add_argument('-a', '--ind-field-paths', metavar='[None]', dest='ind_field_paths', type=str,
+        opt_grp.add_argument('-a', '--ind-field-groups', metavar='[None]', dest='ind_field_groups', type=str,
                              help='Dot paths to indexed fields (comma separated without spaces; for a compound index: plus separated without spaces)')
         args = arg_parser.parse_args()
         return args
