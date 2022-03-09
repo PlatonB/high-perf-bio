@@ -1,4 +1,4 @@
-__version__ = 'v8.1'
+__version__ = 'v8.2'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -148,8 +148,10 @@ class Main():
                                                                  ('start', ASCENDING),
                                                                  ('end', ASCENDING)]),
                                                      IndexModel([('name', ASCENDING)])]
-                        else:
+                        elif args.proj_field_names is None:
                                 self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
+                        else:
+                                self.index_models = [IndexModel([(proj_field_names[0], ASCENDING)])]
                 else:
                         self.index_models = []
                         for ind_field_group in args.ind_field_groups.split(','):
