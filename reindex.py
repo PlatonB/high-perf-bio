@@ -1,4 +1,4 @@
-__version__ = 'v5.1'
+__version__ = 'v5.2'
 
 import sys, locale, os, datetime
 sys.dont_write_bytecode = True
@@ -43,10 +43,11 @@ class Main():
                         self.del_ind_names = args.del_ind_names
                 else:
                         self.del_ind_names = args.del_ind_names.split(',')
-                if args.ind_field_paths is None:
-                        self.ind_field_paths = args.ind_field_paths
+                if args.ind_field_groups is None:
+                        self.index_models = args.ind_field_groups
                 else:
-                        self.ind_field_paths = args.ind_field_paths.split(',')
+                        self.index_models = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
+                                             for ind_field_group in args.ind_field_groups.split(',')]
                 client.close()
                 
         def del_indices(self):
@@ -69,9 +70,7 @@ class Main():
                 полей одной коллекции.
                 '''
                 client = MongoClient()
-                ind_objs = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
-                            for ind_field_group in self.ind_field_paths]
-                client[self.src_db_name][src_coll_name].create_indexes(ind_objs)
+                client[self.src_db_name][src_coll_name].create_indexes(self.index_models)
                 client.close()
                 
 #Обработка аргументов командной строки. Создание
@@ -90,9 +89,9 @@ if main.del_ind_names is not None:
         print(f'\nRemoving indexes from {src_db_name} DB')
         main.del_indices()
         
-#Параллельный запуск поиска, если это действие задал исследователь.
+#Параллельный запуск индексации, если это действие задал исследователь.
 #Замер времени выполнения вычислений с точностью до микросекунды.
-if main.ind_field_paths is not None:
+if main.index_models is not None:
         proc_quan = main.proc_quan
         print(f'\nIndexing {src_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
