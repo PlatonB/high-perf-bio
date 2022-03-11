@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 
@@ -11,14 +11,14 @@ def add_args_ru(ver):
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021
+Автор: Платон Быкадоров (platon.work@gmail.com), 2021-2022
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
 Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
 
 Восстанавливаемыми файлами должны быть только сжатые VCF, а БД может содержать лишь одну
-коллекцию: созданную с помощью create_db по VCF и содержащую rsIDs в поле ID. Рекомендуемый
+коллекцию: созданную с помощью create по VCF и содержащую rsIDs в поле ID. Рекомендуемый
 источник данных для этой коллекции - NCBI dbSNP VCF с координатами подходящей сборки.
 
 Чтобы программа работала быстро, нужен индекс полей #CHROM и POS.
@@ -26,8 +26,8 @@ def add_args_ru(ver):
 Условные обозначения в справке по CLI:
 [значение по умолчанию];
 src-FMT - модифицируемые таблицы определённого формата;
-scr-db-FMT - исходная БД с коллекциями, соответствующими
-по структуре таблицам определённого формата
+src-db-FMT - коллекции исходной БД, соответствующие
+по структуре таблицам определённого формата.
 ''',
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
@@ -42,10 +42,10 @@ scr-db-FMT - исходная БД с коллекциями, соответст
         man_grp.add_argument('-T', '--trg-dir-path', required=True, metavar='str', dest='trg_dir_path', type=str,
                              help='Путь к папке для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
-        opt_grp.add_argument('-r', '--ignore-unrev-lines', dest='ignore_unrev_lines', action='store_true',
-                             help='Не прописывать строки, не обогащённые rsID')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно обогащаемых таблиц')
+        opt_grp.add_argument('-r', '--ignore-unrev-lines', dest='ignore_unrev_lines', action='store_true',
+                             help='Не прописывать строки, не обогащённые rsID')
         args = arg_parser.parse_args()
         return args
 
@@ -58,14 +58,14 @@ A program that adds rsIDs into ID column of VCF files.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2021
+Author: Platon Bykadorov (platon.work@gmail.com), 2021-2022
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
 Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
 Only compressed VCFs must be restorable files, and DB can contain only one collection:
-produced by create_db from VCF and contained rsIDs in the ID field. The recommended data
+produced by "create" from VCF and contained rsIDs in the ID field. The recommended data
 source for this collection is NCBI dbSNP VCF with the coordinates of a suitable assembly.
 
 For the program to work fast, there needs an index of #CHROM and POS fields.
@@ -73,7 +73,7 @@ For the program to work fast, there needs an index of #CHROM and POS fields.
 The notation in the CLI help:
 [default value];
 src-FMT - modified tables in a certain format;
-scr-db-FMT - source DB with collections, matching
+src-db-FMT - collections of source DB, matching
 by structure to the tables in a certain format.
 ''',
                                     formatter_class=RawTextHelpFormatter,
@@ -89,9 +89,9 @@ by structure to the tables in a certain format.
         man_grp.add_argument('-T', '--trg-dir-path', required=True, metavar='str', dest='trg_dir_path', type=str,
                              help='Path to directory for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
-        opt_grp.add_argument('-r', '--ignore-unrev-lines', dest='ignore_unrev_lines', action='store_true',
-                             help="Don't write lines that not enriched by rsID")
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum quantity of tables enriched in parallel')
+        opt_grp.add_argument('-r', '--ignore-unrev-lines', dest='ignore_unrev_lines', action='store_true',
+                             help="Don't write lines that not enriched by rsID")
         args = arg_parser.parse_args()
         return args
