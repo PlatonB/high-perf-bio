@@ -1,4 +1,4 @@
-## Introduction.
+# Introduction.
 ## Components.
 ### Core.
 The most versatile and feature-rich programs for interacting with DB.
@@ -26,3 +26,19 @@ Useful tools for working with tables (not DBs).
 | Program | Primary functionality |
 | ------- | --------------------- |
 | gen_test_files | creates N smaller tables from one table |
+
+# Examples.
+Upload the VCF set to DB. Cut the genotype data. Index nested fields with population frequencies.
+```
+python3 create.py -S $HOME/Bio/1000G -r -i INFO.0.AF_AFR,INFO.0.AF_EUR,INFO.0.AF_EAS
+```
+
+Annotate `name` column of multiple rsID-containing BED4 by dbSNP-VCF-based DB.
+```
+python3 annotate.py -S $HOME/Bio/UCSC -D dbSNP -T $HOME/Bio/out
+```
+
+Split the dbSNP-VCF-based DB by chromosomes, directing the results to new DB. Keep only fields from `#CHROM` to `ALT`. Index the `ID` field.
+```
+python3 split.py -D dbSNP -T dbSNP_min -k '#CHROM,POS,ID,REF,ALT' -i ID
+```
