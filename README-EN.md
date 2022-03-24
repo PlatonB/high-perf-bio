@@ -1,6 +1,7 @@
 ## Introduction.
 ## Components.
 ### Core.
+The most versatile and feature-rich programs for interacting with DB.
 | Program | Primary functionality |
 | ------- | --------------------- |
 | annotate | gets the characteristics of a tabular column from all collections of DB; the coordinate intersection is supported |
@@ -15,7 +16,13 @@
 | split | splits collections by values of some field |
 
 ### Plugins.
+Narrowly specialized DB parsers with minimum settings.
 | Program | Primary functionality |
 | ------- | --------------------- |
-| download_bio_data | downloads tabular data of known bioinformatic projects |
 | revitalize_id_column | fills ID column of VCF files with variant identifiers from DB |
+
+### Scripts.
+Useful tools for working with tables (not DBs).
+| Program | Primary functionality |
+| ------- | --------------------- |
+| gen_test_files | creates N smaller tables from one table |
