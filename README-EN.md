@@ -27,6 +27,23 @@ Useful tools for working with tables (not DBs).
 | ------- | --------------------- |
 | gen_test_files | creates N smaller tables from one table |
 
+## Preparation.
+1. [Install](https://www.mongodb.com/docs/manual/installation/#mongodb-installation-tutorials) _MongoDB_. Don't forget to activate it via `sudo systemctl enable mongod.service` command.
+2. Install _PyMongo_:
+```
+pip3 install pymongo
+```
+or
+```
+conda install pymongo
+```
+3. [Download](https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip) the archive with toolkit.
+4. Unzip it into any directory.
+5. Go to the `high-perf-bio-master` directory in the terminal.
+```
+cd /path/to/high-perf-bio-master
+```
+
 # Examples.
 Upload the VCF set to DB. Cut the genotype data. Index nested fields with population frequencies.
 ```
