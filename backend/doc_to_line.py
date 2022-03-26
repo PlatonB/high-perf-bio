@@ -1,4 +1,4 @@
-__version__ = 'v1.3'
+__version__ = 'v1.4'
 
 def restore_info_cell(info_obj):
         '''
@@ -11,7 +11,7 @@ def restore_info_cell(info_obj):
         '''
         info_row = []
         for key, val in info_obj[0].items():
-                if type(val).__name__ == 'list':
+                if type(val) is list:
                         info_row.append(f'{key}={",".join(map(str, val))}')
                 else:
                         info_row.append(f'{key}={str(val)}')
@@ -31,8 +31,9 @@ def restore_gt_cell(gt_obj):
         '''
         gt_row = []
         for val in gt_obj.values():
-                if type(val).__name__ == 'list':
-                        gt_row.append(",".join(map(str, val)))
+                if type(val) is list:
+                        gt_row.append(','.join(map(str,
+                                                   val)))
                 else:
                         gt_row.append(str(val))
         gt_cell = ':'.join(gt_row)
@@ -55,13 +56,13 @@ def restore_line(doc, trg_file_format, sec_delimiter):
                 pass
         field_names = list(doc.keys())
         if trg_file_format == 'vcf':
-                doc['#CHROM'], doc['POS'] = str(doc['#CHROM']), str(doc['POS'])
-                if type(doc['ID']).__name__ == 'list':
+                doc['#CHROM'] = str(doc['#CHROM'])
+                doc['POS'] = str(doc['POS'])
+                if type(doc['ID']) is list:
                         doc['ID'] = ';'.join(doc['ID'])
-                if type(doc['ALT']).__name__ == 'list':
+                if type(doc['ALT']) is list:
                         doc['ALT'] = ','.join(doc['ALT'])
-                if type(doc['QUAL']).__name__ in ['int', 'Decimal128']:
-                        doc['QUAL'] = str(doc['QUAL'])
+                doc['QUAL'] = str(doc['QUAL'])
                 doc['INFO'] = restore_info_cell(doc['INFO'])
                 if len(field_names) > 8:
                         sample_names = field_names[8:]
@@ -77,12 +78,14 @@ def restore_line(doc, trg_file_format, sec_delimiter):
                         doc[field_name] = str(doc[field_name])
                 if len(field_names) > 10:
                         for field_name in field_names[10:]:
-                                doc[field_name] = ','.join(map(str, doc[field_name]))
+                                doc[field_name] = ','.join(map(str,
+                                                               doc[field_name]))
                 line = '\t'.join(doc.values()) + '\n'
         else:
                 for field_name in field_names:
-                        if type(doc[field_name]).__name__ == 'list':
-                                doc[field_name] = sec_delimiter.join(map(str, doc[field_name]))
+                        if type(doc[field_name]) is list:
+                                doc[field_name] = sec_delimiter.join(map(str,
+                                                                         doc[field_name]))
                         else:
                                 doc[field_name] = str(doc[field_name])
                 line = '\t'.join(doc.values()) + '\n'
