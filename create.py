@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v6.1'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -178,31 +178,42 @@ class Main():
                 #Открытие исходной архивированной таблицы на чтение.
                 with gzip.open(os.path.join(self.src_dir_path, src_file_name), mode='rt') as src_file_opened:
                         
-                        #Комментирующие символы строк метаинформации (далее - метастрок) VCF - всегда ##.
-                        #Для других, более вольных, форматов число метастрок поступает от исследователя.
-                        #Метастроки добавляются в объект, становящийся в недалёком будущем первым документом
-                        #коллекции. После метастрок, по-хорошему, должна следовать шапка, но во многих
-                        #BED-файлах её нет. Для BED пришлось вручную вписывать в код референсную шапку.
-                        meta_lines = {'meta': []}
+                        #Комментирующие символы строк метаинформации (далее - метастрок)
+                        #VCF - всегда ##. Для других, более вольных, форматов число
+                        #метастрок поступает от исследователя. Метастроки добавляются
+                        #в объект, становящийся в недалёком будущем первым документом
+                        #коллекции. После метастрок, по-хорошему, должна следовать шапка,
+                        #но во многих BED-файлах её нет. Для BED пришлось вручную вписывать
+                        #в код референсную шапку. Дальше она тримится под реальную длину строк.
+                        trg_meta_lines = {'meta': []}
                         if self.src_file_fmt == 'vcf':
                                 for line in src_file_opened:
                                         if line.startswith('##'):
-                                                meta_lines['meta'].append(line.rstrip())
+                                                trg_meta_lines['meta'].append(line.rstrip())
                                         else:
-                                                header_row = line.rstrip().split('\t')
-                                                if len(header_row) > 8:
-                                                        del header_row[8]
+                                                src_header_row = line.rstrip().split('\t')
+                                                if self.minimal or len(src_header_row) == 8:
+                                                        trg_header_row = src_header_row[:8]
+                                                elif len(src_header_row) > 8:
+                                                        trg_header_row = src_header_row[:8] + src_header_row[9:]
                                                 break
                         else:
                                 for meta_line_index in range(self.meta_lines_quan):
-                                        meta_lines['meta'].append(src_file_opened.readline().rstrip())
+                                        trg_meta_lines['meta'].append(src_file_opened.readline().rstrip())
                                 if self.src_file_fmt == 'bed':
-                                        header_row = ['chrom', 'start', 'end', 'name',
-                                                      'score', 'strand', 'thickStart', 'thickEnd',
-                                                      'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
+                                        src_data_start = src_file_opened.tell()
+                                        src_header_len = len(src_file_opened.readline().split('\t'))
+                                        src_file_opened.seek(src_data_start)
+                                        src_header_row = ['chrom', 'start', 'end', 'name',
+                                                          'score', 'strand', 'thickStart', 'thickEnd',
+                                                          'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
+                                        if self.minimal:
+                                                trg_header_row = src_header_row[:3]
+                                        else:
+                                                trg_header_row = src_header_row[:src_header_len]
                                 else:
-                                        header_row = src_file_opened.readline().rstrip().split('\t')
-                        meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                        trg_header_row = src_file_opened.readline().rstrip().split('\t')
+                        trg_meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
                         
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
@@ -214,7 +225,7 @@ class Main():
                         
                         #Добавление в новоиспечённую
                         #коллекцию объекта с метастроками.
-                        trg_coll_obj.insert_one(meta_lines)
+                        trg_coll_obj.insert_one(trg_meta_lines)
                         
                         #Данные будут поступать в коллекцию
                         #базы одним или более фрагментами.
@@ -276,20 +287,17 @@ class Main():
                                                 else:
                                                         row[cell_index] = def_data_type(row[cell_index])
                                                         
-                                #MongoDB - документоориентированная СУБД.
-                                #Каждая коллекция строится из т.н. документов,
-                                #Python-предшественниками которых могут быть
-                                #только словари. Поэтому для подготовки размещаемого
-                                #в базу фрагмента сшиваем из списка элементов
-                                #шапки и списка, созданного из очередной строки,
-                                #словарь, затем добавляем его в список таких словарей.
-                                #Набор ключей любого словаря может получиться меньшим,
-                                #чем шапка. Есть две возможные причины срезания: 1.
-                                #Если реальный BED отстаёт по количеству элементов
-                                #от ранее подготовленной стандартной 12-элементной
-                                #шапки; 2. Когда по инициативе исследователя в коллекцию
-                                #направляются лишь основополагающие столбцы VCF или BED.
-                                fragment.append(dict(zip(header_row[:len(row)], row)))
+                                #MongoDB - документоориентированная
+                                #СУБД. Каждая коллекция строится из т.н.
+                                #документов, Python-предшественниками
+                                #которых могут быть только словари.
+                                #Поэтому для подготовки размещаемого
+                                #в базу фрагмента сшиваем из списка
+                                #элементов шапки и списка, созданного
+                                #из очередной строки, словарь, затем
+                                #добавляем его в список таких словарей.
+                                fragment.append(dict(zip(trg_header_row,
+                                                         row)))
                                 
                                 #Сразу после пополнения
                                 #фрагмента регистрируем это
