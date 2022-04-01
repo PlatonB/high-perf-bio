@@ -1,4 +1,4 @@
-__version__ = 'v6.1'
+__version__ = 'v6.2'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -191,28 +191,28 @@ class Main():
                                         if line.startswith('##'):
                                                 trg_meta_lines['meta'].append(line.rstrip())
                                         else:
-                                                src_header_row = line.rstrip().split('\t')
-                                                if self.minimal or len(src_header_row) == 8:
-                                                        trg_header_row = src_header_row[:8]
-                                                elif len(src_header_row) > 8:
-                                                        trg_header_row = src_header_row[:8] + src_header_row[9:]
+                                                src_col_names = line.rstrip().split('\t')
+                                                if self.minimal or len(src_col_names) == 8:
+                                                        trg_field_names = src_col_names[:8]
+                                                elif len(src_col_names) > 8:
+                                                        trg_field_names = src_col_names[:8] + src_col_names[9:]
                                                 break
                         else:
                                 for meta_line_index in range(self.meta_lines_quan):
                                         trg_meta_lines['meta'].append(src_file_opened.readline().rstrip())
                                 if self.src_file_fmt == 'bed':
                                         src_data_start = src_file_opened.tell()
-                                        src_header_len = len(src_file_opened.readline().split('\t'))
+                                        src_cols_quan = len(src_file_opened.readline().split('\t'))
                                         src_file_opened.seek(src_data_start)
-                                        src_header_row = ['chrom', 'start', 'end', 'name',
-                                                          'score', 'strand', 'thickStart', 'thickEnd',
-                                                          'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
+                                        src_col_names = ['chrom', 'start', 'end', 'name',
+                                                         'score', 'strand', 'thickStart', 'thickEnd',
+                                                         'itemRgb', 'blockCount', 'blockSizes', 'blockStarts']
                                         if self.minimal:
-                                                trg_header_row = src_header_row[:3]
+                                                trg_field_names = src_col_names[:3]
                                         else:
-                                                trg_header_row = src_header_row[:src_header_len]
+                                                trg_field_names = src_col_names[:src_cols_quan]
                                 else:
-                                        trg_header_row = src_file_opened.readline().rstrip().split('\t')
+                                        trg_field_names = src_file_opened.readline().rstrip().split('\t')
                         trg_meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
                         
                         #Создание коллекции. Для оптимального соотношения
@@ -296,7 +296,7 @@ class Main():
                                 #элементов шапки и списка, созданного
                                 #из очередной строки, словарь, затем
                                 #добавляем его в список таких словарей.
-                                fragment.append(dict(zip(trg_header_row,
+                                fragment.append(dict(zip(trg_field_names,
                                                          row)))
                                 
                                 #Сразу после пополнения

@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -148,30 +148,30 @@ class Main():
                                 for line in src_file_opened:
                                         src_data_start += len(line)
                                         if not line.startswith('##'):
-                                                src_header_row = line.rstrip().split('\t')
+                                                src_col_names = line.rstrip().split('\t')
                                                 break
                         else:
                                 for meta_line_index in range(self.meta_lines_quan):
                                         src_file_opened.readline()
                                 if self.src_file_fmt == 'bed':
                                         src_data_start = src_file_opened.tell()
-                                        src_header_len = len(src_file_opened.readline().split('\t'))
+                                        src_cols_quan = len(src_file_opened.readline().split('\t'))
                                         src_file_opened.seek(src_data_start)
-                                        src_header_row = ['chrom', 'start', 'end', 'name',
-                                                          'score', 'strand', 'thickStart', 'thickEnd',
-                                                          'itemRgb', 'blockCount', 'blockSizes', 'blockStarts'][:src_header_len]
+                                        src_col_names = ['chrom', 'start', 'end', 'name',
+                                                         'score', 'strand', 'thickStart', 'thickEnd',
+                                                         'itemRgb', 'blockCount', 'blockSizes', 'blockStarts'][:src_cols_quan]
                                 else:
-                                        src_header_row = src_file_opened.readline().rstrip().split('\t')
+                                        src_col_names = src_file_opened.readline().rstrip().split('\t')
                                         src_data_start = src_file_opened.tell()
-                        src_header_row = list(map(lambda src_col_name: f'{src_col_name}_f',
-                                                  src_header_row))
+                        src_col_names = list(map(lambda src_col_name: f'{src_col_name}_f',
+                                                 src_col_names))
                         for src_coll_name in self.src_coll_names:
                                 src_coll_obj = src_db_obj[src_coll_name]
                                 src_field_names = list(src_coll_obj.find_one(self.mongo_exclude_meta))[1:]
-                                trg_header_row = src_field_names + src_header_row
+                                trg_col_names = src_field_names + src_col_names
                                 if self.mongo_project != {}:
-                                        trg_header_row = list(filter(lambda proj_field_name: proj_field_name in self.mongo_project,
-                                                                     trg_header_row))
+                                        trg_col_names = list(filter(lambda proj_field_name: proj_field_name in self.mongo_project,
+                                                                    trg_col_names))
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
                                 trg_file_name = f'file-{src_file_base}__coll-{src_coll_base}.tsv.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
@@ -184,7 +184,7 @@ class Main():
                                                 trg_file_opened.write(f'##ann_field_path={self.ann_field_path}\n')
                                         if self.mongo_project != {}:
                                                 trg_file_opened.write(f'##mongo_project={self.mongo_project}\n')
-                                        trg_file_opened.write('\t'.join(trg_header_row) + '\n')
+                                        trg_file_opened.write('\t'.join(trg_col_names) + '\n')
                                         empty_res = True
                                         for src_line in src_file_opened:
                                                 src_row = src_line.rstrip().split('\t')
@@ -210,7 +210,7 @@ class Main():
                                                                                                        'end': {'$gt': src_start}}
                                                 else:
                                                         mongo_aggr_arg[0]['$match'] = {self.ann_field_path: def_data_type(src_row[self.ann_col_index])}
-                                                mongo_aggr_arg[1]['$addFields'] = dict(zip(src_header_row, src_row))
+                                                mongo_aggr_arg[1]['$addFields'] = dict(zip(src_col_names, src_row))
                                                 curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
                                                 for doc in curs_obj:
                                                         trg_file_opened.write(restore_line(doc,
