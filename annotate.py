@@ -1,4 +1,4 @@
-__version__ = 'v8.2'
+__version__ = 'v8.3'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -256,11 +256,10 @@ class Main():
                                 #коллекция, создадим её из имён полей. Projection при этом учтём.
                                 #Имя сугубо технического поля _id проигнорируется. Если в db-VCF
                                 #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                                trg_header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                                if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
-                                        trg_header_row.insert(8, 'FORMAT')
-                                trg_header_line = '\t'.join(trg_header_row)
-                                
+                                trg_col_names = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                                if self.trg_file_fmt == 'vcf' and len(trg_col_names) > 8:
+                                        trg_col_names.insert(8, 'FORMAT')
+                                        
                                 #Конструируем имя конечного архива и абсолютный путь к этому файлу.
                                 src_coll_base = src_coll_name.rsplit('.', maxsplit=1)[0]
                                 trg_file_name = f'file-{src_file_base}__coll-{src_coll_base}.{self.trg_file_fmt}.gz'
@@ -269,9 +268,10 @@ class Main():
                                 #Открытие конечного файла на запись.
                                 with gzip.open(trg_file_path, mode='wt') as trg_file_opened:
                                         
-                                        #Формируем и прописываем метастроки,
-                                        #повествующие о происхождении конечного
-                                        #файла. Прописываем также табличную шапку.
+                                        #Формируем и прописываем метастроки, повествующие о
+                                        #происхождении конечного файла. Прописываем также табличную
+                                        #шапку. Стандартом BED шапка не приветствуется, поэтому
+                                        #для trg-BED она будет мимикрировать под метастроку.
                                         if self.trg_file_fmt == 'vcf':
                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
                                         trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
@@ -284,8 +284,11 @@ class Main():
                                                 trg_file_opened.write(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}\n')
                                         if self.mongo_findone_args[1] is not None:
                                                 trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
-                                        trg_file_opened.write(trg_header_line + '\n')
-                                        
+                                        if self.trg_file_fmt == 'bed':
+                                                trg_file_opened.write(f'##trg_col_names=<{",".join(trg_col_names)}>\n')
+                                        else:
+                                                trg_file_opened.write('\t'.join(trg_col_names) + '\n')
+                                                
                                         #Извлечение из объекта курсора отвечающих запросу документов,
                                         #преобразование их значений в обычные строки и прописывание
                                         #последних в конечный файл. Проверка, вылез ли по запросу хоть
