@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -188,11 +188,10 @@ class Main():
                         #коллекция, создадим её из имён полей. Projection при этом учтём.
                         #Имя сугубо технического поля _id проигнорируется. Если в src-db-VCF
                         #есть поля с генотипами, то шапка дополнится элементом FORMAT.
-                        trg_header_row = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
-                        if self.trg_file_fmt == 'vcf' and len(trg_header_row) > 8:
-                                trg_header_row.insert(8, 'FORMAT')
-                        trg_header_line = '\t'.join(trg_header_row)
-                        
+                        trg_col_names = list(src_coll_obj.find_one(*self.mongo_findone_args))[1:]
+                        if self.trg_file_fmt == 'vcf' and len(trg_col_names) > 8:
+                                trg_col_names.insert(8, 'FORMAT')
+                                
                         #Один конечный файл будет
                         #содержать данные, соответствующие
                         #одному раздельному значению.
@@ -217,17 +216,21 @@ class Main():
                                 #Открытие конечного файла на запись.
                                 with gzip.open(trg_file_path, mode='wt') as trg_file_opened:
                                         
-                                        #Формируем и прописываем метастроки,
-                                        #повествующие о происхождении конечного
-                                        #файла. Прописываем также табличную шапку.
+                                        #Формируем и прописываем метастроки, повествующие о
+                                        #происхождении конечного файла. Прописываем также табличную
+                                        #шапку. Стандартом BED шапка не приветствуется, поэтому
+                                        #для trg-BED она будет мимикрировать под метастроку.
                                         if self.trg_file_fmt == 'vcf':
                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
                                         trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
                                         trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
-                                        trg_file_opened.write(trg_header_line + '\n')
-                                        
+                                        if self.trg_file_fmt == 'bed':
+                                                trg_file_opened.write(f'##trg_col_names=<{",".join(trg_col_names)}>\n')
+                                        else:
+                                                trg_file_opened.write('\t'.join(trg_col_names) + '\n')
+                                                
                                         #Извлечение из объекта курсора отвечающих запросу
                                         #документов, преобразование их значений в обычные
                                         #строки и прописывание последних в конечный файл.
