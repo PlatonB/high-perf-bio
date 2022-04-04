@@ -44,10 +44,31 @@ conda install pymongo
 cd /path/to/high-perf-bio-master
 ```
 
-# Examples.
+# Quick start.
 Upload the VCF set to DB. Cut the genotype data. Index nested fields with population frequencies.
 ```
 python3 create.py -S $HOME/Bio/1000G -r -i INFO.0.AF_AFR,INFO.0.AF_EUR,INFO.0.AF_EAS
+```
+
+Execute 2 sets of queries from [our MCCMB-2021 work](http://mccmb.belozersky.msu.ru/2021/thesis/abstracts/402_MCCMB_2021.pdf).
+
+$HOME/Bio/pop_freq_queries/bias_1.txt:
+```
+{'INFO.0.AF_AFR': {'$lt': Decimal128('0.02')}, 'INFO.0.AF_EUR': {'$gt': Decimal128('0.3')}, 'INFO.0.AF_EAS': {'$gt': Decimal128('0.3')}}
+{'INFO.0.AF_AFR': {'$lt': Decimal128('0.02')}, 'INFO.0.AF_EUR': {'$gt': Decimal128('0.3')}, 'INFO.0.AF_EAS': {'$lt': Decimal128('0.02')}}
+{'INFO.0.AF_AFR': {'$lt': Decimal128('0.02')}, 'INFO.0.AF_EUR': {'$lt': Decimal128('0.02')}, 'INFO.0.AF_EAS': {'$gt': Decimal128('0.3')}}
+```
+
+$HOME/Bio/pop_freq_queries/bias_2.txt:
+```
+{'$or': [{'INFO.0.AF_AFR': {'$gte': Decimal128('0.02')}}, {'INFO.0.AF_EUR': {'$lte': Decimal128('0.3')}}, {'INFO.0.AF_EAS': {'$lte': Decimal128('0.3')}}]}
+{'$or': [{'INFO.0.AF_AFR': {'$gte': Decimal128('0.02')}}, {'INFO.0.AF_EUR': {'$lte': Decimal128('0.3')}}, {'INFO.0.AF_EAS': {'$gte': Decimal128('0.02')}}]}
+{'$or': [{'INFO.0.AF_AFR': {'$gte': Decimal128('0.02')}}, {'INFO.0.AF_EUR': {'$gte': Decimal128('0.02')}}, {'INFO.0.AF_EAS': {'$lte': Decimal128('0.3')}}]}
+```
+
+command:
+```
+python3 query.py -S $HOME/Bio/pop_freq_queries -D 1000G -T $HOME/Bio/out
 ```
 
 Annotate `name` column of multiple rsID-containing BED4 by dbSNP-VCF-based DB.
