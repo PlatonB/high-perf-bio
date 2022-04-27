@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
@@ -51,7 +51,7 @@ class Main():
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
-                if args.proj_field_names is None:
+                if args.proj_field_names in [None, '']:
                         mongo_project = {'_id': 0}
                         self.trg_coll_ext = src_coll_ext
                 else:
@@ -77,7 +77,7 @@ class Main():
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
                                          {'$project': mongo_project},
                                          {'$merge': mongo_merge}]
-                if args.ind_field_groups is None:
+                if args.ind_field_groups in [None, '']:
                         if self.trg_coll_ext == 'vcf':
                                 self.index_models = [IndexModel([('#CHROM', ASCENDING),
                                                                  ('POS', ASCENDING)]),
@@ -87,7 +87,7 @@ class Main():
                                                                  ('start', ASCENDING),
                                                                  ('end', ASCENDING)]),
                                                      IndexModel([('name', ASCENDING)])]
-                        elif args.proj_field_names is None:
+                        elif args.proj_field_names in [None, '']:
                                 self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
                         else:
                                 self.index_models = [IndexModel([(proj_field_names[0], ASCENDING)])]

@@ -1,4 +1,4 @@
-__version__ = 'v5.2'
+__version__ = 'v5.3'
 
 import sys, locale, os, datetime
 sys.dont_write_bytecode = True
@@ -39,11 +39,11 @@ class Main():
                         self.proc_quan = cpus_quan
                 else:
                         self.proc_quan = max_proc_quan
-                if args.del_ind_names is None:
+                if args.del_ind_names in [None, '']:
                         self.del_ind_names = args.del_ind_names
                 else:
                         self.del_ind_names = args.del_ind_names.split(',')
-                if args.ind_field_groups is None:
+                if args.ind_field_groups in [None, '']:
                         self.index_models = args.ind_field_groups
                 else:
                         self.index_models = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
@@ -85,13 +85,13 @@ src_db_name = main.src_db_name
 #По запросу исследователя удаляем индексы.
 #Это - очень быстрый процесс, поэтому
 #в распараллеливании не нуждается.
-if main.del_ind_names is not None:
+if main.del_ind_names not in [None, '']:
         print(f'\nRemoving indexes from {src_db_name} DB')
         main.del_indices()
         
 #Параллельный запуск индексации, если это действие задал исследователь.
 #Замер времени выполнения вычислений с точностью до микросекунды.
-if main.index_models is not None:
+if main.index_models not in [None, '']:
         proc_quan = main.proc_quan
         print(f'\nIndexing {src_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')

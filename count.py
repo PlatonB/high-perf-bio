@@ -1,4 +1,4 @@
-__version__ = 'v5.1'
+__version__ = 'v5.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -76,7 +76,7 @@ class Main():
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_name].find_one(mongo_exclude_meta))
-                if args.cnt_field_paths is None:
+                if args.cnt_field_paths in [None, '']:
                         if src_coll_ext == 'vcf':
                                 cnt_field_paths = ['ID', 'REF', 'ALT']
                         elif src_coll_ext == 'bed':
@@ -112,14 +112,14 @@ class Main():
                                                      'quantity': {'$sum': 1}}}]
                 self.trg_header = [sec_delimiter.join(cnt_field_paths),
                                    'quantity']
-                if args.quan_thres > 1 and args.freq_thres is not None:
+                if args.quan_thres > 1 and args.freq_thres not in [None, '']:
                         raise CombFiltersError()
                 elif args.quan_thres > 1:
                         self.mongo_aggr_draft.append({'$match': {'quantity': {'$gte': args.quan_thres}}})
-                if args.samp_quan is not None:
+                if args.samp_quan not in [None, 0]:
                         self.mongo_aggr_draft.append({'$addFields': {'frequency': {'$divide': ['$quantity', args.samp_quan]}}})
                         self.trg_header.append('frequency')
-                        if args.freq_thres is not None:
+                        if args.freq_thres not in [None, '']:
                                 self.mongo_aggr_draft.append({'$match': {'frequency': {'$gte': Decimal128(args.freq_thres)}}})
                 if args.quan_sort_order == 'asc':
                         self.quan_sort_order = ASCENDING

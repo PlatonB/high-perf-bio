@@ -1,4 +1,4 @@
-__version__ = 'v10.1'
+__version__ = 'v10.2'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -72,7 +72,7 @@ class Main():
                 self.src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
                 self.trg_file_fmt = self.src_coll_ext
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
-                if args.left_coll_names is None:
+                if args.left_coll_names in [None, '']:
                         self.left_coll_names = set(self.src_coll_names)
                 else:
                         self.left_coll_names = set(args.left_coll_names.split(','))
@@ -85,7 +85,7 @@ class Main():
                         self.proc_quan = cpus_quan
                 else:
                         self.proc_quan = max_proc_quan
-                if args.right_coll_names is None:
+                if args.right_coll_names in [None, '']:
                         self.right_coll_names = set(self.src_coll_names)
                 else:
                         self.right_coll_names = set(args.right_coll_names.split(','))
@@ -96,7 +96,7 @@ class Main():
                 if self.by_loc:
                         if self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
-                elif args.lookup_field_path is None:
+                elif args.lookup_field_path in [None, '']:
                         if self.src_coll_ext == 'vcf':
                                 self.lookup_field_path = 'ID'
                         elif self.src_coll_ext == 'bed':
@@ -116,7 +116,7 @@ class Main():
                    and 1 < self.coverage == right_colls_quan:
                         self.coverage -= 1
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta}]
-                if args.srt_field_group is not None:
+                if args.srt_field_group not in [None, '']:
                         self.srt_field_group = args.srt_field_group.split('+')
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':
@@ -137,7 +137,7 @@ class Main():
                         self.mongo_aggr_draft.append({'$sort': SON([('chrom', ASCENDING),
                                                                     ('start', ASCENDING),
                                                                     ('end', ASCENDING)])})
-                if args.proj_field_names is None:
+                if args.proj_field_names in [None, '']:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
                 else:
                         proj_field_names = args.proj_field_names.split(',')

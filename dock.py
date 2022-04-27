@@ -1,4 +1,4 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -72,7 +72,7 @@ class Main():
                         if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
                                 raise ByLocTsvError()
                 else:
-                        if args.ann_col_num is None:
+                        if args.ann_col_num in [None, 0]:
                                 if self.src_file_fmt == 'vcf':
                                         self.ann_col_index = 2
                                 elif self.src_file_fmt == 'bed':
@@ -81,7 +81,7 @@ class Main():
                                         self.ann_col_index = 0
                         else:
                                 self.ann_col_index = args.ann_col_num - 1
-                        if args.ann_field_path is None:
+                        if args.ann_field_path in [None, '']:
                                 if self.src_coll_ext == 'vcf':
                                         self.ann_field_path = 'ID'
                                 elif self.src_coll_ext == 'bed':
@@ -94,7 +94,7 @@ class Main():
                                 self.ann_field_path = args.ann_field_path
                 self.mongo_aggr_draft = [{'$match': None}, {'$addFields': None}]
                 self.mongo_project = {}
-                if args.proj_field_names is not None:
+                if args.proj_field_names not in [None, '']:
                         proj_field_names = args.proj_field_names.split(',')
                         for proj_field_name in proj_field_names:
                                 self.mongo_project[proj_field_name] = 1

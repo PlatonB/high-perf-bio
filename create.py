@@ -1,4 +1,4 @@
-__version__ = 'v6.2'
+__version__ = 'v6.3'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -109,7 +109,7 @@ class Main():
                 if len(src_file_fmts) > 1:
                         raise DifFmtsError(src_file_fmts)
                 self.src_file_fmt = list(src_file_fmts)[0]
-                if args.trg_db_name is None:
+                if args.trg_db_name in [None, '']:
                         self.trg_db_name = os.path.basename(self.src_dir_path)
                 else:
                         self.trg_db_name = args.trg_db_name
@@ -131,7 +131,7 @@ class Main():
                         self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
                 self.minimal = args.minimal
-                if args.sec_delimiter is None:
+                if args.sec_delimiter in [None, '']:
                         self.sec_delimiter = args.sec_delimiter
                 elif args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
@@ -144,7 +144,7 @@ class Main():
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
                 self.max_fragment_len = args.max_fragment_len
-                if args.ind_field_groups is None:
+                if args.ind_field_groups in [None, '']:
                         if self.src_file_fmt == 'vcf':
                                 self.index_models = [IndexModel([('#CHROM', ASCENDING),
                                                                  ('POS', ASCENDING)]),
@@ -280,7 +280,7 @@ class Main():
                                                         row[11] = list(map(int, row[11].rstrip(',').split(',')))
                                 else:
                                         for cell_index in range(len(row)):
-                                                if self.sec_delimiter is not None and self.sec_delimiter in row[cell_index]:
+                                                if self.sec_delimiter not in [None, ''] and self.sec_delimiter in row[cell_index]:
                                                         row[cell_index] = row[cell_index].split(self.sec_delimiter)
                                                         for subcell_index in range(len(row[cell_index])):
                                                                 row[cell_index][subcell_index] = def_data_type(row[cell_index][subcell_index])

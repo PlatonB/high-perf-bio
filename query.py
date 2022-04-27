@@ -1,4 +1,4 @@
-__version__ = 'v8.2'
+__version__ = 'v8.3'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -79,7 +79,7 @@ class Main():
                 self.mongo_aggr_draft = [{'$match': None}]
                 self.mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(self.mongo_exclude_meta))
-                if args.srt_field_group is not None:
+                if args.srt_field_group not in [None, '']:
                         srt_field_group = args.srt_field_group.split('+')
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':
@@ -93,7 +93,7 @@ class Main():
                                         mongo_sort[srt_field_path] = srt_order
                         self.mongo_aggr_draft.append({'$sort': mongo_sort})
                         self.trg_file_fmt = 'tsv'
-                if args.proj_field_names is None:
+                if args.proj_field_names in [None, '']:
                         self.mongo_findone_args = [self.mongo_exclude_meta, None]
                 else:
                         proj_field_names = args.proj_field_names.split(',')
@@ -116,7 +116,7 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_groups is None:
+                if args.ind_field_groups in [None, '']:
                         if self.trg_file_fmt == 'vcf':
                                 self.index_models = [IndexModel([('#CHROM', ASCENDING),
                                                                  ('POS', ASCENDING)]),
@@ -126,7 +126,7 @@ class Main():
                                                                  ('start', ASCENDING),
                                                                  ('end', ASCENDING)]),
                                                      IndexModel([('name', ASCENDING)])]
-                        elif args.proj_field_names is None:
+                        elif args.proj_field_names in [None, '']:
                                 self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
                         else:
                                 self.index_models = [IndexModel([(proj_field_names[0], ASCENDING)])]
