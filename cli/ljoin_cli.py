@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v4.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.ljoin_descr import LjoinDescr
