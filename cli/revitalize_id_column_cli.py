@@ -1,34 +1,17 @@
-__version__ = 'v2.1'
+__version__ = 'v3.0'
 
+import sys, os
+sys.dont_write_bytecode = True
+sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                             'descriptions'))
 from argparse import ArgumentParser, RawTextHelpFormatter
+from revitalize_id_column_descr import RevitalizeIdColumnDescr
 
 def add_args_ru(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, добавляющая rsIDs в столбец ID VCF-файлов.
-
-Версия: {ver}
-Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021-2022
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Восстанавливаемыми файлами должны быть только сжатые VCF, а БД может содержать лишь одну
-коллекцию: созданную с помощью create по VCF и содержащую rsIDs в поле ID. Рекомендуемый
-источник данных для этой коллекции - NCBI dbSNP VCF с координатами подходящей сборки.
-
-Чтобы программа работала быстро, нужен индекс полей #CHROM и POS.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию];
-src-FMT - модифицируемые таблицы определённого формата;
-src-db-FMT - коллекции исходной БД, соответствующие
-по структуре таблицам определённого формата.
-''',
+        arg_parser = ArgumentParser(description=RevitalizeIdColumnDescr(ver).ru,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
@@ -53,29 +36,7 @@ def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-A program that adds rsIDs into ID column of VCF files.
-
-Version: {ver}
-Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2021-2022
-License: GNU General Public License version 3
-Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
-Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
-
-Only compressed VCFs must be restorable files, and DB can contain only one collection:
-produced by "create" from VCF and contained rsIDs in the ID field. The recommended data
-source for this collection is NCBI dbSNP VCF with the coordinates of a suitable assembly.
-
-For the program to work fast, there needs an index of #CHROM and POS fields.
-
-The notation in the CLI help:
-[default value];
-src-FMT - modified tables in a certain format;
-src-db-FMT - collections of source DB, matching
-by structure to the tables in a certain format.
-''',
+        arg_parser = ArgumentParser(description=RevitalizeIdColumnDescr(ver).en,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')

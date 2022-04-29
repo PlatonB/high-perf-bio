@@ -1,41 +1,15 @@
-__version__ = 'v5.1'
+__version__ = 'v6.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from descriptions.count_descr import CountDescr
 
 def add_args_ru(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, считающая количество и, опционально, частоту каждого набора
-соответствующих значений заданных полей в пределах единственной коллекции.
-
-Версия: {ver}
-Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Основное применение программы - определение количества и частот вариантов.
-Предполагается, что обрабатываемая коллекция была получена конкатенацией
-многочисленных VCF. Разумеется, возможны и другие сценарии работы.
-
-Обсчитываемая база должна быть создана с помощью create_db или concatenate.
-
-К вложенному полю обращайтесь через точку:
-field_1.field_2.(...).field_N
-
-Из-за ограничений со стороны MongoDB, программа не использует индексы.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию на этапе парсинга аргументов];
-[[конкретизированное значение по умолчанию]];
-{{допустимые значения}}.
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
+        arg_parser = ArgumentParser(description=CountDescr(ver).ru,
+                                    formatter_class=RawTextHelpFormatter,
+                                    add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Вывести справку и выйти')
@@ -65,36 +39,9 @@ def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-A program that counts the quantity and, optionally, the frequency of each
-set of corresponding values of given fields within a single collection.
-
-Version: {ver}
-Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2021
-License: GNU General Public License version 3
-Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
-Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
-
-The main use of the program is to determine the quantity and frequencies of
-variants. It is assumed that processed collection was obtained by concatenation
-of multiple VCFs. Of course, other work scenarios are also possible.
-
-The counted DB must be produced by "create_db" or "concatenate".
-
-Call the nested field using a dot:
-field_1.field_2.(...).field_N
-
-Due to limitations on the MongoDB side, the program does not use indexes.
-
-The notation in the CLI help:
-[default value in the argument parsing step];
-[[final default value]];
-{{permissible values}}.
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
+        arg_parser = ArgumentParser(description=CountDescr(ver).en,
+                                    formatter_class=RawTextHelpFormatter,
+                                    add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Show this help message and exit')

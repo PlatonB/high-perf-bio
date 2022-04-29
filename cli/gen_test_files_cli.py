@@ -1,36 +1,19 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
+import sys, os
+sys.dont_write_bytecode = True
+sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                             'descriptions'))
 from argparse import ArgumentParser, RawTextHelpFormatter
+from gen_test_files_descr import GenTestFilesDescr
 
 def add_args_ru(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, создающая наборы тестировочных файлов из случайных строк исходного.
-
-Версия: {ver}
-Требуемые сторонние компоненты: -
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2021
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Исходный файл должен быть сжат с помощью GZIP.
-
-Вероятность попадания строки в конечный файл = 1 / жёсткость прореживания.
-
-Конечные файлы будут схожи по размеру и частично совпадать по составу строк.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию];
-src-FMT - разреживаемая таблица определённого формата;
-не применяется - при обозначенных условиях
-аргумент проигнорируется или вызовет ошибку.
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
+        arg_parser = ArgumentParser(description=GenTestFilesDescr(ver).ru,
+                                    formatter_class=RawTextHelpFormatter,
+                                    add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Вывести справку и выйти')
@@ -55,31 +38,9 @@ def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-A program that creates sets of test files from random strings of the source file.
-
-Version: {ver}
-Dependencies: -
-Author: Platon Bykadorov (platon.work@gmail.com), 2020-2021
-License: GNU General Public License version 3
-Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
-Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
-
-The source file must be compressed by GZIP.
-
-Probability of hitting a line into the target file = 1 / thinning level.
-
-The target files will be similar in size and partially overlap in the content.
-
-The notation in the CLI help:
-[default value];
-src-FMT - thinned table in a certain format;
-not applicable - under the specified conditions
-the argument is ignored or causes an error.
-''',
-                                   formatter_class=RawTextHelpFormatter,
-                                   add_help=False)
+        arg_parser = ArgumentParser(description=GenTestFilesDescr(ver).en,
+                                    formatter_class=RawTextHelpFormatter,
+                                    add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')
         hlp_grp.add_argument('-h', '--help', action='help',
                              help='Show this help message and exit')

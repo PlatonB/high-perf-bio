@@ -1,36 +1,13 @@
-__version__ = 'v3.0'
+__version__ = 'v4.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from descriptions.concatenate_descr import ConcatenateDescr
 
 def add_args_ru(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-Программа, объединяющая все коллекции
-одной MongoDB-базы с выводом в другую.
-
-Версия: {ver}
-Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021-2022
-Лицензия: GNU General Public License version 3
-Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
-Багрепорты/пожелания/общение: https://github.com/PlatonB/high-perf-bio/issues
-
-Конкатенируемая база должна быть создана с помощью
-create или других инструментов high-perf-bio.
-
-Набор полей объединяемых коллекций должен быть одинаковым.
-
-Условные обозначения в справке по CLI:
-[значение по умолчанию];
-scr/trg-db-FMT - коллекции исходной/конечной БД,
-соответствующие по структуре таблицам определённого формата;
-не применяется - при обозначенных условиях
-аргумент проигнорируется или вызовет ошибку;
-f1+f2+f3 - поля, для которых создавать составной индекс.
-''',
+        arg_parser = ArgumentParser(description=ConcatenateDescr(ver).ru,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
@@ -55,30 +32,7 @@ def add_args_en(ver):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=f'''
-A program that merges all collections of
-one MongoDB database with output to another.
-
-Version: {ver}
-Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2021-2022
-License: GNU General Public License version 3
-Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
-Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md
-Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
-
-Concatenated DB must be produced by "create" or other high-perf-bio tools.
-
-The set of fields of merged collections must be the same.
-
-The notation in the CLI help:
-[default value];
-scr/trg-db-FMT - collections of source/target DB,
-matching by structure to the tables in a certain format;
-not applicable - under the specified conditions
-the argument is ignored or causes an error;
-f1+f2+f3 - fields, for which to create a compound index.
-''',
+        arg_parser = ArgumentParser(description=ConcatenateDescr(ver).en,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')
