@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
@@ -21,6 +21,8 @@ class AddWidgetsRu():
                         st.subheader(body='Необязательные виджеты')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Максимальное количество параллельно аннотируемых таблиц')
+                        self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
+                                                               help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
                         self.by_loc = st.checkbox(label='by-loc',
@@ -59,6 +61,8 @@ class AddWidgetsEn():
                         st.subheader(body='Optional widgets')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Maximum quantity of parallel annotated tables')
+                        self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
+                                                               help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
                         self.by_loc = st.checkbox(label='by-loc',

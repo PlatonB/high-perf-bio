@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.create_descr import CreateDescr
@@ -17,10 +17,10 @@ class AddWidgetsRu():
                         st.subheader(body='Необязательные виджеты')
                         self.trg_db_name = st.text_input(label='trg-db-name',
                                                          help='Имя пополняемой базы данных ([[имя папки со сжатыми таблицами]])')
-                        self.append = st.checkbox(label='append', value=False,
-                                                  help='Разрешить дозаписывать данные в имеющуюся базу (не допускайте смешивания форматов в одной БД; зальются только новые файлы папки)')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Максимальное количество параллельно загружаемых таблиц/индексируемых коллекций')
+                        self.if_db_exists = st.radio(label='if-db-exists', options=['', 'rewrite', 'replenish'],
+                                                     help='Стереть имеющуюся БД или пополнить её данными из новых файлов папки (не допускайте смешивания форматов в одной БД)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
                         self.minimal = st.checkbox(label='minimal', value=False,
@@ -51,6 +51,8 @@ class AddWidgetsEn():
                                                   help='Permit addition of data to the existing DB (do not allow mixing of formats in the same DB; only new files of the directory will be uploaded)')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Maximum quantity of parallel uploaded tables/indexed collections')
+                        self.if_db_exists = st.radio(label='if-db-exists', options=['', 'rewrite', 'replenish'],
+                                                     help='Erase the target DB or replenish it with data from new files of the directory (do not allow mixing of formats in the same DB)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Quantity of metainformation lines (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
                         self.minimal = st.checkbox(label='minimal', value=False,
