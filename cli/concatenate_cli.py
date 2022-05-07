@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v5.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.concatenate_descr import ConcatenateDescr
@@ -19,6 +19,8 @@ def add_args_ru(ver):
         man_grp.add_argument('-T', '--trg-db-name', required=True, metavar='str', dest='trg_db_name', type=str,
                              help='Имя БД для результатов')
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
@@ -44,6 +46,8 @@ def add_args_en(ver):
         man_grp.add_argument('-T', '--trg-db-name', required=True, metavar='str', dest='trg_db_name', type=str,
                              help='Name of DB for results')
         opt_grp = arg_parser.add_argument_group('Optional arguments')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',

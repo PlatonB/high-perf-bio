@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v7.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.split_descr import SplitDescr
@@ -21,6 +21,8 @@ def add_args_ru(ver):
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно делимых коллекций')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
         opt_grp.add_argument('-f', '--spl-field-path', metavar='[None]', dest='spl_field_path', type=str,
                              help='Точечный путь к полю, по которому делить (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
@@ -54,6 +56,8 @@ def add_args_en(ver):
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum quantity of collections splitted in parallel')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
         opt_grp.add_argument('-f', '--spl-field-path', metavar='[None]', dest='spl_field_path', type=str,
                              help='Dot path to the field by which to split (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,

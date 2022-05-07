@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v7.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.query_descr import QueryDescr
@@ -23,6 +23,8 @@ def add_args_ru(ver):
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Максимальное количество параллельно считываемых файлов с запросами')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации файлов с запросами')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
@@ -58,6 +60,8 @@ def add_args_en(ver):
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-p', '--max-proc-quan', metavar='[4]', default=4, dest='max_proc_quan', type=int,
                              help='Maximum quantity of files with queries read in parallel')
+        opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
+                             help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of files with queries')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
