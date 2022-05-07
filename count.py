@@ -1,10 +1,10 @@
-__version__ = 'v5.2'
+__version__ = 'v5.3'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
 from cli.count_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.common_errors import DbAlreadyExistsError
 from backend.get_field_paths import parse_nested_objs
 from bson.decimal128 import Decimal128
 from bson.son import SON
@@ -69,9 +69,11 @@ class Main():
                 src_coll_ext = self.src_coll_name.rsplit('.', maxsplit=1)[1]
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
-                elif args.trg_place != self.src_db_name:
+                elif args.trg_place != self.src_db_name \
+                     and (args.trg_place not in client.list_database_names() \
+                          or args.rewrite_existing_db):
+                        client.drop_database(args.trg_place)
                         self.trg_db_name = args.trg_place
-                        resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}

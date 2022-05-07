@@ -1,11 +1,10 @@
-__version__ = 'v4.1'
+__version__ = 'v4.2'
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
 from cli.concatenate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
-from backend.common_errors import NoSuchFieldError
+from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 
 class Main():
@@ -44,9 +43,11 @@ class Main():
                 src_db_obj = client[self.src_db_name]
                 self.src_coll_names = src_db_obj.list_collection_names()
                 src_coll_ext = self.src_coll_names[0].rsplit('.', maxsplit=1)[1]
-                if args.trg_db_name != self.src_db_name:
+                if args.trg_db_name != self.src_db_name \
+                     and (args.trg_db_name not in client.list_database_names() \
+                          or args.rewrite_existing_db):
+                        client.drop_database(args.trg_db_name)
                         self.trg_db_name = args.trg_db_name
-                        resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}

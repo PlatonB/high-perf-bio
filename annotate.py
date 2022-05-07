@@ -1,4 +1,4 @@
-__version__ = 'v8.4'
+__version__ = 'v8.5'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -7,8 +7,7 @@ from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
 from multiprocessing import Pool
-from backend.common_errors import DifFmtsError, ByLocTsvError, NoSuchFieldError
-from backend.resolve_db_existence import resolve_db_existence, DbAlreadyExistsError
+from backend.common_errors import DifFmtsError, DbAlreadyExistsError, ByLocTsvError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
@@ -57,9 +56,11 @@ class Main():
                 self.trg_file_fmt = self.src_coll_ext
                 if '/' in args.trg_place:
                         self.trg_dir_path = os.path.normpath(args.trg_place)
-                elif args.trg_place != self.src_db_name:
+                elif args.trg_place != self.src_db_name \
+                     and (args.trg_place not in client.list_database_names() \
+                          or args.rewrite_existing_db):
+                        client.drop_database(args.trg_place)
                         self.trg_db_name = args.trg_place
-                        resolve_db_existence(self.trg_db_name)
                 else:
                         raise DbAlreadyExistsError()
                 max_proc_quan = args.max_proc_quan

@@ -1,12 +1,11 @@
-__version__ = 'v6.3'
+__version__ = 'v6.4'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
 from cli.create_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, IndexModel
 from multiprocessing import Pool
-from backend.common_errors import DifFmtsError
-from backend.resolve_db_existence import resolve_db_existence
+from backend.common_errors import DifFmtsError, DbAlreadyExistsError
 from backend.def_data_type import def_data_type
 
 class NoDataToUploadError(Exception):
@@ -113,11 +112,14 @@ class Main():
                         self.trg_db_name = os.path.basename(self.src_dir_path)
                 else:
                         self.trg_db_name = args.trg_db_name
-                if not args.append:
-                        resolve_db_existence(self.trg_db_name)
-                else:
-                        self.src_file_names -= set(map(lambda cur_coll_name: cur_coll_name + '.gz',
-                                                       client[self.trg_db_name].list_collection_names()))
+                if self.trg_db_name in client.list_database_names():
+                        if args.if_db_exists in [None, '']:
+                                raise DbAlreadyExistsError()
+                        elif args.if_db_exists == 'rewrite':
+                                client.drop_database(self.trg_db_name)
+                        elif args.if_db_exists == 'replenish':
+                                self.src_file_names -= set(map(lambda cur_coll_name: cur_coll_name + '.gz',
+                                                               client[self.trg_db_name].list_collection_names()))
                 if len(self.src_file_names) == 0:
                         raise NoDataToUploadError()
                 max_proc_quan = args.max_proc_quan
