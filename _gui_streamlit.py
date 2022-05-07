@@ -1,4 +1,4 @@
-__version__ = 'v0.1-alpha'
+__version__ = 'v0.2-alpha'
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
@@ -16,6 +16,13 @@ st.set_page_config(page_title='high-perf-bio',
                    menu_items={'Report a bug': 'https://github.com/PlatonB/high-perf-bio/issues',
                                'Get help': 'https://github.com/PlatonB/high-perf-bio/issues',
                                'About': '*high-perf-bio*: open-source toolkit that simplifies and speeds up work with bioinformatics data'})
+
+#Вдруг кто до сих пор ещё не
+#понял, как тулкит называется?:)
+st.title(body='high-perf-bio')
+
+#Неприметная надпись с версией этого GUI.
+st.caption(body=f'GUI {__version__}')
 
 #Создаём меню выбора компонента тулкита.
 #По умолчанию отображается пункт create
