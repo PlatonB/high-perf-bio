@@ -1,4 +1,4 @@
-__version__ = 'v5.3'
+__version__ = 'v5.4'
 
 import sys, locale, os, datetime
 sys.dont_write_bytecode = True
@@ -73,30 +73,31 @@ class Main():
                 client[self.src_db_name][src_coll_name].create_indexes(self.index_models)
                 client.close()
                 
-#Обработка аргументов командной строки. Создание
-#экземпляра содержащего ключевые функции класса.
-if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
-else:
-        args = add_args_en(__version__)
-main = Main(args)
-src_db_name = main.src_db_name
-
-#По запросу исследователя удаляем индексы.
-#Это - очень быстрый процесс, поэтому
-#в распараллеливании не нуждается.
-if main.del_ind_names not in [None, '']:
-        print(f'\nRemoving indexes from {src_db_name} DB')
-        main.del_indices()
-        
-#Параллельный запуск индексации, если это действие задал исследователь.
-#Замер времени выполнения вычислений с точностью до микросекунды.
-if main.index_models not in [None, '']:
-        proc_quan = main.proc_quan
-        print(f'\nIndexing {src_db_name} DB')
-        print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.add_indices, main.src_coll_names)
-                exec_time = datetime.datetime.now() - exec_time_start
-        print(f'\tparallel computation time: {exec_time}')
+#Обработка аргументов командной строки.
+#Создание экземпляра содержащего ключевую
+#функцию класса. По запросу исследователя
+#удаляем индексы. Это - очень быстрый
+#процесс, поэтому в распараллеливании
+#не нуждается. Параллельный запуск
+#индексации, если это действие задал
+#исследователь. Замер времени выполнения
+#индексации с точностью до микросекунды.
+if __name__ == '__main__':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = add_args_ru(__version__)
+        else:
+                args = add_args_en(__version__)
+        main = Main(args)
+        src_db_name = main.src_db_name
+        if main.del_ind_names not in [None, '']:
+                print(f'\nRemoving indexes from {src_db_name} DB')
+                main.del_indices()
+        if main.index_models not in [None, '']:
+                proc_quan = main.proc_quan
+                print(f'\nIndexing {src_db_name} DB')
+                print(f'\tquantity of parallel processes: {proc_quan}')
+                with Pool(proc_quan) as pool_obj:
+                        exec_time_start = datetime.datetime.now()
+                        pool_obj.map(main.add_indices, main.src_coll_names)
+                        exec_time = datetime.datetime.now() - exec_time_start
+                print(f'\tparallel computation time: {exec_time}')
