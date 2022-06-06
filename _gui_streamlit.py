@@ -1,4 +1,4 @@
-__version__ = 'v0.5-beta'
+__version__ = 'v0.6-beta'
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
@@ -6,9 +6,9 @@ sys.path.append(os.path.join(os.getcwd(),
                              'gui_streamlit'))
 import streamlit as st
 import annotate_gui, concatenate_gui, count_gui, create_gui, \
-       dock_gui, ljoin_gui, query_gui, split_gui
+       dock_gui, ljoin_gui, query_gui, reindex_gui, split_gui
 import annotate, concatenate, count, create, \
-       dock, ljoin, query, split
+       dock, ljoin, query, reindex, split
 from multiprocessing import Pool
 
 #Кастомизируем заголовок окна
@@ -31,10 +31,9 @@ st.caption(body=f'GUI {__version__}')
 #и соответствующая псевдо-вкладка, т.к.
 #работа должна начинаться с создания БД.
 tool_name = st.selectbox(label='tool-name',
-                         options=['annotate', 'concatenate',
-                                  'count', 'create',
-                                  'dock', 'ljoin',
-                                  'query', 'split'],
+                         options=['annotate', 'concatenate', 'count',
+                                  'create', 'dock', 'ljoin',
+                                  'query', 'reindex', 'split'],
                          index=3)
 
 #Создание экземпляра класса, поглощающего сигналы
@@ -150,6 +149,27 @@ if tool_name == 'query':
                                 pool_obj.map(main.search, main.src_file_names)
                                 exec_time = datetime.datetime.now() - exec_time_start
                 st.success(f'parallel computation time: {exec_time}')
+                st.balloons()
+if tool_name == 'reindex':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = reindex_gui.AddWidgetsRu(reindex.__version__)
+        else:
+                args = reindex_gui.AddWidgetsEn(reindex.__version__)
+        if args.submit:
+                main = reindex.Main(args)
+                src_db_name = main.src_db_name
+                if main.del_ind_names not in [None, '']:
+                        with st.spinner(f'Removing indexes from {src_db_name} DB'):
+                                main.del_indices()
+                if main.index_models not in [None, '']:
+                        proc_quan = main.proc_quan
+                        with st.spinner(f'Indexing {src_db_name} DB'):
+                                st.text(f'quantity of parallel processes: {proc_quan}')
+                                with Pool(proc_quan) as pool_obj:
+                                        exec_time_start = datetime.datetime.now()
+                                        pool_obj.map(main.add_indices, main.src_coll_names)
+                                        exec_time = datetime.datetime.now() - exec_time_start
+                        st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'split':
         if locale.getdefaultlocale()[0][:2] == 'ru':
