@@ -1,14 +1,21 @@
-__version__ = 'v0.6-beta'
+__version__ = 'v1.0'
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.getcwd(),
+hpb_dir_path = os.getcwd()
+sys.path.append(os.path.join(hpb_dir_path,
                              'gui_streamlit'))
+sys.path.append(os.path.join(hpb_dir_path,
+                             'plugins'))
+sys.path.append(os.path.join(hpb_dir_path,
+                             'scripts'))
 import streamlit as st
 import annotate_gui, concatenate_gui, count_gui, create_gui, \
-       dock_gui, ljoin_gui, query_gui, reindex_gui, split_gui
+       dock_gui, ljoin_gui, query_gui, reindex_gui, \
+       split_gui, revitalize_id_column_gui, gen_test_files_gui
 import annotate, concatenate, count, create, \
-       dock, ljoin, query, reindex, split
+       dock, ljoin, query, reindex, \
+       split, revitalize_id_column, gen_test_files
 from multiprocessing import Pool
 
 #Кастомизируем заголовок окна
@@ -19,23 +26,31 @@ st.set_page_config(page_title='high-perf-bio',
                                'Get help': 'https://github.com/PlatonB/high-perf-bio/issues',
                                'About': '*high-perf-bio*: open-source toolkit that simplifies and speeds up work with bioinformatics data'})
 
-#Вдруг кто до сих пор ещё не
-#понял, как тулкит называется?:)
-st.title(body='high-perf-bio')
-
-#Неприметная надпись с версией этого GUI.
-st.caption(body=f'GUI {__version__}')
-
-#Создаём меню выбора компонента тулкита.
-#По умолчанию отображается пункт create
-#и соответствующая псевдо-вкладка, т.к.
-#работа должна начинаться с создания БД.
-tool_name = st.selectbox(label='tool-name',
-                         options=['annotate', 'concatenate', 'count',
-                                  'create', 'dock', 'ljoin',
-                                  'query', 'reindex', 'split'],
-                         index=3)
-
+#В боковой панели - тайтл для тех, кто ещё не понял, как тулкит называется,
+#неприметная надпись с версией этого GUI, а также выпадающие списки с
+#категориями (главная, плагины, скрипты) и компонентами. Т.к. работа
+#должна начинаться с создания БД, по умолчанию отображаются главная
+#категория, пункт create и соответствующая последнему псевдо-вкладка.
+with st.sidebar:
+        st.title(body='high-perf-bio')
+        st.caption(body=f'GUI {__version__}')
+        tool_category = st.selectbox(label='tool-category',
+                                     options=['core', 'plugins', 'scripts'])
+        if tool_category == 'core':
+                tool_names = ['annotate', 'concatenate', 'count',
+                              'create', 'dock', 'ljoin',
+                              'query', 'reindex', 'split']
+                default_tool_idx = 3
+        elif tool_category == 'plugins':
+                tool_names = ['revitalize_id_column']
+                default_tool_idx = 0
+        elif tool_category == 'scripts':
+                tool_names = ['gen_test_files']
+                default_tool_idx = 0
+        tool_name = st.selectbox(label='tool-name',
+                                 options=tool_names,
+                                 index=default_tool_idx)
+        
 #Создание экземпляра класса, поглощающего сигналы
 #от виджетов выбранного тула. Набор атрибутов почти
 #полностью аналогичен таковому у объекта, хранящего
@@ -184,6 +199,39 @@ if tool_name == 'split':
                         with Pool(proc_quan) as pool_obj:
                                 exec_time_start = datetime.datetime.now()
                                 pool_obj.map(main.split, main.src_coll_names)
+                                exec_time = datetime.datetime.now() - exec_time_start
+                st.success(f'parallel computation time: {exec_time}')
+                st.balloons()
+if tool_name == 'revitalize_id_column':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = revitalize_id_column_gui.AddWidgetsRu(revitalize_id_column.__version__)
+        else:
+                args = revitalize_id_column_gui.AddWidgetsEn(revitalize_id_column.__version__)
+        if args.submit:
+                main = revitalize_id_column.Main(args)
+                proc_quan = main.proc_quan
+                with st.spinner(f'ID column reconstruction by {main.src_db_name} DB'):
+                        st.text(f'quantity of parallel processes: {proc_quan}')
+                        with Pool(proc_quan) as pool_obj:
+                                exec_time_start = datetime.datetime.now()
+                                pool_obj.map(main.revitalize, main.src_file_names)
+                                exec_time = datetime.datetime.now() - exec_time_start
+                st.success(f'parallel computation time: {exec_time}')
+                st.balloons()
+if tool_name == 'gen_test_files':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = gen_test_files_gui.AddWidgetsRu(gen_test_files.__version__)
+        else:
+                args = gen_test_files_gui.AddWidgetsEn(gen_test_files.__version__)
+        if args.submit:
+                main = gen_test_files.Main(args)
+                proc_quan = main.proc_quan
+                with st.spinner(f'Generating test files based on {main.src_file_name}'):
+                        st.text(f'rigidity: {main.thinning_lvl}')
+                        st.text(f'quantity of parallel processes: {proc_quan}')
+                        with Pool(proc_quan) as pool_obj:
+                                exec_time_start = datetime.datetime.now()
+                                pool_obj.map(main.thin, main.trg_file_names)
                                 exec_time = datetime.datetime.now() - exec_time_start
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
