@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.dock_descr import DockDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='dock'):
+                        st.header(body='dock')
                         with st.expander(label='description'):
                                 st.text(body=DockDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -41,6 +42,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='dock'):
+                        st.header(body='dock')
                         with st.expander(label='description'):
                                 st.text(body=DockDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

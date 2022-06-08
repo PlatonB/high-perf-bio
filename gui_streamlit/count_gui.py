@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.count_descr import CountDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='count'):
+                        st.header(body='count')
                         with st.expander(label='description'):
                                 st.text(body=CountDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -40,6 +41,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='count'):
+                        st.header(body='count')
                         with st.expander(label='description'):
                                 st.text(body=CountDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

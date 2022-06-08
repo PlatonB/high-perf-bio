@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.ljoin_descr import LjoinDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='ljoin'):
+                        st.header(body='ljoin')
                         with st.expander(label='description'):
                                 st.text(body=LjoinDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -47,6 +48,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='ljoin'):
+                        st.header(body='ljoin')
                         with st.expander(label='description'):
                                 st.text(body=LjoinDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

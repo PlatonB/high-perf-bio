@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.split_descr import SplitDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='split'):
+                        st.header(body='split')
                         with st.expander(label='description'):
                                 st.text(body=SplitDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -41,6 +42,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='split'):
+                        st.header(body='split')
                         with st.expander(label='description'):
                                 st.text(body=SplitDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

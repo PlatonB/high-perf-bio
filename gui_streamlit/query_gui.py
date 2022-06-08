@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.query_descr import QueryDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='query'):
+                        st.header(body='query')
                         with st.expander(label='description'):
                                 st.text(body=QueryDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -43,6 +44,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='query'):
+                        st.header(body='query')
                         with st.expander(label='description'):
                                 st.text(body=QueryDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

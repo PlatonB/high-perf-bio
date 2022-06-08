@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='annotate'):
+                        st.header(body='annotate')
                         with st.expander(label='description'):
                                 st.text(body=AnnotateDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -49,6 +50,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='annotate'):
+                        st.header(body='annotate')
                         with st.expander(label='description'):
                                 st.text(body=AnnotateDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

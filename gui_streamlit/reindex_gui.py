@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.reindex_descr import ReindexDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='reindex'):
+                        st.header(body='reindex')
                         with st.expander(label='description'):
                                 st.text(body=ReindexDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -29,6 +30,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='reindex'):
+                        st.header(body='reindex')
                         with st.expander(label='description'):
                                 st.text(body=ReindexDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

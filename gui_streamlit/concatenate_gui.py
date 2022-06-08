@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.concatenate_descr import ConcatenateDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='concatenate'):
+                        st.header(body='concatenate')
                         with st.expander(label='description'):
                                 st.text(body=ConcatenateDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -33,6 +34,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='concatenate'):
+                        st.header(body='concatenate')
                         with st.expander(label='description'):
                                 st.text(body=ConcatenateDescr(ver).en)
                         st.subheader(body='Mandatory widgets')

@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.create_descr import CreateDescr
@@ -9,6 +9,7 @@ class AddWidgetsRu():
         '''
         def __init__(self, ver):
                 with st.form(key='create'):
+                        st.header(body='create')
                         with st.expander(label='description'):
                                 st.text(body=CreateDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
@@ -39,6 +40,7 @@ class AddWidgetsEn():
         '''
         def __init__(self, ver):
                 with st.form(key='create'):
+                        st.header(body='create')
                         with st.expander(label='description'):
                                 st.text(body=CreateDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
