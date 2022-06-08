@@ -1,10 +1,16 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 import sys, os, locale, random, datetime, gzip
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                             'cli'))
-from gen_test_files_cli import add_args_ru, add_args_en
+if __name__ == '__main__':
+        sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                                     'cli'))
+        sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                                     'backend'))
+        from gen_test_files_cli import add_args_ru, add_args_en
+else:
+        sys.path.append(os.path.join(os.getcwd(),
+                                     'backend'))
 from multiprocessing import Pool
 
 class Main():
