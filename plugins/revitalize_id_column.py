@@ -1,12 +1,16 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 import sys, os, locale, datetime, gzip
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                             'cli'))
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                             'backend'))
-from revitalize_id_column_cli import add_args_ru, add_args_en
+if __name__ == '__main__':
+        sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                                     'cli'))
+        sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
+                                     'backend'))
+        from revitalize_id_column_cli import add_args_ru, add_args_en
+else:
+        sys.path.append(os.path.join(os.getcwd(),
+                                     'backend'))
 from pymongo import MongoClient, ASCENDING
 from common_errors import DifFmtsError
 from multiprocessing import Pool
