@@ -43,6 +43,18 @@ conda install pymongo
 ```
 cd /path/to/high-perf-bio-master
 ```
+### Preparing quick GUI launch.
+If the following instructions don't fit, start the GUI by `streamlit run _gui_streamlit.py` command.
+
+#### Gnome.
+Right click on `__run_gui_streamlit.sh` --> `Properties` --> `Permissions` --> `Allow executing file as program`.
+After that, in the context menu will appear `Run as a Program` item.
+
+#### KDE.
+Right click on `__run_gui_streamlit.sh` --> `Properties` --> `Permissions` --> `Is executable` --> `OK`;
+right click on `__run_gui_streamlit.sh` --> `Open With` --> `Other Application` --> `System` --> `Konsole` --> `OK`;
+close `Konsole`.
+Now it is possible to run the GUI by left-clicking on the shortcut.
 
 # Quick start.
 Upload the VCF set to DB. Cut the genotype data. Index nested fields with population frequencies.
