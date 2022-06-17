@@ -1,8 +1,10 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 class DifFmtsError(Exception):
         '''
-        Поддерживаются только одноформатные таблицы.
+        Если конкретной программой
+        поддерживаются только
+        одноформатные таблицы.
         '''
         def __init__(self, file_fmts):
                 err_msg = f'\nSource files are in different formats: {file_fmts}'
@@ -23,6 +25,16 @@ another existing DB is possible only if
 explicitly specified corresponding argument'''
                 super().__init__(err_msg)
                 
+class FormatIsNotSupportedError(Exception):
+        '''
+        Неприменимость аргумента
+        к src-FMT или src-db-FMT.
+        '''
+        def __init__(self, arg, src_fmt):
+                err_msg = f"\n'{arg}' argument doesn't applicable to {src_fmt} format"
+                super().__init__(err_msg)
+                
+#DEPRECATED.
 class ByLocTsvError(Exception):
         '''
         В исследуемом TSV или основанной на TSV
