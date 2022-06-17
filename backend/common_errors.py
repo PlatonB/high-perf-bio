@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v4.0'
 
 class DifFmtsError(Exception):
         '''
@@ -23,6 +23,14 @@ class DbAlreadyExistsError(Exception):
 strictly denied, whereas uploading to
 another existing DB is possible only if
 explicitly specified corresponding argument'''
+                super().__init__(err_msg)
+                
+class IncompatibleArgsError(Exception):
+        '''
+        Комфликт двух или более аргументов.
+        '''
+        def __init__(self, *args):
+                err_msg = f'\n{" and ".join(args)} arguments are incompatible'
                 super().__init__(err_msg)
                 
 class FormatIsNotSupportedError(Exception):
