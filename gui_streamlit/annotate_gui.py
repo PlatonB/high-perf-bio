@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v3.0'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
@@ -28,10 +28,12 @@ class AddWidgetsRu():
                                                                help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
                         self.by_loc = st.checkbox(label='by-loc',
                                                   help='Пересекать по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется)')
+                        self.by_alleles = st.checkbox(label='by-alleles',
+                                                      help='Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется; одиночный alt из src-VCF можно искать в мульти- из src-db-VCF)')
                         self.ann_col_num = st.number_input(label='ann-col-num', min_value=0, format='%d',
-                                                           help='Номер аннотируемого столбца (применяется без by-loc; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                                                           help='Номер аннотируемого столбца (применяется без by-loc и by-alleles; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
                         self.ann_field_path = st.text_input(label='ann-field-path',
-                                                            help='Точечный путь к полю, по которому аннотировать (применяется без by-loc; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+                                                            help='Точечный путь к полю, по которому аннотировать (применяется без by-loc и by-alleles; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
                         self.srt_field_group = st.text_input(label='srt-field-group',
                                                              help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV)')
                         self.srt_order = st.radio(label='srt-order', options=['asc', 'desc'],
@@ -69,10 +71,12 @@ class AddWidgetsEn():
                                                                help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
                         self.by_loc = st.checkbox(label='by-loc',
                                                   help='Intersect by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable)')
+                        self.by_alleles = st.checkbox(label='by-alleles',
+                                                      help='Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable; single alt from src-VCF can be searched in multi- from src-db-VCF)')
                         self.ann_col_num = st.number_input(label='ann-col-num', min_value=0, format='%d',
-                                                           help='Number of the annotated column (applicable without by-loc; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                                                           help='Number of the annotated column (applicable without by-loc and by-alleles; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
                         self.ann_field_path = st.text_input(label='ann-field-path',
-                                                            help='Dot path to the field by which to annotate (applicable without by-loc; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+                                                            help='Dot path to the field by which to annotate (applicable without by-loc and by-alleles; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
                         self.srt_field_group = st.text_input(label='srt-field-group',
                                                              help='Dot paths to sorted fields (plus separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV)')
                         self.srt_order = st.radio(label='srt-order', options=['asc', 'desc'],
