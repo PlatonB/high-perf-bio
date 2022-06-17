@@ -1,4 +1,4 @@
-__version__ = 'v8.5'
+__version__ = 'v9.0'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -7,7 +7,7 @@ from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
 from multiprocessing import Pool
-from backend.common_errors import DifFmtsError, DbAlreadyExistsError, ByLocTsvError, NoSuchFieldError
+from backend.common_errors import DifFmtsError, DbAlreadyExistsError, FormatIsNotSupportedError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
@@ -74,11 +74,24 @@ class Main():
                         self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
                 self.by_loc = args.by_loc
+                self.by_alleles = args.by_alleles
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.by_loc:
-                        if self.src_file_fmt not in ['vcf', 'bed'] or self.src_coll_ext not in ['vcf', 'bed']:
-                                raise ByLocTsvError()
+                        if self.src_file_fmt not in ['vcf', 'bed']:
+                                raise FormatIsNotSupportedError('by-loc',
+                                                                self.src_file_fmt)
+                        elif self.src_coll_ext not in ['vcf', 'bed']:
+                                raise FormatIsNotSupportedError('by-loc',
+                                                                self.src_coll_ext)
+                        self.mongo_aggr_draft = [{'$match': {'$or': []}}]
+                elif self.by_alleles:
+                        if self.src_file_fmt != 'vcf':
+                                raise FormatIsNotSupportedError('by-alleles',
+                                                                self.src_file_fmt)
+                        elif self.src_coll_ext != 'vcf':
+                                raise FormatIsNotSupportedError('by-alleles',
+                                                                self.src_coll_ext)
                         self.mongo_aggr_draft = [{'$match': {'$or': []}}]
                 else:
                         if args.ann_col_num in [None, 0]:
@@ -223,6 +236,11 @@ class Main():
                                                         mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom,
                                                                                                    'start': {'$lt': src_end},
                                                                                                    'end': {'$gt': src_start}})
+                                elif self.by_alleles:
+                                        src_id, src_ref, src_alt = src_row[2], src_row[3], src_row[4]
+                                        mongo_aggr_arg[0]['$match']['$or'].append({'ID': src_id,
+                                                                                   'REF': src_ref,
+                                                                                   'ALT': src_alt})
                                 else:
                                         mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'].append(def_data_type(src_row[self.ann_col_index]))
                                         
@@ -279,12 +297,13 @@ class Main():
                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
-                                        if not self.by_loc:
-                                                trg_file_opened.write(f'##ann_field_path={self.ann_field_path}\n')
-                                        if hasattr(self, 'srt_field_group'):
-                                                trg_file_opened.write(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}\n')
-                                        if self.mongo_findone_args[1] is not None:
-                                                trg_file_opened.write(f'##mongo_project={self.mongo_findone_args[1]}\n')
+                                        if '$or' in mongo_aggr_arg[0]['$match']:
+                                                if len(mongo_aggr_arg[0]['$match']['$or']) > 5:
+                                                        mongo_aggr_arg[0]['$match']['$or'] = mongo_aggr_arg[0]['$match']['$or'][:5] + ['...']
+                                        elif self.ann_field_path in mongo_aggr_arg[0]['$match']:
+                                                if len(mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in']) > 5:
+                                                        mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'] = mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'][:5] + ['...']
+                                        trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                         if self.trg_file_fmt == 'bed':
                                                 trg_file_opened.write(f'##trg_col_names=<{",".join(trg_col_names)}>\n')
                                         else:
@@ -336,12 +355,14 @@ class Main():
                                 meta_lines['meta'].append(f'##src_file_name={src_file_name}')
                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
-                                if not self.by_loc:
-                                        meta_lines['meta'].append(f'##ann_field_path={self.ann_field_path}')
-                                if hasattr(self, 'srt_field_group'):
-                                        meta_lines['meta'].append(f'##mongo_sort={mongo_aggr_arg[1]["$sort"]}')
-                                if self.mongo_findone_args[1] is not None:
-                                        meta_lines['meta'].append(f'##mongo_project={self.mongo_findone_args[1]}')
+                                mongo_aggr_meta = copy.deepcopy(mongo_aggr_arg)
+                                if '$or' in mongo_aggr_arg[0]['$match']:
+                                        if len(mongo_aggr_arg[0]['$match']['$or']) > 5:
+                                                mongo_aggr_meta[0]['$match']['$or'] = mongo_aggr_arg[0]['$match']['$or'][:5] + ['...']
+                                elif self.ann_field_path in mongo_aggr_arg[0]['$match']:
+                                        if len(mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in']) > 5:
+                                                mongo_aggr_meta[0]['$match'][self.ann_field_path]['$in'] = mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'][:5] + ['...']
+                                meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_meta}')
                                 trg_coll_obj.insert_one(meta_lines)
                                 src_coll_obj.aggregate(mongo_aggr_arg,
                                                        allowDiskUse=True,
