@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v7.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.annotate_descr import AnnotateDescr
@@ -29,10 +29,12 @@ def add_args_ru(ver):
                              help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
                              help='Пересекать по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется)')
+        opt_grp.add_argument('-a', '--by-alleles', dest='by_alleles', action='store_true',
+                             help='Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется; одиночный alt из src-VCF можно искать в мульти- из src-db-VCF)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
-                             help='Номер аннотируемого столбца (применяется без -n; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                             help='Номер аннотируемого столбца (применяется без -n и -a; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
         opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
-                             help='Точечный путь к полю, по которому аннотировать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+                             help='Точечный путь к полю, по которому аннотировать (применяется без -n и -a; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
                              help='Точечные пути к сортируемым полям (через плюс без пробела; src-db-VCF, src-db-BED: trg-(db-)TSV)')
         opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
@@ -72,10 +74,12 @@ def add_args_en(ver):
                              help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
         opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
                              help='Intersect by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable)')
+        opt_grp.add_argument('-a', '--by-alleles', dest='by_alleles', action='store_true',
+                             help='Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable; single alt from src-VCF can be searched in multi- from src-db-VCF)')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
-                             help='Number of the annotated column (applied without -n; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                             help='Number of the annotated column (applicable without -n and -a; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
         opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
-                             help='Dot path to the field by which to annotate (applied without -n; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+                             help='Dot path to the field by which to annotate (applicable without -n and -a; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-s', '--srt-field-group', metavar='[None]', dest='srt_field_group', type=str,
                              help='Dot paths to sorted fields (plus separated without spaces; src-db-VCF, src-db-BED: trg-(db-)TSV)')
         opt_grp.add_argument('-o', '--srt-order', metavar='[asc]', choices=['asc', 'desc'], default='asc', dest='srt_order', type=str,
