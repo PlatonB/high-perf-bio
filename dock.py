@@ -1,11 +1,11 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
 from cli.dock_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
 from multiprocessing import Pool
-from backend.common_errors import DifFmtsError, IncompatibleArgsError, FormatIsNotSupportedError, NoSuchFieldError
+from backend.common_errors import DifFmtsError, FormatIsNotSupportedError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
@@ -65,26 +65,22 @@ class Main():
                 else:
                         self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
-                self.by_loc = args.by_loc
-                self.by_alleles = args.by_alleles
+                self.preset = args.preset
                 self.mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(self.mongo_exclude_meta))
-                if self.by_loc and self.by_alleles:
-                        raise IncompatibleArgsError('by-loc',
-                                                    'by-alleles')
-                if self.by_loc:
+                if self.preset == 'by_location':
                         if self.src_file_fmt not in ['vcf', 'bed']:
-                                raise FormatIsNotSupportedError('by-loc',
+                                raise FormatIsNotSupportedError('preset',
                                                                 self.src_file_fmt)
                         elif self.src_coll_ext not in ['vcf', 'bed']:
-                                raise FormatIsNotSupportedError('by-loc',
+                                raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
-                elif self.by_alleles:
+                elif self.preset == 'by_alleles':
                         if self.src_file_fmt != 'vcf':
-                                raise FormatIsNotSupportedError('by-alleles',
+                                raise FormatIsNotSupportedError('preset',
                                                                 self.src_file_fmt)
                         elif self.src_coll_ext != 'vcf':
-                                raise FormatIsNotSupportedError('by-alleles',
+                                raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
                 else:
                         if args.ann_col_num in [None, 0]:
@@ -195,10 +191,8 @@ class Main():
                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
-                                        if self.by_loc:
-                                                trg_file_opened.write('##preset=by-loc\n')
-                                        elif self.by_alleles:
-                                                trg_file_opened.write('##preset=by-alleles\n')
+                                        if self.preset not in [None, '']:
+                                                trg_file_opened.write(f'##preset={self.preset}\n')
                                         else:
                                                 trg_file_opened.write(f'##ann_field_path={self.ann_field_path}\n')
                                         if self.mongo_project != {}:
@@ -207,7 +201,7 @@ class Main():
                                         empty_res = True
                                         for src_line in src_file_opened:
                                                 src_row = src_line.rstrip().split('\t')
-                                                if self.by_loc:
+                                                if self.preset == 'by_location':
                                                         if self.src_file_fmt == 'vcf':
                                                                 src_chrom, src_pos = def_data_type(src_row[0].replace('chr', '')), int(src_row[1])
                                                                 if self.src_coll_ext == 'vcf':
@@ -227,7 +221,7 @@ class Main():
                                                                         mongo_aggr_arg[0]['$match'] = {'chrom': src_chrom,
                                                                                                        'start': {'$lt': src_end},
                                                                                                        'end': {'$gt': src_start}}
-                                                elif self.by_alleles:
+                                                elif self.preset == 'by_alleles':
                                                         src_id, src_ref, src_alt = src_row[2], src_row[3], src_row[4]
                                                         mongo_aggr_arg[0]['$match'] = {'ID': src_id,
                                                                                        'REF': src_ref,
