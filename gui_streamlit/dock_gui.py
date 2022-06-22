@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.dock_descr import DockDescr
@@ -24,14 +24,13 @@ class AddWidgetsRu():
                                                              help='Максимальное количество параллельно аннотируемых таблиц')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
-                        self.by_loc = st.checkbox(label='by-loc',
-                                                  help='Пересекать по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется)')
-                        self.by_alleles = st.checkbox(label='by-alleles',
-                                                      help='Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется; одиночный alt из src-VCF можно искать в мульти- из src-db-VCF)')
+                        self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
+                                               help='''Аннотировать, пересекая по геномной локации (src-TSV, src-db-TSV: не применяется).
+Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется)''')
                         self.ann_col_num = st.number_input(label='ann-col-num', min_value=0, format='%d',
-                                                           help='Номер аннотируемого столбца (применяется без by-loc и by-alleles; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                                                           help='Номер аннотируемого столбца (применяется без preset; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
                         self.ann_field_path = st.text_input(label='ann-field-path',
-                                                            help='Точечный путь к полю, по которому аннотировать (применяется без by-loc и by-alleles; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+                                                            help='Точечный путь к полю, по которому аннотировать (применяется без preset; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
                         self.proj_field_names = st.text_input(label='proj-field-names',
                                                               help='Отбираемые поля верхнего уровня и/или столбцы (через запятую без пробела; имя_столбца_f; поле _id не выведется)')
                         self.sec_delimiter = st.radio(label='sec-delimiter', options=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], index=1,
@@ -59,14 +58,13 @@ class AddWidgetsEn():
                                                              help='Maximum quantity of parallel annotated tables')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
-                        self.by_loc = st.checkbox(label='by-loc',
-                                                  help='Intersect by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable)')
-                        self.by_alleles = st.checkbox(label='by-alleles',
-                                                      help='Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable; single alt from src-VCF can be searched in multi- from src-db-VCF)')
+                        self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
+                                               help='''Annotate via intersection by genomic location (src-TSV, src-db-TSV: not applicable).
+Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable)''')
                         self.ann_col_num = st.number_input(label='ann-col-num', min_value=0, format='%d',
-                                                           help='Number of the annotated column (applicable without by-loc and by-alleles; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                                                           help='Number of the annotated column (applicable without preset; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
                         self.ann_field_path = st.text_input(label='ann-field-path',
-                                                            help='Dot path to the field by which to annotate (applicable without by-loc and by-alleles; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+                                                            help='Dot path to the field by which to annotate (applicable without preset; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
                         self.proj_field_names = st.text_input(label='proj-field-names',
                                                               help='Selected top level fields and/or columns (comma separated without spaces; column_name_f; _id field will not be output)')
                         self.sec_delimiter = st.radio(label='sec-delimiter', options=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], index=1,
