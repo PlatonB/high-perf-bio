@@ -1,4 +1,4 @@
-__version__ = 'v10.2'
+__version__ = 'v11.0'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -8,7 +8,7 @@ from pymongo.collation import Collation
 from multiprocessing import Pool
 from bson.son import SON
 from backend.get_field_paths import parse_nested_objs
-from backend.common_errors import ByLocTsvError, NoSuchFieldError
+from backend.common_errors import FormatIsNotSupportedError, NoSuchFieldError
 from backend.doc_to_line import restore_line
 
 class NotEnoughCollsError(Exception):
@@ -90,12 +90,17 @@ class Main():
                 else:
                         self.right_coll_names = set(args.right_coll_names.split(','))
                 right_colls_quan = len(self.right_coll_names)
-                self.by_loc = args.by_loc
+                self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
-                if self.by_loc:
+                if self.preset == 'by_location':
                         if self.src_coll_ext not in ['vcf', 'bed']:
-                                raise ByLocTsvError()
+                                raise FormatIsNotSupportedError('preset',
+                                                                self.src_coll_ext)
+                elif self.preset == 'by_alleles':
+                        if self.src_coll_ext != 'vcf':
+                                raise FormatIsNotSupportedError('preset',
+                                                                self.src_coll_ext)
                 elif args.lookup_field_path in [None, '']:
                         if self.src_coll_ext == 'vcf':
                                 self.lookup_field_path = 'ID'
@@ -197,10 +202,10 @@ class Main():
                 if right_coll_names != []:
                         
                         #Дефолтное либо кастомное поле, по которому потом выполнится left join, утверждено ещё
-                        #при инициализации атрибутов. В этом блоке кода находят своё место 3 возможных запроса.
+                        #при инициализации атрибутов. В этом блоке кода находят своё место 4 возможных запроса.
                         #Механизм пересечения и вычитания через левосторонее объединение я красочно описал в ридми.
                         #Небольшая памятка: в let назначаются правые переменные, а сослаться на них можно через $$.
-                        if self.by_loc:
+                        if self.preset == 'by_location':
                                 if self.src_coll_ext == 'vcf':
                                         mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
                                                                         'let': {'chrom': '$#CHROM', 'pos': '$POS'},
@@ -214,6 +219,13 @@ class Main():
                                                                                                                     {'$lt': ['$start', '$$end']},
                                                                                                                     {'$gt': ['$end', '$$start']}]}}}],
                                                                         'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
+                        elif self.preset == 'by_alleles':
+                                mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
+                                                                'let': {'id': '$ID', 'ref': '$REF', 'alt': '$ALT'},
+                                                                'pipeline': [{'$match': {'$expr': {'$and': [{'$eq': ['$ID', '$$id']},
+                                                                                                            {'$eq': ['$REF', '$$ref']},
+                                                                                                            {'$eq': ['$ALT', '$$alt']}]}}}],
+                                                                'as': right_coll_name.replace('.', '_')}} for right_coll_name in right_coll_names]
                         else:
                                 mongo_aggr_arg += [{'$lookup': {'from': right_coll_name,
                                                                 'localField': self.lookup_field_path,
@@ -262,6 +274,8 @@ class Main():
                                 trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
                                 trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                 trg_file_opened.write(f'##left_coll_name={left_coll_name}\n')
+                                if len(mongo_aggr_arg) > 5:
+                                        mongo_aggr_arg = mongo_aggr_arg[:5] + ['...']
                                 trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                 trg_file_opened.write(f'##action={self.action}\n')
                                 trg_file_opened.write(f'##coverage={self.coverage}\n')
