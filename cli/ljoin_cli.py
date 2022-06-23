@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v5.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.ljoin_descr import LjoinDescr
@@ -25,10 +25,11 @@ def add_args_ru(ver):
                              help='Максимальное количество параллельно обрабатываемых левых коллекций')
         opt_grp.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                              help='Имена правых коллекций (через запятую без пробела; [[все коллекции]]; правая, совпадающая с текущей левой, проигнорируется)')
-        opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
-                             help='Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется)')
+        opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
+                             help='''{by_location, by_alleles} Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется).
+Пересекать или вычитать ID, уточняя по аллелям совпадения ID (экспериментальная фича; src-db-TSV/BED: не применяется)''')
         opt_grp.add_argument('-f', '--lookup-field-path', metavar='[None]', dest='lookup_field_path', type=str,
-                             help='Точечный путь к полю, по которому пересекать или вычитать (применяется без -n; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[первое после _id поле]])')
+                             help='Точечный путь к полю, по которому пересекать или вычитать (применяется без -0; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                              help='{intersect, subtract} Пересекать или вычитать')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
@@ -66,10 +67,11 @@ def add_args_en(ver):
                              help='Maximum quantity of parallel processed left collections')
         opt_grp.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                              help='Right collection names (comma separated without spaces; [[all collections]]; the right one, which matches with current left one, will be ignored)')
-        opt_grp.add_argument('-n', '--by-loc', dest='by_loc', action='store_true',
-                             help='Intersect or subtract by genomic location (experimental feature; src-db-TSV: not applicable)')
+        opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
+                             help='''{by_location, by_alleles} Intersect or subtract by genomic location (experimental feature; src-db-TSV: not applicable).
+Intersect or subtract ID, verifying by alleles ID matches (experimental feature; src-db-TSV/BED: not applicable)''')
         opt_grp.add_argument('-f', '--lookup-field-path', metavar='[None]', dest='lookup_field_path', type=str,
-                             help='Dot path to the field by which to intersect or subtract (applied without -n; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[first field after _id]])')
+                             help='Dot path to the field by which to intersect or subtract (applicable without -0; src-db-VCF: [[ID]]; src-db-BED: [[name]], src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-a', '--action', metavar='[intersect]', choices=['intersect', 'subtract'], default='intersect', dest='action', type=str,
                              help='{intersect, subtract} Intersect or subtract')
         opt_grp.add_argument('-c', '--coverage', metavar='[1]', default=1, dest='coverage', type=int,
