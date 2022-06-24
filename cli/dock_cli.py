@@ -1,4 +1,4 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.dock_descr import DockDescr
@@ -25,13 +25,13 @@ def add_args_ru(ver):
                              help='Максимальное количество параллельно аннотируемых таблиц')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
-        opt_grp.add_argument('-a', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
+        opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Аннотировать, пересекая по геномной локации (src-TSV, src-db-TSV: не применяется).
 Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется)''')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
-                             help='Номер аннотируемого столбца (применяется без -a; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                             help='Номер аннотируемого столбца (применяется без -0; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
         opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
-                             help='Точечный путь к полю, по которому аннотировать (применяется без -a; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
+                             help='Точечный путь к полю, по которому аннотировать (применяется без -0; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля верхнего уровня и/или столбцы (через запятую без пробела; имя_столбца_f; поле _id не выведется)')
         opt_grp.add_argument('-,', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
@@ -61,13 +61,13 @@ def add_args_en(ver):
                              help='Maximum quantity of parallel annotated tables')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
-        opt_grp.add_argument('-a', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
+        opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Annotate via intersection by genomic location (src-TSV, src-db-TSV: not applicable).
 Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable)''')
         opt_grp.add_argument('-c', '--ann-col-num', metavar='[None]', dest='ann_col_num', type=int,
-                             help='Number of the annotated column (applicable without -a; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
+                             help='Number of the annotated column (applicable without -0; src-VCF: [[3]]; src-BED: [[4]]; src-TSV: [[1]])')
         opt_grp.add_argument('-f', '--ann-field-path', metavar='[None]', dest='ann_field_path', type=str,
-                             help='Dot path to the field by which to annotate (applicable without -a; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
+                             help='Dot path to the field by which to annotate (applicable without -0; src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected top level fields and/or columns (comma separated without spaces; column_name_f; _id field will not be output)')
         opt_grp.add_argument('-,', '--sec-delimiter', metavar='[comma]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='comma', dest='sec_delimiter', type=str,
