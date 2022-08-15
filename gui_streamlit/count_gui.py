@@ -1,4 +1,4 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 import streamlit as st
 from descriptions.count_descr import CountDescr
@@ -22,7 +22,7 @@ class AddWidgetsRu():
                                                                help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
                         self.cnt_field_paths = st.text_input(label='cnt-field-paths',
                                                              help='''Точечные пути к полям, для которых считать количество каждого набора взаимосвязанных значений (через запятую без пробела;
-src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])''')
+src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])''')
                         self.sec_delimiter = st.radio(label='sec-delimiter', options=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], index=2,
                                                       help='Знак препинания для восстановления ячейки из списка')
                         self.quan_thres = st.number_input(label='quan-thres', min_value=1, format='%d',
@@ -54,7 +54,7 @@ class AddWidgetsEn():
                                                                help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
                         self.cnt_field_paths = st.text_input(label='cnt-field-paths',
                                                              help='''Dot paths to fields for which to count the quantity of each set of related values (comma separated without spaces;
-src-db-VCF: [[ID,REF,ALT]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])''')
+src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])''')
                         self.sec_delimiter = st.radio(label='sec-delimiter', options=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], index=2,
                                                       help='Punctuation mark to restore a cell from a list')
                         self.quan_thres = st.number_input(label='quan-thres', min_value=1, format='%d',
