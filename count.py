@@ -1,10 +1,10 @@
-__version__ = 'v5.3'
+__version__ = 'v6.0'
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
 from cli.count_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
-from backend.common_errors import DbAlreadyExistsError
+from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
 from bson.decimal128 import Decimal128
 from bson.son import SON
@@ -15,15 +15,6 @@ class MoreThanOneCollError(Exception):
         '''
         def __init__(self, colls_quan):
                 err_msg = f'\nThere are {colls_quan} collections in the DB, but it must be 1'
-                super().__init__(err_msg)
-                
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
-        '''
-        def __init__(self, field_path):
-                err_msg = f'\nThe field {field_path} does not exist'
                 super().__init__(err_msg)
                 
 class CombFiltersError(Exception):
@@ -80,7 +71,7 @@ class Main():
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_name].find_one(mongo_exclude_meta))
                 if args.cnt_field_paths in [None, '']:
                         if src_coll_ext == 'vcf':
-                                cnt_field_paths = ['ID', 'REF', 'ALT']
+                                cnt_field_paths = ['ID']
                         elif src_coll_ext == 'bed':
                                 cnt_field_paths = ['name']
                         else:
@@ -90,6 +81,8 @@ class Main():
                         for cnt_field_path in cnt_field_paths:
                                 if cnt_field_path not in src_field_paths:
                                         raise NoSuchFieldError(cnt_field_path)
+                self.mongo_aggr_draft = [{'$match': mongo_exclude_meta}] + \
+                                        [{'$unwind': f'${cnt_field_path}'} for cnt_field_path in cnt_field_paths]
                 cnt_field_paths_quan = len(cnt_field_paths)
                 if args.sec_delimiter == 'colon':
                         sec_delimiter = ':'
@@ -109,9 +102,8 @@ class Main():
                                         mongo_id['$concat'].append(sec_delimiter)
                 else:
                         mongo_id = f'${cnt_field_paths[0]}'
-                self.mongo_aggr_draft = [{'$match': mongo_exclude_meta},
-                                         {'$group': {'_id': mongo_id,
-                                                     'quantity': {'$sum': 1}}}]
+                self.mongo_aggr_draft.append({'$group': {'_id': mongo_id,
+                                                         'quantity': {'$sum': 1}}})
                 self.trg_header = [sec_delimiter.join(cnt_field_paths),
                                    'quantity']
                 if args.quan_thres > 1 and args.freq_thres not in [None, '']:
