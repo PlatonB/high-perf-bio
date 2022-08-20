@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
@@ -94,11 +94,14 @@ if tool_name == 'count':
                 args = count_gui.AddWidgetsEn(count.__version__)
         if args.submit:
                 main = count.Main(args, count.__version__)
+                proc_quan = main.proc_quan
                 with st.spinner(f'Counting sets of related values in {main.src_db_name} DB'):
-                        exec_time_start = datetime.datetime.now()
-                        main.count()
-                        exec_time = datetime.datetime.now() - exec_time_start
-                st.success(f'computation time: {exec_time}')
+                        st.text(f'quantity of parallel processes: {proc_quan}')
+                        with Pool(proc_quan) as pool_obj:
+                                exec_time_start = datetime.datetime.now()
+                                pool_obj.map(main.count, main.src_coll_names)
+                                exec_time = datetime.datetime.now() - exec_time_start
+                st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'create':
         if locale.getdefaultlocale()[0][:2] == 'ru':
