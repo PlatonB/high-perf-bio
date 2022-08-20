@@ -1,10 +1,10 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 class CountDescr():
         def __init__(self, ver):
                 self.ru = f'''
-Программа, считающая количество и, опционально, частоту каждого набора
-соответствующих значений заданных полей в пределах единственной коллекции.
+Программа, считающая количество и, опционально, частоту каждого
+набора соответствующих значений заданных полей в пределах коллекции.
 
 Версия: {ver}
 Требуемые сторонние компоненты: MongoDB, PyMongo
@@ -31,8 +31,8 @@ field_1.field_2.(...).field_N
 {{допустимые значения}}.
 '''
                 self.en = f'''
-A program that counts the quantity and, optionally, the frequency of each
-set of corresponding values of given fields within a single collection.
+A program that counts the quantity and, optionally, the frequency of
+each set of corresponding values of given fields within collection.
 
 Version: {ver}
 Dependencies: MongoDB, PyMongo
