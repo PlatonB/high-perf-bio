@@ -91,10 +91,10 @@ cd /path/to/high-perf-bio-master
 
 Подключение официального репозитория _MongoDB_.
 ```
-wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
 ```
 ```
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
 ```
 
 Обновление индекса пакетов ОС.
@@ -109,12 +109,12 @@ sudo apt install -y mongodb-org
 
 Перманентный запуск _MongoDB_. Лучше так сделать, если планируете использовать _high-perf-bio_ часто.
 ```
-sudo systemctl enable mongod.service
+sudo systemctl enable mongod
 ```
 
 Если вам не нужно эксплуатировать _MongoDB_-решения каждый день, то рекомендую команду, активирующую _MongoDB_ до ближайшей перезагрузки.
 ```
-sudo service mongod start
+sudo systemctl start mongod
 ```
 
 После инсталляции настоятельно рекомендую перезагрузиться.
@@ -124,17 +124,18 @@ sudo systemctl reboot
 
 Обязательно проверьте, успешно ли СУБД установилась.
 ```
-mongo --version
+mongosh
 ```
 
-Если да, то первой строкой выведется номер версии интерактивной консоли _MongoDB_.
+Если да, то третьей строкой выведется номер версии _MongoDB_.
 ```
-MongoDB shell version v5.0.2
-<...>
+Using MongoDB:		6.0.0
 ```
+
+Выйти из шелла _mongosh_ — `CTRL+D`.
 
 #### Fedora Linux.
-TBD.
+Инструкцию для дистрового семейства _RedHat_ напишу, как только появятся актуальные официальные доки. [Напоминайте](https://www.mongodb.com/community/forums/t/request-to-update-the-installation-documentation-for-fedora/1918) об этом разрабам.
 
 ### PyMongo и Streamlit.
 Установка с помощью _pip_:
