@@ -137,6 +137,44 @@ Using MongoDB:		6.0.0
 #### Fedora Linux.
 Инструкцию для дистрового семейства _RedHat_ напишу, как только появятся актуальные официальные доки. [Напоминайте](https://www.mongodb.com/community/forums/t/request-to-update-the-installation-documentation-for-fedora/1918) об этом разрабам.
 
+#### Произвольное расположение MongoDB-данных.
+К примеру, у вас есть до неприличия маленький SSD и вполне просторный HDD (далее - V1). И так случилось, что _MongoDB_ заталкивает базы и логи в первое из перечисленных мест. Как сделать, чтобы эти данные хостились на V1?
+
+1. Создайте папку для БД и лог-файл.
+```
+mkdir /mnt/V1/mongodb
+```
+```
+touch /mnt/V1/mongod.log
+```
+
+P.S. Можно было и через файл-менеджер;).
+
+2. Предельно аккуратно укажите пути к свежеупомянутым папке и файлу в главном конфиге _MongoDB_:
+```
+sudo nano /etc/mongod.conf
+```
+```
+<...>
+storage:
+  dbPath: /mnt/V1/mongodb
+<...>
+systemLog:
+  <...>
+  path: /mnt/V1/mongod.log
+<...>
+```
+
+Сохраните изменения (`CTRL+S`) и выйдите из редактора (`CTRL+X`).
+
+3. Предоставьте необходимые права доступа нашим переселенцам:
+```
+sudo chown mongodb -R /mnt/V1/mongodb
+```
+```
+sudo chown mongodb -R /mnt/V1/mongod.log
+```
+
 ### PyMongo и Streamlit.
 Установка с помощью _pip_:
 ```
