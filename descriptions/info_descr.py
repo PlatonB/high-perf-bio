@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 class InfoDescr():
         def __init__(self, ver):
@@ -16,6 +16,9 @@ class InfoDescr():
 
 Этот инструмент полезен, если вы используете Linux без графической оболочки.
 Если же у вас дистрибутив с DE, предпросматривайте БД в MongoDB Compass.
+
+Информацию о БД можно вывести не только на экран, но и в файл:
+python3 info.py -d DB_name > path/to/DB_info.txt
 
 Условные обозначения в справке по CLI:
 [значение по умолчанию на этапе парсинга аргументов];
@@ -35,6 +38,9 @@ Bug reports, suggestions, talks: https://github.com/PlatonB/high-perf-bio/issues
 
 This tool is good if you use Linux without a graphical shell. If you
 work on a distribution with DE, you can preview DB in MongoDB Compass.
+
+Information about DB can be not only printed, but also redirected to file:
+python3 info.py -d DB_name > path/to/DB_info.txt
 
 The notation in the CLI help:
 [default value in the argument parsing step];
