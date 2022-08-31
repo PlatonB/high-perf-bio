@@ -28,14 +28,14 @@ Useful tools for working with tables (not DBs).
 | gen_test_files | creates N smaller tables from one table |
 
 ## Preparation.
-1. [Install](https://www.mongodb.com/docs/manual/installation/#mongodb-installation-tutorials) _MongoDB_. Don't forget to activate it via `sudo systemctl enable mongod.service` command.
-2. Install _PyMongo_:
+1. [Install](https://www.mongodb.com/docs/manual/installation/#mongodb-installation-tutorials) _MongoDB_. Don't forget to activate it via `sudo systemctl enable mongod` command.
+2. Install _PyMongo_ and _Streamlit_:
 ```
-pip3 install pymongo
+pip3 install pymongo streamlit
 ```
 or
 ```
-conda install pymongo
+conda install pymongo streamlit
 ```
 3. [Download](https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip) the archive with toolkit.
 4. Unzip it into any directory.
@@ -43,6 +43,7 @@ conda install pymongo
 ```
 cd /path/to/high-perf-bio-master
 ```
+
 ### Preparing quick GUI launch.
 If the following instructions don't fit, start the GUI by `streamlit run _gui_streamlit.py` command.
 
