@@ -28,6 +28,7 @@ Useful tools for working with tables (not DBs).
 | gen_test_files | creates N smaller tables from one table |
 
 ## Preparation.
+### To do necessarily.
 1. [Install](https://www.mongodb.com/docs/manual/installation/#mongodb-installation-tutorials) _MongoDB_. Don't forget to activate it via `sudo systemctl enable mongod` command.
 2. Install _PyMongo_ and _Streamlit_:
 ```
@@ -56,6 +57,24 @@ Right click on `__run_gui_streamlit.sh` --> `Properties` --> `Permissions` --> `
 right click on `__run_gui_streamlit.sh` --> `Open With` --> `Other Application` --> `System` --> `Konsole` --> `OK`;
 close `Konsole`.
 Now it is possible to run the GUI by left-clicking on the shortcut.
+
+### Previewing databases.
+#### [MongoDB Compass](https://flathub.org/apps/details/com.mongodb.Compass).
+Allows not only to visually browse DB, but also to execute queries, design aggregation pipelines, measure query performance, etc.
+![MongoDB_Compass_high-perf-bio](https://user-images.githubusercontent.com/25541767/188226634-539245f2-7aed-4e11-ad6b-f587cb6cd18d.png)
+
+#### _info_ tool.
+It is a regular _high-perf-bio_ component.
+
+List all DBs:
+```
+python3 info.py
+```
+
+Output to a file the most important information about a certain DB:
+```
+python3 info.py -d GTEx_VCF > $HOME/Bio/out/GTEx_VCF_info.txt
+```
 
 # Quick start.
 Upload the VCF set to DB. Cut the genotype data. Index nested fields with population frequencies.
