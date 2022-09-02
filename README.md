@@ -188,6 +188,11 @@ pip3 install pymongo streamlit
 conda install pymongo streamlit
 ```
 
+### MongoDB Compass
+#### (опционально)
+Рекомендую устанавливать с [Flathub](https://flathub.org/apps/details/com.mongodb.Compass). _Compass_ - родной GUI к _MongoDB_. В нашем случае он позволяет использовать _high-perf-bio_ не вслепую: делает возможным просмотр создаваемых компонентами тулкита коллекций и индексов. _Compass_ также даёт простор для ручного/продвинутого администрирования БД: составлять запросы, оценивать их производительность, экспериментировать с агрегациями и т.д..
+![MongoDB_Compass_high-perf-bio](https://user-images.githubusercontent.com/25541767/188226634-539245f2-7aed-4e11-ad6b-f587cb6cd18d.png)
+
 ### Примечание по поводу Windows.
 Теоретически, после установки _MongoDB_ и whl-пакетов _PyMongo_ + _Streamlit_ программа должна работать. Но у меня сейчас _Windows_ нет, и я пока не проверял. Надеюсь, кто-нибудь поделится опытом в [Issues](https://github.com/PlatonB/high-perf-bio/issues).
 
