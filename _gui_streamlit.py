@@ -1,4 +1,4 @@
-__version__ = 'v1.1'
+__version__ = 'v2.0'
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
@@ -11,11 +11,11 @@ sys.path.append(os.path.join(hpb_dir_path,
                              'scripts'))
 import streamlit as st
 import annotate_gui, concatenate_gui, count_gui, create_gui, \
-       dock_gui, ljoin_gui, query_gui, reindex_gui, \
-       split_gui, revitalize_id_column_gui, gen_test_files_gui
+       dock_gui, ljoin_gui, query_gui, reindex_gui, split_gui, \
+       revitalize_id_column_gui, count_lines_gui, gen_test_files_gui
 import annotate, concatenate, count, create, \
-       dock, ljoin, query, reindex, \
-       split, revitalize_id_column, gen_test_files
+       dock, ljoin, query, reindex, split, \
+       revitalize_id_column, count_lines, gen_test_files
 from multiprocessing import Pool
 
 #Кастомизируем заголовок окна
@@ -45,7 +45,7 @@ with st.sidebar:
                 tool_names = ['revitalize_id_column']
                 default_tool_idx = 0
         elif tool_category == 'scripts':
-                tool_names = ['gen_test_files']
+                tool_names = ['count_lines', 'gen_test_files']
                 default_tool_idx = 0
         tool_name = st.selectbox(label='tool-name',
                                  options=tool_names,
@@ -220,6 +220,19 @@ if tool_name == 'revitalize_id_column':
                                 pool_obj.map(main.revitalize, main.src_file_names)
                                 exec_time = datetime.datetime.now() - exec_time_start
                 st.success(f'parallel computation time: {exec_time}')
+                st.balloons()
+if tool_name == 'count_lines':
+        if locale.getdefaultlocale()[0][:2] == 'ru':
+                args = count_lines_gui.AddWidgetsRu(count_lines.__version__)
+        else:
+                args = count_lines_gui.AddWidgetsEn(count_lines.__version__)
+        if args.submit:
+                main = count_lines.Main(args, count_lines.__version__)
+                with st.spinner(f'Counting lines of tables from {os.path.basename(main.src_dir_tree[0][0])} dir tree'):
+                        exec_time_start = datetime.datetime.now()
+                        main.count_lines()
+                        exec_time = datetime.datetime.now() - exec_time_start
+                st.success(f'computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'gen_test_files':
         if locale.getdefaultlocale()[0][:2] == 'ru':
