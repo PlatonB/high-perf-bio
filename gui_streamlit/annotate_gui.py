@@ -1,7 +1,8 @@
-__version__ = 'v3.1'
+__version__ = 'v4.0'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -15,8 +16,8 @@ class AddWidgetsRu():
                         st.subheader(body='Обязательные виджеты')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Путь к папке со сжатыми аннотируемыми таблицами')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя БД, по которой аннотировать')
+                        self.src_db_name = st.selectbox(label='src-db-name', options=MongoClient().list_database_names(),
+                                                        help='Имя БД, по которой аннотировать')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Путь к папке или имя БД для результатов')
                         st.subheader(body='Необязательные виджеты')
@@ -57,8 +58,8 @@ class AddWidgetsEn():
                         st.subheader(body='Mandatory widgets')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Path to directory with gzipped tables, which will be annotated')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of the DB by which to annotate')
+                        self.src_db_name = st.selectbox(label='src-db-name', options=MongoClient().list_database_names(),
+                                                        help='Name of the DB by which to annotate')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Path to directory or name of the DB for results')
                         st.subheader(body='Optional widgets')

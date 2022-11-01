@@ -1,7 +1,8 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 import streamlit as st
 from descriptions.ljoin_descr import LjoinDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -13,8 +14,9 @@ class AddWidgetsRu():
                         with st.expander(label='description'):
                                 st.text(body=LjoinDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя БД, по которой выполнять работу')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Имя БД, по которой выполнять работу')
                         self.trg_dir_path = st.text_input(label='trg-dir-path',
                                                           help='Путь к папке для результатов')
                         st.subheader(body='Необязательные виджеты')
@@ -53,8 +55,9 @@ class AddWidgetsEn():
                         with st.expander(label='description'):
                                 st.text(body=LjoinDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of the DB to work on')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Name of the DB to work on')
                         self.trg_dir_path = st.text_input(label='trg-dir-path',
                                                           help='Path to directory for results')
                         st.subheader(body='Optional widgets')

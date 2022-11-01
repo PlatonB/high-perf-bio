@@ -1,7 +1,8 @@
-__version__ = 'v1.1'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.concatenate_descr import ConcatenateDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -13,8 +14,9 @@ class AddWidgetsRu():
                         with st.expander(label='description'):
                                 st.text(body=ConcatenateDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя БД, которую конкатенировать')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Имя БД, которую конкатенировать')
                         self.trg_db_name = st.text_input(label='trg-db-name',
                                                          help='Имя БД для результатов')
                         st.subheader(body='Необязательные аргументы')
@@ -38,8 +40,9 @@ class AddWidgetsEn():
                         with st.expander(label='description'):
                                 st.text(body=ConcatenateDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of DB to concatenate')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Name of DB to concatenate')
                         self.trg_db_name = st.text_input(label='trg-db-name',
                                                          help='Name of DB for results')
                         st.subheader(body='Optional widgets')

@@ -1,7 +1,8 @@
-__version__ = 'v1.0'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.revitalize_id_column_descr import RevitalizeIdColumnDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -15,8 +16,8 @@ class AddWidgetsRu():
                         st.subheader(body='Обязательные виджеты')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Путь к папке со сжатыми исходными таблицами (src-BED и src-TSV не поддерживаются программой)')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя БД, содержащей коллекцию с (rs)ID-полем (src-db-BED и src-db-TSV не поддерживаются программой)')
+                        self.src_db_name = st.selectbox(label='src-db-name', options=MongoClient().list_database_names(),
+                                                        help='Имя БД, содержащей коллекцию с (rs)ID-полем (src-db-BED и src-db-TSV не поддерживаются программой)')
                         self.trg_dir_path = st.text_input(label='trg-dir-path',
                                                           help='Путь к папке для результатов')
                         st.subheader(body='Необязательные виджеты')
@@ -38,8 +39,8 @@ class AddWidgetsEn():
                         st.subheader(body='Mandatory widgets')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Path to directory with gzipped source tables (src-BED and src-TSV are not supported by the program)')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of DB containing collection with (rs)ID field (src-db-BED and src-db-TSV are not supported by the program)')
+                        self.src_db_name = st.selectbox(label='src-db-name', options=MongoClient().list_database_names(),
+                                                        help='Name of DB containing collection with (rs)ID field (src-db-BED and src-db-TSV are not supported by the program)')
                         self.trg_dir_path = st.text_input(label='trg-dir-path',
                                                           help='Path to directory for results')
                         st.subheader(body='Optional widgets')

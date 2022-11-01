@@ -1,7 +1,8 @@
-__version__ = 'v1.1'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.reindex_descr import ReindexDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -13,8 +14,9 @@ class AddWidgetsRu():
                         with st.expander(label='description'):
                                 st.text(body=ReindexDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя переиндексируемой БД')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Имя переиндексируемой БД')
                         st.subheader(body='Необязательные виджеты')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Максимальное количество параллельно индексируемых коллекций')
@@ -34,8 +36,9 @@ class AddWidgetsEn():
                         with st.expander(label='description'):
                                 st.text(body=ReindexDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of the reindexed DB')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Name of the reindexed DB')
                         st.subheader(body='Optional widgets')
                         self.max_proc_quan = st.number_input(label='max-proc-quan', value=4, min_value=1, format='%d',
                                                              help='Maximum quantity of parallel indexed collections')

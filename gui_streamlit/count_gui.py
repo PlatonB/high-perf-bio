@@ -1,7 +1,8 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 import streamlit as st
 from descriptions.count_descr import CountDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -13,8 +14,9 @@ class AddWidgetsRu():
                         with st.expander(label='description'):
                                 st.text(body=CountDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя анализируемой БД')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Имя анализируемой БД')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Путь к папке или имя БД для результатов')
                         st.subheader(body='Необязательные виджеты')
@@ -47,8 +49,9 @@ class AddWidgetsEn():
                         with st.expander(label='description'):
                                 st.text(body=CountDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of the analyzed DB')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Name of the analyzed DB')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Path to directory or name of the DB for results')
                         st.subheader(body='Optional widgets')

@@ -1,7 +1,8 @@
-__version__ = 'v1.1'
+__version__ = 'v2.0'
 
 import streamlit as st
 from descriptions.split_descr import SplitDescr
+from pymongo import MongoClient
 
 class AddWidgetsRu():
         '''
@@ -13,8 +14,9 @@ class AddWidgetsRu():
                         with st.expander(label='description'):
                                 st.text(body=SplitDescr(ver).ru)
                         st.subheader(body='Обязательные виджеты')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Имя БД, коллекции которой разделять')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Имя БД, коллекции которой разделять')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Путь к папке или имя БД для результатов')
                         st.subheader(body='Необязательные виджеты')
@@ -46,8 +48,9 @@ class AddWidgetsEn():
                         with st.expander(label='description'):
                                 st.text(body=SplitDescr(ver).en)
                         st.subheader(body='Mandatory widgets')
-                        self.src_db_name = st.text_input(label='src-db-name',
-                                                         help='Name of the DB whose collections to split')
+                        self.src_db_name = st.selectbox(label='src-db-name',
+                                                        options=MongoClient().list_database_names(),
+                                                        help='Name of the DB whose collections to split')
                         self.trg_place = st.text_input(label='trg-place',
                                                        help='Path to directory or name of the DB for results')
                         st.subheader(body='Optional widgets')
