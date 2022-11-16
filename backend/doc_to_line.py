@@ -1,11 +1,11 @@
-__version__ = 'v1.4'
+__version__ = 'v2.0'
 
 def restore_info_cell(info_obj):
         '''
         Функция восстановления ячейки VCF-INFO-столбца
-        из MongoDB-объекта. Последний должен состоять
-        из словаря бывших парных INFO-элементов и списка
-        бывших одиночных INFO-флагов. То, как этот объект
+        из MongoDB-объекта. Последний должен представлять
+        собой список со словарём бывших парных INFO-элементов
+        и с бывшими одиночными INFO-флагами. То, как этот объект
         формируется, подробно описано в строке документации
         соответствующей функции программы создания БД.
         '''
@@ -15,7 +15,7 @@ def restore_info_cell(info_obj):
                         info_row.append(f'{key}={",".join(map(str, val))}')
                 else:
                         info_row.append(f'{key}={str(val)}')
-        for flag in info_obj[1]:
+        for flag in info_obj[1:]:
                 info_row.append(str(flag))
         info_cell = ';'.join(info_row)
         return info_cell
@@ -32,8 +32,12 @@ def restore_gt_cell(gt_obj):
         gt_row = []
         for val in gt_obj.values():
                 if type(val) is list:
-                        gt_row.append(','.join(map(str,
-                                                   val)))
+                        if '|' in val or '/' in val:
+                                join_sym = ''
+                        else:
+                                join_sym = ','
+                        gt_row.append(join_sym.join(map(str,
+                                                        val)))
                 else:
                         gt_row.append(str(val))
         gt_cell = ':'.join(gt_row)
