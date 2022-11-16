@@ -1,4 +1,4 @@
-__version__ = 'v6.4'
+__version__ = 'v7.0'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -40,38 +40,45 @@ def process_chrom_cell(chrom_cell):
 
 def process_info_cell(info_cell):
         '''
-        Функция преобразования ячейки INFO-столбца VCF-таблицы в список
-        из словаря и списка. У INFO есть такая особенность: одни элементы
-        представляют собой пары ключ-значение, другие (далее - флаги)
-        идут без ключей. Пары разместятся в словарь, а флаги - в список,
-        расположенный на одинаковом со словарём уровне. Если у одного ключа
-        несколько значений, программа положит их в подсписок. Поскольку
-        официальные рекомендации по составу INFO-столбца не являются
-        строгими, тип данных каждого элемента приходится подбирать.
+        Функция преобразования ячейки INFO-столбца VCF-таблицы в список,
+        начинающийся со словаря. У INFO есть такая особенность: одни элементы
+        представляют собой записанные через знак равенства пары ключ-значение,
+        другие (далее - флаги) идут в одиночку. Пары разместятся в словарь,
+        а флаги станут продолжением списка. Если у одного ключа несколько
+        значений, программа положит их в подсписок. Поскольку официальные
+        рекомендации по составу INFO-столбца не являются строгими,
+        тип данных каждого элемента программе придётся подбирать.
         '''
-        info_row, info_obj = info_cell.split(';'), [{}, []]
+        info_row, info_obj = info_cell.split(';'), [{}]
         for info_subcell in info_row:
                 if '=' in info_subcell:
                         pair = info_subcell.split('=')
                         if ',' in pair[1]:
-                                pair[1] = [def_data_type(val) for val in pair[1].split(',')]
+                                pair[1] = (list(map(def_data_type,
+                                                    pair[1].split(','))))
                         else:
                                 pair[1] = def_data_type(pair[1])
                         info_obj[0][pair[0]] = pair[1]
                 else:
-                        info_obj[1].append(def_data_type(info_subcell))
+                        info_obj.append(def_data_type(info_subcell))
         return info_obj
 
 def process_gt_cell(format_cell, gt_cell):
         '''
-        Функция объединения ячеек FORMAT- и GT-столбца VCF-таблицы
-        в словарь. Из-за непредсказуемости состава GT-столбца для
-        каждого значения тип данных будет определяться подбором.
+        Функция объединения ячеек FORMAT- и GT-столбца VCF-таблицы в
+        словарь. Генотипы дробятся по двум видам слэша с сохранением
+        разделителей. Из-за непредсказуемости состава GT-столбца,
+        для каждого значения тип данных определяется подбором.
         '''
         format_row, gt_row, gt_two_dim = format_cell.split(':'), gt_cell.split(':'), []
         for gt_subcell in gt_row:
-                if ',' in gt_subcell:
-                        gt_two_dim.append([def_data_type(val) for val in gt_subcell.split(',')])
+                if re.search(r'[|/]', gt_subcell) is not None:
+                        gt_two_dim.append(list(map(def_data_type,
+                                                   re.split(r'([|/])',
+                                                            gt_subcell))))
+                elif ',' in gt_subcell:
+                        gt_two_dim.append(list(map(def_data_type,
+                                                   gt_subcell.split(','))))
                 else:
                         gt_two_dim.append(def_data_type(gt_subcell))
         gt_obj = dict(zip(format_row, gt_two_dim))
