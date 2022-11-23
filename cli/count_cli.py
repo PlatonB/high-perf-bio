@@ -1,4 +1,4 @@
-__version__ = 'v8.0'
+__version__ = 'v9.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.count_descr import CountDescr
@@ -26,6 +26,8 @@ def add_args_ru(ver):
         opt_grp.add_argument('-f', '--cnt-field-paths', metavar='[None]', dest='cnt_field_paths', type=str,
                              help='''Точечные пути к полям, для которых считать количество каждого набора взаимосвязанных значений (через запятую без пробела;
 src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[первое после _id поле]])''')
+        opt_grp.add_argument('-w', '--not-unfold-arrays', dest='not_unfold_arrays', action='store_true',
+                             help='Не разворачивать списки (подсчёт по нескольким полям выдаст ошибку при встрече с массивом)')
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Знак препинания для формирования конечных составных значений')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
@@ -62,6 +64,8 @@ def add_args_en(ver):
         opt_grp.add_argument('-f', '--cnt-field-paths', metavar='[None]', dest='cnt_field_paths', type=str,
                              help='''Dot paths to fields for which to count the quantity of each set of related values (comma separated without spaces;
 src-db-VCF: [[ID]]; src-db-BED: [[name]]; src-db-TSV: [[first field after _id]])''')
+        opt_grp.add_argument('-w', '--not-unfold-arrays', dest='not_unfold_arrays', action='store_true',
+                             help="Don't unfold arrays (counting by multiple fields will cause an error when encountering an array)")
         opt_grp.add_argument('-s', '--sec-delimiter', metavar='[low_line]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], default='low_line', dest='sec_delimiter', type=str,
                              help='{colon, comma, low_line, pipe, semicolon} Punctuation mark for forming target compound values')
         opt_grp.add_argument('-a', '--quan-thres', metavar='[1]', default=1, dest='quan_thres', type=int,
