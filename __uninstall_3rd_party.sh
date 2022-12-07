@@ -1,9 +1,10 @@
 #!/bin/bash
 
-echo -e "\nA script that completely removes MongoDB
-(optionally with data), PyMongo and Streamlit.
+echo -e "
+A script that removes MongoDB (optionally
+with data), PyMongo and Streamlit.
 
-Version: 0.5-beta
+Version: 0.6-beta
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -30,7 +31,7 @@ done
 if [[ $distro_name == ubuntu ]]
 then
 	sudo service mongod stop; echo
-	sudo apt purge mongodb-org* -y; echo
+	sudo apt purge -y mongodb-org*; echo
 	sudo rm -v /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
 	sudo apt autoremove -y; echo
 else
@@ -46,7 +47,11 @@ then
 	sudo rm -vr /var/log/mongodb
 	sudo rm -vr /var/lib/mongodb; echo
 fi
-pip3 uninstall pymongo streamlit -y; echo
+if [[ -d ~/miniconda3/ ]]
+then
+	conda uninstall -y streamlit; echo
+fi
+pip3 uninstall -y streamlit pymongo; echo
 read -p "Reboot OS now? (recommended) (y/<enter>): " reboot; echo
 if [[ $reboot == y ]]
 then
