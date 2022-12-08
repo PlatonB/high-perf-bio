@@ -4,7 +4,7 @@ echo -e "
 A script that removes MongoDB (optionally
 with data), PyMongo and Streamlit.
 
-Version: 0.6-beta
+Version: 0.7-beta
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -16,6 +16,15 @@ Notation:
 y - type y to confirm this action;
 <enter> - type anything other than y or
 type nothing to discard this action.\n"
+
+#Театр безопасности.
+read -p "Are you really want to remove the aforementioned
+packages along with their config files? (y/<enter>): " agreement; echo
+if [[ $agreement != y ]]
+then
+	echo -e "Canceled.\n"
+	exit
+fi
 
 #Дистро-специфичные команды.
 distro_name=$(cat /etc/os-release | grep -Po "(?<=^ID=).+")
