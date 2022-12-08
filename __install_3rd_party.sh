@@ -3,7 +3,7 @@
 echo -e "
 A script that installs MongoDB, PyMongo and Streamlit.
 
-Version: 0.6-beta
+Version: 0.7-beta
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -36,11 +36,13 @@ then
 		sudo apt install ./libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 		rm -v libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 	fi
-	wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -; echo
-	echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $ubuntu_ver/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
+	wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc |
+	sudo apt-key add -; echo
+	echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $ubuntu_ver/mongodb-org/6.0 multiverse" |
+	sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
 	sudo apt update; echo
 	sudo apt install -y mongodb-org; echo
-	sudo systemctl start mongod
+	sudo systemctl enable mongod
 	sudo apt install -y python3-pip; echo
 else
 	echo -e "Automatic dependencies installation
