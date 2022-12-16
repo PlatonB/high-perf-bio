@@ -4,7 +4,7 @@ echo -e "
 A script that removes MongoDB (optionally
 with data), PyMongo and Streamlit.
 
-Version: v1.0
+Version: v1.1
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -51,10 +51,11 @@ if [[ $distro_name == ubuntu ]]; then
 	sudo service mongod stop; echo
 	sudo apt purge -y mongodb-org*; echo
 	sudo apt autoremove -y; echo
-	sudo rm -v /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
+	sudo rm -v /etc/apt/sources.list.d/mongodb-org-*.list; echo
 elif [[ $distro_name == rhel ]]; then
 	sudo service mongod stop; echo
 	sudo yum erase -y $(rpm -qa | grep mongodb-org); echo
+	sudo rm -v /etc/yum.repos.d/mongodb-org-*.repo; echo
 else
 	echo -e "Automatic dependencies uninstallation
 from $distro_name is not supported yet.\n"
