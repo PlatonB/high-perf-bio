@@ -4,7 +4,7 @@ echo -e "
 A script that removes MongoDB (optionally
 with data), PyMongo and Streamlit.
 
-Version: 0.7-beta
+Version: v1.0
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -20,29 +20,41 @@ type nothing to discard this action.\n"
 #Театр безопасности.
 read -p "Are you really want to remove the aforementioned
 packages along with their config files? (y/<enter>): " agreement; echo
-if [[ $agreement != y ]]
-then
+if [[ $agreement != y ]]; then
 	echo -e "Canceled.\n"
 	exit
 fi
 
-#Дистро-специфичные команды.
-distro_name=$(cat /etc/os-release | grep -Po "(?<=^ID=).+")
-ubuntu_based_names=(elementary linuxmint neon)
-for ubuntu_based_name in ${ubuntu_based_names[@]}
+#Определение дистрибутива.
+distro_name=$(cat /etc/os-release |
+              grep -Po "(?<=^ID=).+" |
+              grep -Po "\w+")
+ubuntu_family=(elementary linuxmint neon ubuntu)
+redhat_family=(almalinux centos fedora rhel rocky)
+for name in ${ubuntu_family[@]}
 do
-	if [[ $ubuntu_based_name == $distro_name ]]
-	then
+	if [[ $name == $distro_name ]]; then
 		distro_name=ubuntu
 		break
 	fi
 done
-if [[ $distro_name == ubuntu ]]
-then
+for name in ${redhat_family[@]}
+do
+	if [[ $name == $distro_name ]]; then
+		distro_name=rhel
+		break
+	fi
+done
+
+#Дистро-специфичные команды.
+if [[ $distro_name == ubuntu ]]; then
 	sudo service mongod stop; echo
 	sudo apt purge -y mongodb-org*; echo
-	sudo rm -v /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
 	sudo apt autoremove -y; echo
+	sudo rm -v /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
+elif [[ $distro_name == rhel ]]; then
+	sudo service mongod stop; echo
+	sudo yum erase -y $(rpm -qa | grep mongodb-org); echo
 else
 	echo -e "Automatic dependencies uninstallation
 from $distro_name is not supported yet.\n"
@@ -51,18 +63,16 @@ fi
 
 #Кросс-дистрибутивные команды.
 read -p "Delete MongoDB data? (DANGER!) (y/<enter>): " del_mongodb_data; echo
-if [[ $del_mongodb_data == y ]]
-then
-	sudo rm -vr /var/log/mongodb
+if [[ $del_mongodb_data == y ]]; then
+	sudo rm -vr /var/log/mongodb; echo
 	sudo rm -vr /var/lib/mongodb; echo
+	sudo rm -vr /var/lib/mongo; echo
 fi
-if [[ -d ~/miniconda3/ ]]
-then
+if [[ -d ~/miniconda3/ ]]; then
 	conda uninstall -y streamlit; echo
 fi
 pip3 uninstall -y streamlit pymongo; echo
 read -p "Reboot OS now? (recommended) (y/<enter>): " reboot; echo
-if [[ $reboot == y ]]
-then
+if [[ $reboot == y ]]; then
 	sudo systemctl reboot
 fi
