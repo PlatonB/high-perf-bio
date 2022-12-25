@@ -4,7 +4,7 @@ echo -e "
 A script that removes MongoDB (optionally
 with data), PyMongo and Streamlit.
 
-Version: v1.1
+Version: v1.2
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -73,6 +73,7 @@ if [[ -d ~/miniconda3/ ]]; then
 	conda uninstall -y streamlit; echo
 fi
 pip3 uninstall -y streamlit pymongo; echo
+pip3 cache purge; echo
 read -p "Reboot OS now? (recommended) (y/<enter>): " reboot; echo
 if [[ $reboot == y ]]; then
 	sudo systemctl reboot
