@@ -3,7 +3,7 @@
 echo -e "
 A script that installs MongoDB, PyMongo and Streamlit.
 
-Version: v1.0
+Version: v1.1
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -18,6 +18,7 @@ type nothing to discard this action.\n"
 
 #Определение дистрибутива.
 #Грязный хак для Fedora.
+#Текущая версия MongoDB.
 distro_name=$(cat /etc/os-release |
               grep -Po "(?<=^ID=).+" |
               grep -Po "\w+")
@@ -47,6 +48,7 @@ do
 		break
 	fi
 done
+mongodb_ver=6.0
 
 #Дистро-специфичные команды.
 if [[ $distro_name == ubuntu ]]; then
@@ -55,21 +57,21 @@ if [[ $distro_name == ubuntu ]]; then
 		sudo apt install ./libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 		rm -v libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 	fi
-	wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc |
+	wget -qO - https://www.mongodb.org/static/pgp/server-$mongodb_ver.asc |
 	sudo apt-key add -; echo
-	echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $ubuntu_ver/mongodb-org/6.0 multiverse" |
-	sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list; echo
+	echo deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $ubuntu_ver/mongodb-org/$mongodb_ver multiverse |
+	sudo tee /etc/apt/sources.list.d/mongodb-org-$mongodb_ver.list; echo
 	sudo apt update; echo
 	sudo apt install -y mongodb-org; echo
 	sudo apt install -y python3-pip; echo
 elif [[ $distro_name == rhel ]]; then
-	echo "[mongodb-org-6.0]
+	echo "[mongodb-org-$mongodb_ver]
 name=MongoDB Repository
-baseurl=https://repo.mongodb.org/yum/redhat/$rhel_ver/mongodb-org/6.0/x86_64/
+baseurl=https://repo.mongodb.org/yum/redhat/$rhel_ver/mongodb-org/$mongodb_ver/x86_64/
 gpgcheck=1
 enabled=1
-gpgkey=https://www.mongodb.org/static/pgp/server-6.0.asc" |
-	sudo tee /etc/yum.repos.d/mongodb-org-6.0.repo; echo
+gpgkey=https://www.mongodb.org/static/pgp/server-$mongodb_ver.asc" |
+	sudo tee /etc/yum.repos.d/mongodb-org-$mongodb_ver.repo; echo
 	sudo yum install -y mongodb-org; echo
 	sudo dnf install -y python3-pip; echo
 else
