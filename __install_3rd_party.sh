@@ -3,7 +3,7 @@
 echo -e "
 A script that installs MongoDB, PyMongo and Streamlit.
 
-Version: v1.1
+Version: v2.0
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -21,7 +21,8 @@ type nothing to discard this action.\n"
 #Текущая версия MongoDB.
 distro_name=$(cat /etc/os-release |
               grep -Po "(?<=^ID=).+" |
-              grep -Po "\w+")
+              grep -Po "\w+" |
+              head -1)
 ubuntu_family=(elementary linuxmint neon ubuntu)
 redhat_family=(almalinux centos fedora rhel rocky)
 for name in ${ubuntu_family[@]}
@@ -74,6 +75,10 @@ gpgkey=https://www.mongodb.org/static/pgp/server-$mongodb_ver.asc" |
 	sudo tee /etc/yum.repos.d/mongodb-org-$mongodb_ver.repo; echo
 	sudo yum install -y mongodb-org; echo
 	sudo dnf install -y python3-pip; echo
+elif [[ $distro_name == opensuse ]]; then
+	sudo rpm --import https://www.mongodb.org/static/pgp/server-$mongodb_ver.asc
+	sudo zypper addrepo --gpgcheck https://repo.mongodb.org/zypper/suse/15/mongodb-org/$mongodb_ver/x86_64/ mongodb; echo
+	sudo zypper -n install mongodb-org; echo
 else
 	echo -e "Automatic dependencies installation
 on $distro_name is not supported yet.\n"
