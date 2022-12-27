@@ -3,7 +3,7 @@
 echo -e "
 A script that installs MongoDB, PyMongo and Streamlit.
 
-Version: v2.0
+Version: v3.0
 Dependencies: -
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
@@ -29,11 +29,17 @@ for name in ${ubuntu_family[@]}
 do
 	if [[ $name == $distro_name ]]; then
 		distro_name=ubuntu
-		ubuntu_ver=$(cat /etc/os-release |
-		             grep -Po "(?<=^UBUNTU_CODENAME=).+")
+		ubuntu_debian_ver=$(cat /etc/os-release |
+		                    grep -Po "(?<=^UBUNTU_CODENAME=).+")
+		ubuntu_debian_repo=multiverse
 		break
 	fi
 done
+if [[ $distro_name == debian ]]; then
+	ubuntu_debian_ver=$(cat /etc/os-release |
+	                    grep -Po "(?<=^VERSION_CODENAME=).+")
+	ubuntu_debian_repo=main
+fi
 for name in ${redhat_family[@]}
 do
 	if [[ $name == $distro_name ]]; then
@@ -52,15 +58,15 @@ done
 mongodb_ver=6.0
 
 #Дистро-специфичные команды.
-if [[ $distro_name == ubuntu ]]; then
-	if [[ $ubuntu_ver == jammy ]]; then
+if [[ $distro_name == ubuntu ]] || [[ $distro_name == debian ]]; then
+	if [[ $ubuntu_debian_ver == jammy ]]; then
 		wget http://archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2_amd64.deb
 		sudo apt install ./libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 		rm -v libssl1.1_1.1.1f-1ubuntu2_amd64.deb; echo
 	fi
 	wget -qO - https://www.mongodb.org/static/pgp/server-$mongodb_ver.asc |
 	sudo apt-key add -; echo
-	echo deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu $ubuntu_ver/mongodb-org/$mongodb_ver multiverse |
+	echo deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/$distro_name $ubuntu_debian_ver/mongodb-org/$mongodb_ver $ubuntu_debian_repo |
 	sudo tee /etc/apt/sources.list.d/mongodb-org-$mongodb_ver.list; echo
 	sudo apt update; echo
 	sudo apt install -y mongodb-org; echo
