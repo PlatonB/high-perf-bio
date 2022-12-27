@@ -4,8 +4,8 @@ echo -e "
 A wrapper for command to launch
 Streamlit GUI of high-perf-bio.
 
-Version: v1.0
-Dependencies: -
+Version: v1.1
+Dependencies: Streamlit
 Author: Platon Bykadorov (platon.work@gmail.com), 2022
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
