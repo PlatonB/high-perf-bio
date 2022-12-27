@@ -25,28 +25,20 @@ Narrowly specialized DB parsers with minimum settings.
 Useful tools for working with tables (not DBs).
 | Program | Primary functionality |
 | ------- | --------------------- |
+| count_lines | outputs various metrics related to the quantity of tables rows |
 | gen_test_files | creates N smaller tables from one table |
 
 ## Preparation.
-### To do necessarily.
-1. [Install](https://www.mongodb.com/docs/manual/installation/#mongodb-installation-tutorials) _MongoDB_. Don't forget to activate it via `sudo systemctl enable mongod` command.
-2. Install _PyMongo_ and _Streamlit_:
+### Magic installation command.
 ```
-pip3 install pymongo streamlit
-```
-or
-```
-conda install pymongo streamlit
-```
-3. [Download](https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip) the archive with toolkit.
-4. Unzip it into any directory.
-5. Go to the `high-perf-bio-master` directory in the terminal.
-```
-cd /path/to/high-perf-bio-master
+wget https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip && unzip -o master.zip && rm master.zip && cd high-perf-bio-master && bash __install_3rd_party.sh
 ```
 
+- After installation, be sure to reboot.
+- If there is a `~/miniconda3` directory, the `__install_3rd_party.sh` and `__uninstall_3rd_party.sh` scripts will try to use _Conda_.
+
 ### Preparing quick GUI launch.
-If the following instructions don't fit, start the GUI by `streamlit run _gui_streamlit.py` command.
+If the following instructions don't fit, start the GUI by `sh __run_gui_streamlit.sh` command.
 
 #### Gnome.
 Right click on `__run_gui_streamlit.sh` --> `Properties` --> `Permissions` --> `Allow executing file as program`.
