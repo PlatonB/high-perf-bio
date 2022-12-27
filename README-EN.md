@@ -34,8 +34,10 @@ Useful tools for working with tables (not DBs).
 wget https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip && unzip -o master.zip && rm master.zip && cd high-perf-bio-master && bash __install_3rd_party.sh
 ```
 
+- If your distro is not supported, create an [Issue](https://github.com/PlatonB/high-perf-bio/issues).
 - After installation, be sure to reboot.
-- If there is a `~/miniconda3` directory, the `__install_3rd_party.sh` and `__uninstall_3rd_party.sh` scripts will try to use _Conda_.
+- Removing the toolkit dependencies is as easy as installing it: `bash __uninstall_3rd_party.sh`.
+- If there is a `~/miniconda3` directory, the install and uninstall scripts will try to use _Conda_.
 
 ### Preparing quick GUI launch.
 If the following instructions don't fit, start the GUI by `sh __run_gui_streamlit.sh` command.
