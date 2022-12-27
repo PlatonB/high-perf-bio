@@ -37,6 +37,7 @@ wget https://github.com/PlatonB/high-perf-bio/archive/refs/heads/master.zip && u
 - If your distro is not supported, create an [Issue](https://github.com/PlatonB/high-perf-bio/issues).
 - After installation, be sure to reboot.
 - Removing the toolkit dependencies is as easy as installing it: `bash __uninstall_3rd_party.sh`.
+- Don't forget to check the toolkit for updates at least once a month: `bash __update_toolkit.sh`.
 - If there is a `~/miniconda3` directory, the install and uninstall scripts will try to use _Conda_.
 
 ### Preparing quick GUI launch.
