@@ -47,7 +47,7 @@
 
 ## Архитектура.
 Что происходит с обрабатываемыми данными с точки зрения программиста:
-![high-perf-bio_architecture](https://user-images.githubusercontent.com/25541767/212416476-78c0654f-7842-469b-9757-0e709dd397f1.svg)
+![high-perf-bio_architecture](https://user-images.githubusercontent.com/25541767/212419040-998b4ea7-f564-4a3a-bdb1-264bac85f52f.svg)
 
 ## Преимущества.
 - Высокая скорость работы:
