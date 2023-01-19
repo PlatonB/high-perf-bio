@@ -1,4 +1,4 @@
-__version__ = 'v7.0'
+__version__ = 'v8.0'
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -139,6 +139,10 @@ class Main():
                 else:
                         self.proc_quan = max_proc_quan
                 self.meta_lines_quan = args.meta_lines_quan
+                if args.arbitrary_header in [None, '']:
+                        self.arbitrary_header = args.arbitrary_header
+                else:
+                        self.arbitrary_header = args.arbitrary_header.split(r'\t')
                 self.minimal = args.minimal
                 if args.sec_delimiter in [None, '']:
                         self.sec_delimiter = args.sec_delimiter
@@ -220,8 +224,10 @@ class Main():
                                                 trg_field_names = src_col_names[:3]
                                         else:
                                                 trg_field_names = src_col_names[:src_cols_quan]
-                                else:
+                                elif self.arbitrary_header in [None, '']:
                                         trg_field_names = src_file_opened.readline().rstrip().split('\t')
+                                else:
+                                        trg_field_names = self.arbitrary_header
                         trg_meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
                         
                         #Создание коллекции. Для оптимального соотношения
