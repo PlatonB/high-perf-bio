@@ -1,4 +1,5 @@
-__version__ = 'v8.0'
+__version__ = 'v9.0'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, re, datetime, gzip
 sys.dont_write_bytecode = True
@@ -38,7 +39,27 @@ def process_chrom_cell(chrom_cell):
                 chrom = def_data_type(chrom_cell.replace('chr', ''))
         return chrom
 
-def process_info_cell(info_cell):
+def simplify_info_cell(info_cell):
+        '''
+        В VCF проекта dbSNP с 2018 года INFO-ячейки содержат не
+        предусмотренные спецификациями VCF уровни вложенности.
+        Эта хак-функция упрощает перемудрённые элементы INFO.
+        '''
+        geneinfo_elems = re.findall(r'(?<=GENEINFO=).+?(?:(?=;)|$)', info_cell)
+        freq_elem_obj = re.search(r'(?<=FREQ=).+?(?:(?=;)|$)', info_cell)
+        simp_info_cell = info_cell[:]
+        for geneinfo_elem in geneinfo_elems:
+                simp_geneinfo_elem = re.sub(r'[|:]', ',', geneinfo_elem)
+                simp_info_cell = simp_info_cell.replace(geneinfo_elem,
+                                                        simp_geneinfo_elem)
+        if freq_elem_obj is not None:
+                freq_elem = freq_elem_obj.group()
+                simp_freq_elem = freq_elem.replace('|', ';').replace(':', '=')
+                simp_info_cell = simp_info_cell.replace('FREQ=', '').replace(freq_elem,
+                                                                             simp_freq_elem)
+        return simp_info_cell
+
+def process_info_cell(dbsnp2, info_cell):
         '''
         Функция преобразования ячейки INFO-столбца VCF-таблицы в список,
         начинающийся со словаря. У INFO есть такая особенность: одни элементы
@@ -49,10 +70,12 @@ def process_info_cell(info_cell):
         рекомендации по составу INFO-столбца не являются строгими,
         тип данных каждого элемента программе придётся подбирать.
         '''
+        if dbsnp2:
+                info_cell = simplify_info_cell(info_cell)
         info_row, info_obj = info_cell.split(';'), [{}]
         for info_subcell in info_row:
                 if '=' in info_subcell:
-                        pair = info_subcell.split('=')
+                        pair = info_subcell.split('=', maxsplit=1)
                         if ',' in pair[1]:
                                 pair[1] = (list(map(def_data_type,
                                                     pair[1].split(','))))
@@ -107,10 +130,12 @@ class Main():
                 '''
                 client = MongoClient()
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
-                self.src_file_names = set(filter(lambda src_file_name: re.search(r'\.tbi|\.csi',
-                                                                                 src_file_name) is None,
+                self.src_file_names = set(filter(lambda src_file_name:
+                                                 re.search(r'\.tbi|\.csi',
+                                                           src_file_name) is None,
                                                  os.listdir(self.src_dir_path)))
-                src_file_fmts = set(map(lambda src_file_name: src_file_name.rsplit('.', maxsplit=2)[1],
+                src_file_fmts = set(map(lambda src_file_name:
+                                        src_file_name.rsplit('.', maxsplit=2)[1],
                                         self.src_file_names))
                 if len(src_file_fmts) > 1:
                         raise DifFmtsError(src_file_fmts)
@@ -143,6 +168,7 @@ class Main():
                         self.arbitrary_header = args.arbitrary_header
                 else:
                         self.arbitrary_header = args.arbitrary_header.split(r'\t')
+                self.dbsnp2 = args.dbsnp2
                 self.minimal = args.minimal
                 if args.sec_delimiter in [None, '']:
                         self.sec_delimiter = args.sec_delimiter
@@ -276,7 +302,8 @@ class Main():
                                         if ',' in row[4]:
                                                 row[4] = row[4].split(',')
                                         row[5] = def_data_type(row[5])
-                                        row[7] = process_info_cell(row[7])
+                                        row[7] = process_info_cell(self.dbsnp2,
+                                                                   row[7])
                                         if self.minimal:
                                                 row = row[:8]
                                         elif len(row) > 8:
@@ -350,9 +377,9 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__, __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__, __authors__)
         main = Main(args, __version__)
         proc_quan = main.proc_quan
         print(f'\nReplenishment and indexing {main.trg_db_name} DB')

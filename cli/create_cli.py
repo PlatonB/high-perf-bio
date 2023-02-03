@@ -1,13 +1,13 @@
-__version__ = 'v6.0'
+__version__ = 'v7.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.create_descr import CreateDescr
 
-def add_args_ru(ver):
+def add_args_ru(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=CreateDescr(ver).ru,
+        arg_parser = ArgumentParser(description=CreateDescr(version, authors).ru,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
@@ -27,6 +27,8 @@ def add_args_ru(ver):
                              help='Количество строк метаинформации (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку (если есть), либо применяйте -n)')
         opt_grp.add_argument('-n', '--arbitrary-header', metavar='[None]', dest='arbitrary_header', type=str,
                              help='Произвольная шапка исходных таблиц (в кавычках; через \\t без пробела; src-VCF, src-BED: не применяется)')
+        opt_grp.add_argument('-2', '--dbsnp2', dest='dbsnp2', action='store_true',
+                             help='Упрощать, насколько это возможно, INFO-ячейки dbSNP 2.0 src-VCF (src-BED, src-TSV: не применяется)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
                              help='Загружать только минимально допустимый форматом набор столбцов (src-VCF: 1-ые 8; src-BED: 1-ые 3; src-TSV: не применяется)')
         opt_grp.add_argument('-,', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
@@ -38,11 +40,11 @@ def add_args_ru(ver):
         args = arg_parser.parse_args()
         return args
 
-def add_args_en(ver):
+def add_args_en(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=CreateDescr(ver).en,
+        arg_parser = ArgumentParser(description=CreateDescr(version, authors).en,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')
@@ -62,6 +64,8 @@ def add_args_en(ver):
                              help='Quantity of metainformation lines (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header (if available), otherwise use -n)')
         opt_grp.add_argument('-n', '--arbitrary-header', metavar='[None]', dest='arbitrary_header', type=str,
                              help='Arbitrary header of source tables (in quotes; \\t-separated without spaces; src-VCF, src-BED: not applicable)')
+        opt_grp.add_argument('-2', '--dbsnp2', dest='dbsnp2', action='store_true',
+                             help='Simplify, as much as possible, INFO cells of dbSNP 2.0 src-VCF (src-BED, src-TSV: not applicable)')
         opt_grp.add_argument('-r', '--minimal', dest='minimal', action='store_true',
                              help='Upload only the minimum set of columns allowed by the format (src-VCF: 1st 8; src-BED: 1st 3; src-TSV: not applicable)')
         opt_grp.add_argument('-,', '--sec-delimiter', metavar='[None]', choices=['colon', 'comma', 'low_line', 'pipe', 'semicolon'], dest='sec_delimiter', type=str,
