@@ -1,4 +1,5 @@
-__version__ = 'v8.4'
+__version__ = 'v8.5'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
 
 import sys, locale, os, datetime, copy, gzip
 sys.dont_write_bytecode = True
@@ -23,7 +24,7 @@ class Main():
         так и атрибуты, нужные для кода, её запускающего. Что касается этой
         функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args, ver):
+        def __init__(self, args, version):
                 '''
                 Получение атрибутов как для основной функции программы,
                 так и для блока многопроцессового запуска таковой.
@@ -141,7 +142,7 @@ class Main():
                                         else:
                                                 index_tups.append((ind_field_path, ASCENDING))
                                 self.index_models.append(IndexModel(index_tups))
-                self.ver = ver
+                self.version = version
                 client.close()
                 
         def search(self, src_file_name):
@@ -237,7 +238,7 @@ class Main():
                                                         #для trg-BED она будет мимикрировать под метастроку.
                                                         if self.trg_file_fmt == 'vcf':
                                                                 trg_file_opened.write(f'##fileformat={self.trg_file_fmt.upper()}\n')
-                                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.version}>\n')
                                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                                         trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
                                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
@@ -292,7 +293,7 @@ class Main():
                                                 meta_lines = {'meta': []}
                                                 if self.trg_file_fmt == 'vcf':
                                                         meta_lines['meta'].append(f'##fileformat={self.trg_file_fmt.upper()}')
-                                                meta_lines['meta'].append(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>')
+                                                meta_lines['meta'].append(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.version}>')
                                                 meta_lines['meta'].append(f'##src_file_name={src_file_name}')
                                                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
@@ -317,9 +318,11 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args, __version__)
         proc_quan = main.proc_quan
         print(f'\nQueriing by {main.src_db_name} DB')

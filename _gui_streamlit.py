@@ -1,4 +1,5 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, os, locale, datetime
 sys.dont_write_bytecode = True
@@ -59,12 +60,13 @@ with st.sidebar:
 #Запуск параллельных вычислений, вывод уведомлений
 #о ходе работы. В конце - приятная пасхалочка:).
 if tool_name == 'annotate':
+        version, authors = annotate.__version__, annotate.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = annotate_gui.AddWidgetsRu(annotate.__version__)
+                inp = annotate_gui.AddWidgetsRu(version, authors)
         else:
-                inp = annotate_gui.AddWidgetsEn(annotate.__version__)
+                inp = annotate_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = annotate.Main(inp, annotate.__version__)
+                main = annotate.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'Annotation by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -75,12 +77,13 @@ if tool_name == 'annotate':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'concatenate':
+        version, authors = concatenate.__version__, concatenate.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = concatenate_gui.AddWidgetsRu(concatenate.__version__)
+                inp = concatenate_gui.AddWidgetsRu(version, authors)
         else:
-                inp = concatenate_gui.AddWidgetsEn(concatenate.__version__)
+                inp = concatenate_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = concatenate.Main(inp, concatenate.__version__)
+                main = concatenate.Main(inp, version)
                 with st.spinner(f'Concatenating {main.src_db_name} DB'):
                         exec_time_start = datetime.datetime.now()
                         main.concatenate()
@@ -88,12 +91,13 @@ if tool_name == 'concatenate':
                 st.success(f'computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'count':
+        version, authors = count.__version__, count.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = count_gui.AddWidgetsRu(count.__version__)
+                inp = count_gui.AddWidgetsRu(version, authors)
         else:
-                inp = count_gui.AddWidgetsEn(count.__version__)
+                inp = count_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = count.Main(inp, count.__version__)
+                main = count.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'Counting sets of related values in {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -121,12 +125,13 @@ if tool_name == 'create':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'dock':
+        version, authors = dock.__version__, dock.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = dock_gui.AddWidgetsRu(dock.__version__)
+                inp = dock_gui.AddWidgetsRu(version, authors)
         else:
-                inp = dock_gui.AddWidgetsEn(dock.__version__)
+                inp = dock_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = dock.Main(inp, dock.__version__)
+                main = dock.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'Annotation by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -137,12 +142,13 @@ if tool_name == 'dock':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'ljoin':
+        version, authors = ljoin.__version__, ljoin.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = ljoin_gui.AddWidgetsRu(ljoin.__version__)
+                inp = ljoin_gui.AddWidgetsRu(version, authors)
         else:
-                inp = ljoin_gui.AddWidgetsEn(ljoin.__version__)
+                inp = ljoin_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = ljoin.Main(inp, ljoin.__version__)
+                main = ljoin.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'{main.action.capitalize()}ing collections of {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -154,12 +160,13 @@ if tool_name == 'ljoin':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'query':
+        version, authors = query.__version__, query.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = query_gui.AddWidgetsRu(query.__version__)
+                inp = query_gui.AddWidgetsRu(version, authors)
         else:
-                inp = query_gui.AddWidgetsEn(query.__version__)
+                inp = query_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = query.Main(inp, query.__version__)
+                main = query.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'Queriing by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -170,10 +177,11 @@ if tool_name == 'query':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'reindex':
+        version, authors = reindex.__version__, reindex.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = reindex_gui.AddWidgetsRu(reindex.__version__)
+                inp = reindex_gui.AddWidgetsRu(version, authors)
         else:
-                inp = reindex_gui.AddWidgetsEn(reindex.__version__)
+                inp = reindex_gui.AddWidgetsEn(version, authors)
         if inp.submit:
                 main = reindex.Main(inp)
                 src_db_name = main.src_db_name
@@ -191,12 +199,13 @@ if tool_name == 'reindex':
                         st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'split':
+        version, authors = split.__version__, split.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = split_gui.AddWidgetsRu(split.__version__)
+                inp = split_gui.AddWidgetsRu(version, authors)
         else:
-                inp = split_gui.AddWidgetsEn(split.__version__)
+                inp = split_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = split.Main(inp, split.__version__)
+                main = split.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'Splitting collections of {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
@@ -207,10 +216,11 @@ if tool_name == 'split':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'revitalize_id_column':
+        version, authors = revitalize_id_column.__version__, revitalize_id_column.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = revitalize_id_column_gui.AddWidgetsRu(revitalize_id_column.__version__)
+                inp = revitalize_id_column_gui.AddWidgetsRu(version, authors)
         else:
-                inp = revitalize_id_column_gui.AddWidgetsEn(revitalize_id_column.__version__)
+                inp = revitalize_id_column_gui.AddWidgetsEn(version, authors)
         if inp.submit:
                 main = revitalize_id_column.Main(inp)
                 proc_quan = main.proc_quan
@@ -223,12 +233,13 @@ if tool_name == 'revitalize_id_column':
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'count_lines':
+        version, authors = count_lines.__version__, count_lines.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = count_lines_gui.AddWidgetsRu(count_lines.__version__)
+                inp = count_lines_gui.AddWidgetsRu(version, authors)
         else:
-                inp = count_lines_gui.AddWidgetsEn(count_lines.__version__)
+                inp = count_lines_gui.AddWidgetsEn(version, authors)
         if inp.submit:
-                main = count_lines.Main(inp, count_lines.__version__)
+                main = count_lines.Main(inp, version)
                 with st.spinner(f'Counting lines of tables from {os.path.basename(main.src_dir_tree[0][0])} dir tree'):
                         exec_time_start = datetime.datetime.now()
                         main.count_lines()
@@ -236,10 +247,11 @@ if tool_name == 'count_lines':
                 st.success(f'computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'gen_test_files':
+        version, authors = gen_test_files.__version__, gen_test_files.__authors__
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                inp = gen_test_files_gui.AddWidgetsRu(gen_test_files.__version__)
+                inp = gen_test_files_gui.AddWidgetsRu(version, authors)
         else:
-                inp = gen_test_files_gui.AddWidgetsEn(gen_test_files.__version__)
+                inp = gen_test_files_gui.AddWidgetsEn(version, authors)
         if inp.submit:
                 main = gen_test_files.Main(inp)
                 proc_quan = main.proc_quan

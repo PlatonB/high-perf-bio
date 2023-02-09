@@ -1,4 +1,5 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022']
 
 import sys, os, locale, datetime, gzip, json
 sys.dont_write_bytecode = True
@@ -24,7 +25,7 @@ class Main():
         нужные для кода, её запускающего. Что касается этой функции, её
         можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args, ver):
+        def __init__(self, args, version):
                 '''
                 Получение атрибутов как для основной функции программы,
                 так и для блока запуска таковой. Некоторые неочевидные,
@@ -53,7 +54,7 @@ class Main():
                                                      args.sel_col_nums.split(',')))
                         self.sel_col_indexes = list(map(lambda sel_col_num: sel_col_num - 1,
                                                         self.sel_col_nums))
-                self.ver = ver
+                self.version = version
                 
         def count_lines(self):
                 '''
@@ -63,7 +64,7 @@ class Main():
                 для каждого файла этой папки по-отдельности. Уникализация делается
                 за счёт накопления строк, полных или частичных, во множества.
                 '''
-                trg_obj = {'tool_name': f'{os.path.basename(__file__)[:-3]},{self.ver}'}
+                trg_obj = {'tool_name': f'{os.path.basename(__file__)[:-3]},{self.version}'}
                 if hasattr(self, 'sel_col_nums'):
                         trg_obj['selected_column_nums'] = self.sel_col_nums
                 trg_obj['dirs'] = {}
@@ -121,9 +122,11 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args, __version__)
         print(f'\nCounting lines of tables from {os.path.basename(main.src_dir_tree[0][0])} dir tree')
         exec_time_start = datetime.datetime.now()

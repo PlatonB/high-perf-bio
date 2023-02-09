@@ -1,4 +1,5 @@
-__version__ = 'v5.4'
+__version__ = 'v5.5'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
 
 import sys, locale, os, datetime
 sys.dont_write_bytecode = True
@@ -84,9 +85,11 @@ class Main():
 #индексации с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args)
         src_db_name = main.src_db_name
         if main.del_ind_names not in [None, '']:

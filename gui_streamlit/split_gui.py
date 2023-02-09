@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.split_descr import SplitDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='split'):
                         st.header(body='split')
                         with st.expander(label='description'):
-                                st.text(body=SplitDescr(ver).ru)
+                                st.text(body=SplitDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),
@@ -42,11 +42,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='split'):
                         st.header(body='split')
                         with st.expander(label='description'):
-                                st.text(body=SplitDescr(ver).en)
+                                st.text(body=SplitDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),

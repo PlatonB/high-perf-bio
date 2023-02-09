@@ -1,13 +1,13 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.info_descr import InfoDescr
 
-def add_args_ru(ver):
+def add_args_ru(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description=InfoDescr(ver).ru,
+        argparser = ArgumentParser(description=InfoDescr(version, authors).ru,
                                    formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-d', '--src-db-name', metavar='[None]', dest='src_db_name', type=str,
                                help='Имя БД, для которой надо вывести информацию ([[имена всех БД]])')
@@ -18,11 +18,11 @@ def add_args_ru(ver):
         args = argparser.parse_args()
         return args
 
-def add_args_en(ver):
+def add_args_en(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        argparser = ArgumentParser(description=InfoDescr(ver).en,
+        argparser = ArgumentParser(description=InfoDescr(version, authors).en,
                                    formatter_class=RawTextHelpFormatter)
         argparser.add_argument('-d', '--src-db-name', metavar='[None]', dest='src_db_name', type=str,
                                help='Name of DB for which there needs to print information ([[names of all DBs]])')

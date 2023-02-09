@@ -1,14 +1,14 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 class CountLinesDescr():
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 self.ru = f'''
 Программа, считающая непустые строки
 таблиц, расположенных в дереве папок.
 
-Версия: {ver}
+Версия: {version}
 Требуемые сторонние компоненты: -
-Автор: Платон Быкадоров (platon.work@gmail.com), 2022
+Авторы: {chr(10).join(authors)}
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -29,9 +29,9 @@ src-FMT - обсчитываемые таблицы определённого �
 A program that counts non-empty rows
 of tables located in a directory tree.
 
-Version: {ver}
+Version: {version}
 Dependencies: -
-Author: Platon Bykadorov (platon.work@gmail.com), 2022
+Authors: {chr(10).join(authors)}
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md

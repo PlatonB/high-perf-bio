@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 import streamlit as st
 from descriptions.ljoin_descr import LjoinDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='ljoin'):
                         st.header(body='ljoin')
                         with st.expander(label='description'):
-                                st.text(body=LjoinDescr(ver).ru)
+                                st.text(body=LjoinDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),
@@ -49,11 +49,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='ljoin'):
                         st.header(body='ljoin')
                         with st.expander(label='description'):
-                                st.text(body=LjoinDescr(ver).en)
+                                st.text(body=LjoinDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),

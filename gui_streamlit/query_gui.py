@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.query_descr import QueryDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='query'):
                         st.header(body='query')
                         with st.expander(label='description'):
-                                st.text(body=QueryDescr(ver).ru)
+                                st.text(body=QueryDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Путь к папке с содержащими запросы файлами')
@@ -43,11 +43,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='query'):
                         st.header(body='query')
                         with st.expander(label='description'):
-                                st.text(body=QueryDescr(ver).en)
+                                st.text(body=QueryDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Path to directory with files containing queries')

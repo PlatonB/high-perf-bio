@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import sys, os
 sys.dont_write_bytecode = True
@@ -7,11 +7,11 @@ sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
 from argparse import ArgumentParser, RawTextHelpFormatter
 from count_lines_descr import CountLinesDescr
 
-def add_args_ru(ver):
+def add_args_ru(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=CountLinesDescr(ver).ru,
+        arg_parser = ArgumentParser(description=CountLinesDescr(version, authors).ru,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
@@ -30,11 +30,11 @@ def add_args_ru(ver):
         args = arg_parser.parse_args()
         return args
 
-def add_args_en(ver):
+def add_args_en(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=CountLinesDescr(ver).en,
+        arg_parser = ArgumentParser(description=CountLinesDescr(version, authors).en,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')

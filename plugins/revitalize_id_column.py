@@ -1,4 +1,5 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2022']
 
 import sys, os, locale, datetime, gzip
 sys.dont_write_bytecode = True
@@ -151,9 +152,11 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args)
         proc_quan = main.proc_quan
         print(f'\nID column reconstruction by {main.src_db_name} DB')

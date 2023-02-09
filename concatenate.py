@@ -1,4 +1,5 @@
-__version__ = 'v4.2'
+__version__ = 'v4.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2022']
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
@@ -18,7 +19,7 @@ class Main():
         нужные для кода, её запускающего. Что касается этой функции, её
         можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args, ver):
+        def __init__(self, args, version):
                 '''
                 Получение атрибутов как для основной функции программы, так и для
                 блока запуска таковой. Некоторые неочевидные, но важные детали об
@@ -102,7 +103,7 @@ class Main():
                                         else:
                                                 index_tups.append((ind_field_path, ASCENDING))
                                 self.index_models.append(IndexModel(index_tups))
-                self.ver = ver
+                self.version = version
                 client.close()
                 
         def concatenate(self):
@@ -123,7 +124,7 @@ class Main():
                 meta_lines = {'meta': []}
                 if self.trg_coll_ext == 'vcf':
                         meta_lines['meta'].append(f'##fileformat={self.trg_coll_ext.upper()}')
-                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.version}>')
                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_arg}')
                 trg_coll_obj.insert_one(meta_lines)
@@ -142,9 +143,11 @@ class Main():
 #с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args, __version__)
         print(f'\nConcatenating {main.src_db_name} DB')
         exec_time_start = datetime.datetime.now()

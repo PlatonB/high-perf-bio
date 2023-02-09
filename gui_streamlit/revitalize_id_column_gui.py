@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.revitalize_id_column_descr import RevitalizeIdColumnDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='revitalize_id_column'):
                         st.header(body='revitalize_id_column')
                         with st.expander(label='description'):
-                                st.text(body=RevitalizeIdColumnDescr(ver).ru)
+                                st.text(body=RevitalizeIdColumnDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Путь к папке со сжатыми исходными таблицами (src-BED и src-TSV не поддерживаются программой)')
@@ -31,11 +31,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='revitalize_id_column'):
                         st.header(body='revitalize_id_column')
                         with st.expander(label='description'):
-                                st.text(body=RevitalizeIdColumnDescr(ver).en)
+                                st.text(body=RevitalizeIdColumnDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Path to directory with gzipped source tables (src-BED and src-TSV are not supported by the program)')

@@ -1,13 +1,13 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 class QueryDescr():
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 self.ru = f'''
 Программа, выполняющая наборы запросов по всем коллекциям MongoDB-базы.
 
-Версия: {ver}
+Версия: {version}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2022
+Авторы: {chr(10).join(authors)}
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -56,9 +56,9 @@ f1+f2+f3 - сортируемые поля, а также поля,
                 self.en = f'''
 A program that runs query sets to all collections of MongoDB database.
 
-Version: {ver}
+Version: {version}
 Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2020-2022
+Authors: {chr(10).join(authors)}
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md

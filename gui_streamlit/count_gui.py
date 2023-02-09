@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 import streamlit as st
 from descriptions.count_descr import CountDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='count'):
                         st.header(body='count')
                         with st.expander(label='description'):
-                                st.text(body=CountDescr(ver).ru)
+                                st.text(body=CountDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),
@@ -45,11 +45,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='count'):
                         st.header(body='count')
                         with st.expander(label='description'):
-                                st.text(body=CountDescr(ver).en)
+                                st.text(body=CountDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),

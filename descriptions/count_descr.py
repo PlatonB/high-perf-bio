@@ -1,14 +1,14 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 class CountDescr():
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 self.ru = f'''
 Программа, считающая количество и, опционально, частоту каждого
 набора соответствующих значений заданных полей в пределах коллекции.
 
-Версия: {ver}
+Версия: {version}
 Требуемые сторонние компоненты: MongoDB, PyMongo
-Автор: Платон Быкадоров (platon.work@gmail.com), 2021-2022
+Авторы: {chr(10).join(authors)}
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -34,9 +34,9 @@ field_1.field_2.(...).field_N
 A program that counts the quantity and, optionally, the frequency of
 each set of corresponding values of given fields within collection.
 
-Version: {ver}
+Version: {version}
 Dependencies: MongoDB, PyMongo
-Author: Platon Bykadorov (platon.work@gmail.com), 2021-2022
+Authors: {chr(10).join(authors)}
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md

@@ -1,13 +1,13 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 class GenTestFilesDescr():
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 self.ru = f'''
 Программа, создающая наборы тестировочных файлов из случайных строк исходного.
 
-Версия: {ver}
+Версия: {version}
 Требуемые сторонние компоненты: -
-Автор: Платон Быкадоров (platon.work@gmail.com), 2020-2022
+Авторы: {chr(10).join(authors)}
 Лицензия: GNU General Public License version 3
 Поддержать проект: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Документация: https://github.com/PlatonB/high-perf-bio/blob/master/README.md
@@ -28,9 +28,9 @@ src-FMT - разреживаемая таблица определённого �
                 self.en = f'''
 A program that creates sets of test files from random strings of the source file.
 
-Version: {ver}
+Version: {version}
 Dependencies: -
-Author: Platon Bykadorov (platon.work@gmail.com), 2020-2022
+Authors: {chr(10).join(authors)}
 License: GNU General Public License version 3
 Donate: https://www.tinkoff.ru/rm/bykadorov.platon1/7tX2Y99140/
 Documentation: https://github.com/PlatonB/high-perf-bio/blob/master/README-EN.md

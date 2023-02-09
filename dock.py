@@ -1,4 +1,5 @@
-__version__ = 'v2.1'
+__version__ = 'v2.2'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022']
 
 import sys, locale, os, datetime, gzip, copy
 sys.dont_write_bytecode = True
@@ -21,7 +22,7 @@ class Main():
         так и атрибуты, нужные для кода, её запускающего. Что касается этой
         функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args, ver):
+        def __init__(self, args, version):
                 '''
                 Получение атрибутов как для основной функции программы, так и для блока
                 многопроцессового запуска таковой. Первые из перечисленных ни в коем случае
@@ -120,7 +121,7 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                self.ver = ver
+                self.version = version
                 client.close()
                 
         def dock(self, src_file_name):
@@ -187,7 +188,7 @@ class Main():
                                 trg_file_name = f'file-{src_file_base}__coll-{src_coll_base}.tsv.gz'
                                 trg_file_path = os.path.join(self.trg_dir_path, trg_file_name)
                                 with gzip.open(trg_file_path, mode='wt') as trg_file_opened:
-                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.ver}>\n')
+                                        trg_file_opened.write(f'##tool_name=<high-perf-bio,{os.path.basename(__file__)[:-3]},{self.version}>\n')
                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
@@ -247,9 +248,11 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args, __version__)
         proc_quan = main.proc_quan
         print(f'\nAnnotation by {main.src_db_name} DB')

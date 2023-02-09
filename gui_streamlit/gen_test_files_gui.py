@@ -1,4 +1,4 @@
-__version__ = 'v1.0'
+__version__ = 'v1.1'
 
 import streamlit as st
 from descriptions.gen_test_files_descr import GenTestFilesDescr
@@ -7,11 +7,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='gen_test_files'):
                         st.header(body='gen_test_files')
                         with st.expander(label='description'):
-                                st.text(body=GenTestFilesDescr(ver).ru)
+                                st.text(body=GenTestFilesDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_file_path = st.text_input(label='src-file-path',
                                                            help='Путь к сжатому файлу')
@@ -32,11 +32,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='gen_test_files'):
                         st.header(body='gen_test_files')
                         with st.expander(label='description'):
-                                st.text(body=GenTestFilesDescr(ver).en)
+                                st.text(body=GenTestFilesDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_file_path = st.text_input(label='src-file-path',
                                                            help='Path to gzipped file')

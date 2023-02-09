@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v2.1'
 
 import streamlit as st
 from descriptions.concatenate_descr import ConcatenateDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='concatenate'):
                         st.header(body='concatenate')
                         with st.expander(label='description'):
-                                st.text(body=ConcatenateDescr(ver).ru)
+                                st.text(body=ConcatenateDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),
@@ -34,11 +34,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='concatenate'):
                         st.header(body='concatenate')
                         with st.expander(label='description'):
-                                st.text(body=ConcatenateDescr(ver).en)
+                                st.text(body=ConcatenateDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_db_name = st.selectbox(label='src-db-name',
                                                         options=MongoClient().list_database_names(),

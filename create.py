@@ -1,4 +1,4 @@
-__version__ = 'v9.0'
+__version__ = 'v9.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, re, datetime, gzip
@@ -118,7 +118,7 @@ class Main():
         так и атрибуты, нужные для кода, её запускающего. Что касается этой
         функции, её можно запросто пристроить в качестве коллбэка кнопки в GUI.
         '''
-        def __init__(self, args, ver):
+        def __init__(self, args, version):
                 '''
                 Получение атрибутов как для основной функции программы, так и для блока
                 многопроцессового запуска таковой. Первые из перечисленных ни в коем
@@ -196,7 +196,7 @@ class Main():
                 else:
                         self.index_models = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
                                              for ind_field_group in args.ind_field_groups.split(',')]
-                self.ver = ver
+                self.version = version
                 client.close()
                 
         def create_collection(self, src_file_name):
@@ -254,7 +254,7 @@ class Main():
                                         trg_field_names = src_file_opened.readline().rstrip().split('\t')
                                 else:
                                         trg_field_names = self.arbitrary_header
-                        trg_meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.ver}>')
+                        trg_meta_lines['meta'].append(f'##tool_name=<{os.path.basename(__file__)[:-3]},{self.version}>')
                         
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
@@ -377,9 +377,11 @@ class Main():
 #вычислений с точностью до микросекунды.
 if __name__ == '__main__':
         if locale.getdefaultlocale()[0][:2] == 'ru':
-                args = add_args_ru(__version__, __authors__)
+                args = add_args_ru(__version__,
+                                   __authors__)
         else:
-                args = add_args_en(__version__, __authors__)
+                args = add_args_en(__version__,
+                                   __authors__)
         main = Main(args, __version__)
         proc_quan = main.proc_quan
         print(f'\nReplenishment and indexing {main.trg_db_name} DB')

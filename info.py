@@ -1,4 +1,5 @@
-__version__ = 'v5.4'
+__version__ = 'v5.5'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
 
 import sys, locale
 sys.dont_write_bytecode = True
@@ -25,9 +26,11 @@ def conv_data_measure(size):
         
 #CLI.
 if locale.getdefaultlocale()[0][:2] == 'ru':
-        args = add_args_ru(__version__)
+        args = add_args_ru(__version__,
+                           __authors__)
 else:
-        args = add_args_en(__version__)
+        args = add_args_en(__version__,
+                           __authors__)
         
 #Если исследователь не задал ни одного аргумента,
 #выведутся имена всех имеющихся на компе MongoDB-баз.

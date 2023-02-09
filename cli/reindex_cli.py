@@ -1,13 +1,13 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.reindex_descr import ReindexDescr
 
-def add_args_ru(ver):
+def add_args_ru(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=ReindexDescr(ver).ru,
+        arg_parser = ArgumentParser(description=ReindexDescr(version, authors).ru,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Аргумент вывода справки')
@@ -26,11 +26,11 @@ def add_args_ru(ver):
         args = arg_parser.parse_args()
         return args
 
-def add_args_en(ver):
+def add_args_en(version, authors):
         '''
         Работа с аргументами командной строки.
         '''
-        arg_parser = ArgumentParser(description=ReindexDescr(ver).en,
+        arg_parser = ArgumentParser(description=ReindexDescr(version, authors).en,
                                     formatter_class=RawTextHelpFormatter,
                                     add_help=False)
         hlp_grp = arg_parser.add_argument_group('Showing help argument')

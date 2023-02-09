@@ -1,4 +1,4 @@
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
@@ -8,11 +8,11 @@ class AddWidgetsRu():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='annotate'):
                         st.header(body='annotate')
                         with st.expander(label='description'):
-                                st.text(body=AnnotateDescr(ver).ru)
+                                st.text(body=AnnotateDescr(version, authors).ru)
                         st.subheader(body='Обязательные виджеты')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Путь к папке со сжатыми аннотируемыми таблицами')
@@ -50,11 +50,11 @@ class AddWidgetsEn():
         '''
         Создание Streamlit-интерфейса.
         '''
-        def __init__(self, ver):
+        def __init__(self, version, authors):
                 with st.form(key='annotate'):
                         st.header(body='annotate')
                         with st.expander(label='description'):
-                                st.text(body=AnnotateDescr(ver).en)
+                                st.text(body=AnnotateDescr(version, authors).en)
                         st.subheader(body='Mandatory widgets')
                         self.src_dir_path = st.text_input(label='src-dir-path',
                                                           help='Path to directory with gzipped tables, which will be annotated')
