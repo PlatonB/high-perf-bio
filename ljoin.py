@@ -1,15 +1,15 @@
-__version__ = 'v11.1'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
+__version__ = 'v11.2'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
-import sys, locale, os, datetime, copy, gzip
+import sys, locale, os, copy, gzip
 sys.dont_write_bytecode = True
 from cli.ljoin_cli import add_args_ru
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.collation import Collation
-from multiprocessing import Pool
 from bson.son import SON
 from backend.get_field_paths import parse_nested_objs
 from backend.common_errors import FormatIsNotSupportedError, NoSuchFieldError
+from backend.parallelize import parallelize
 from backend.doc_to_line import restore_line
 
 class NotEnoughCollsError(Exception):
@@ -77,15 +77,9 @@ class Main():
                         self.left_coll_names = set(self.src_coll_names)
                 else:
                         self.left_coll_names = set(args.left_coll_names.split(','))
-                max_proc_quan = args.max_proc_quan
-                left_colls_quan = len(self.left_coll_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > left_colls_quan <= cpus_quan:
-                        self.proc_quan = left_colls_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     len(self.left_coll_names),
+                                     os.cpu_count())
                 if args.right_coll_names in [None, '']:
                         self.right_coll_names = set(self.src_coll_names)
                 else:
@@ -341,9 +335,6 @@ if __name__ == '__main__':
         print(f'\n{main.action.capitalize()}ing collections of {main.src_db_name} DB')
         print(f'\tcoverage: {main.coverage}')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.intersect_subtract,
-                             main.left_coll_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.intersect_subtract,
+                                main.left_coll_names)
         print(f'\tparallel computation time: {exec_time}')

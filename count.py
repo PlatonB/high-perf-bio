@@ -1,15 +1,15 @@
-__version__ = 'v7.2'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2022']
+__version__ = 'v7.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
-import sys, locale, os, datetime, copy, gzip
+import sys, locale, os, copy, gzip
 sys.dont_write_bytecode = True
 from cli.count_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
+from backend.parallelize import parallelize
 from bson.decimal128 import Decimal128
 from bson.son import SON
-from multiprocessing import Pool
 
 class CombFiltersError(Exception):
         '''
@@ -69,15 +69,10 @@ class Main():
                         self.trg_db_name = args.trg_place
                 else:
                         raise DbAlreadyExistsError()
-                max_proc_quan = args.max_proc_quan
                 src_colls_quan = len(self.src_coll_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > src_colls_quan <= cpus_quan:
-                        self.proc_quan = src_colls_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     src_colls_quan,
+                                     os.cpu_count())
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if args.cnt_field_paths in [None, '']:
@@ -250,8 +245,6 @@ if __name__ == '__main__':
         proc_quan = main.proc_quan
         print(f'\nCounting sets of related values in {main.src_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.count, main.src_coll_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.count,
+                                main.src_coll_names)
         print(f'\tparallel computation time: {exec_time}')

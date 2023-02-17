@@ -1,12 +1,12 @@
-__version__ = 'v9.1'
+__version__ = 'v9.2'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
-import sys, locale, os, re, datetime, gzip
+import sys, locale, os, re, gzip
 sys.dont_write_bytecode = True
 from cli.create_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, IndexModel
-from multiprocessing import Pool
 from backend.common_errors import DifFmtsError, DbAlreadyExistsError
+from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
 
 class NoDataToUploadError(Exception):
@@ -154,15 +154,9 @@ class Main():
                                                                client[self.trg_db_name].list_collection_names()))
                 if len(self.src_file_names) == 0:
                         raise NoDataToUploadError()
-                max_proc_quan = args.max_proc_quan
-                src_files_quan = len(self.src_file_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > src_files_quan <= cpus_quan:
-                        self.proc_quan = src_files_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     len(self.src_file_names),
+                                     os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
                 if args.arbitrary_header in [None, '']:
                         self.arbitrary_header = args.arbitrary_header
@@ -386,8 +380,6 @@ if __name__ == '__main__':
         proc_quan = main.proc_quan
         print(f'\nReplenishment and indexing {main.trg_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.create_collection, main.src_file_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.create_collection,
+                                main.src_file_names)
         print(f'\tparallel computation time: {exec_time}')

@@ -1,7 +1,7 @@
-__version__ = 'v4.2'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
+__version__ = 'v4.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
-import sys, os, locale, random, datetime, gzip
+import sys, os, locale, random, gzip
 sys.dont_write_bytecode = True
 if __name__ == '__main__':
         sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
@@ -12,7 +12,7 @@ if __name__ == '__main__':
 else:
         sys.path.append(os.path.join(os.getcwd(),
                                      'backend'))
-from multiprocessing import Pool
+from parallelize import parallelize
 
 class Main():
         '''
@@ -43,15 +43,10 @@ class Main():
                 self.thinning_lvl = args.thinning_lvl
                 self.pos_outcomes = list(range(self.thinning_lvl))
                 self.fav_outcome = random.choice(self.pos_outcomes)
-                max_proc_quan = args.max_proc_quan
                 trg_files_quan = args.trg_files_quan
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > trg_files_quan <= cpus_quan:
-                        self.proc_quan = trg_files_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     trg_files_quan,
+                                     os.cpu_count())
                 self.trg_file_names = [str(num + 1) + '_' +
                                        self.src_file_name for num in range(trg_files_quan)]
                 
@@ -97,8 +92,6 @@ if __name__ == '__main__':
         print(f'\nGenerating test files based on {main.src_file_name}')
         print(f'\trigidity: {main.thinning_lvl}')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.thin, main.trg_file_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.thin,
+                                main.trg_file_names)
         print(f'\tparallel computation time: {exec_time}')

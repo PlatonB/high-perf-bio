@@ -1,11 +1,11 @@
-__version__ = 'v5.5'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
+__version__ = 'v5.6'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
-import sys, locale, os, datetime
+import sys, locale, os
 sys.dont_write_bytecode = True
 from cli.reindex_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
-from multiprocessing import Pool
+from backend.parallelize import parallelize
 
 class Main():
         '''
@@ -31,15 +31,9 @@ class Main():
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
                 self.src_coll_names = client[self.src_db_name].list_collection_names()
-                max_proc_quan = args.max_proc_quan
-                src_colls_quan = len(self.src_coll_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > src_colls_quan <= cpus_quan:
-                        self.proc_quan = src_colls_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     len(self.src_coll_names),
+                                     os.cpu_count())
                 if args.del_ind_names in [None, '']:
                         self.del_ind_names = args.del_ind_names
                 else:
@@ -99,8 +93,6 @@ if __name__ == '__main__':
                 proc_quan = main.proc_quan
                 print(f'\nIndexing {src_db_name} DB')
                 print(f'\tquantity of parallel processes: {proc_quan}')
-                with Pool(proc_quan) as pool_obj:
-                        exec_time_start = datetime.datetime.now()
-                        pool_obj.map(main.add_indices, main.src_coll_names)
-                        exec_time = datetime.datetime.now() - exec_time_start
+                exec_time = parallelize(proc_quan, main.add_indices,
+                                        main.src_coll_names)
                 print(f'\tparallel computation time: {exec_time}')

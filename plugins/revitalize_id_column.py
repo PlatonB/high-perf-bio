@@ -1,7 +1,7 @@
-__version__ = 'v3.2'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2022']
+__version__ = 'v3.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
-import sys, os, locale, datetime, gzip
+import sys, os, locale, gzip
 sys.dont_write_bytecode = True
 if __name__ == '__main__':
         sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
@@ -14,7 +14,7 @@ else:
                                      'backend'))
 from pymongo import MongoClient, ASCENDING
 from common_errors import DifFmtsError
-from multiprocessing import Pool
+from parallelize import parallelize
 from def_data_type import def_data_type
 
 class NotVcfError(Exception):
@@ -76,15 +76,9 @@ class Main():
                 if src_coll_ext != 'vcf':
                         raise NotVcfError(src_coll_ext)
                 self.trg_dir_path = os.path.normpath(args.trg_dir_path)
-                max_proc_quan = args.max_proc_quan
-                src_files_quan = len(self.src_file_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > src_files_quan <= cpus_quan:
-                        self.proc_quan = src_files_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     len(self.src_file_names),
+                                     os.cpu_count())
                 self.ignore_unrev_lines = args.ignore_unrev_lines
                 client.close()
                 
@@ -161,8 +155,6 @@ if __name__ == '__main__':
         proc_quan = main.proc_quan
         print(f'\nID column reconstruction by {main.src_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.revitalize, main.src_file_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.revitalize,
+                                main.src_file_names)
         print(f'\tparallel computation time: {exec_time}')

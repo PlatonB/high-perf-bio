@@ -1,15 +1,15 @@
-__version__ = 'v9.2'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
+__version__ = 'v9.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
-import sys, locale, os, datetime, gzip, copy
+import sys, locale, os, gzip, copy
 sys.dont_write_bytecode = True
 from cli.annotate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
-from multiprocessing import Pool
 from backend.common_errors import DifFmtsError, DbAlreadyExistsError, FormatIsNotSupportedError, NoSuchFieldError
 from backend.get_field_paths import parse_nested_objs
+from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
 
@@ -64,15 +64,9 @@ class Main():
                         self.trg_db_name = args.trg_place
                 else:
                         raise DbAlreadyExistsError()
-                max_proc_quan = args.max_proc_quan
-                src_files_quan = len(self.src_file_names)
-                cpus_quan = os.cpu_count()
-                if max_proc_quan > src_files_quan <= cpus_quan:
-                        self.proc_quan = src_files_quan
-                elif max_proc_quan > cpus_quan:
-                        self.proc_quan = cpus_quan
-                else:
-                        self.proc_quan = max_proc_quan
+                self.proc_quan = min(args.max_proc_quan,
+                                     len(self.src_file_names),
+                                     os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
                 self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
@@ -392,8 +386,6 @@ if __name__ == '__main__':
         proc_quan = main.proc_quan
         print(f'\nAnnotation by {main.src_db_name} DB')
         print(f'\tquantity of parallel processes: {proc_quan}')
-        with Pool(proc_quan) as pool_obj:
-                exec_time_start = datetime.datetime.now()
-                pool_obj.map(main.annotate, main.src_file_names)
-                exec_time = datetime.datetime.now() - exec_time_start
+        exec_time = parallelize(proc_quan, main.annotate,
+                                main.src_file_names)
         print(f'\tparallel computation time: {exec_time}')

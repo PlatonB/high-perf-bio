@@ -1,4 +1,4 @@
-__version__ = 'v2.2'
+__version__ = 'v2.3'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, os, locale, datetime
@@ -10,6 +10,8 @@ sys.path.append(os.path.join(hpb_dir_path,
                              'plugins'))
 sys.path.append(os.path.join(hpb_dir_path,
                              'scripts'))
+sys.path.append(os.path.join(hpb_dir_path,
+                             'backend'))
 import streamlit as st
 import annotate_gui, concatenate_gui, count_gui, create_gui, \
        dock_gui, ljoin_gui, query_gui, reindex_gui, split_gui, \
@@ -17,7 +19,7 @@ import annotate_gui, concatenate_gui, count_gui, create_gui, \
 import annotate, concatenate, count, create, \
        dock, ljoin, query, reindex, split, \
        revitalize_id_column, count_lines, gen_test_files
-from multiprocessing import Pool
+from parallelize import parallelize
 
 #Кастомизируем заголовок окна
 #браузера и 3 пункта гамбургер-меню.
@@ -70,10 +72,8 @@ if tool_name == 'annotate':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Annotation by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.annotate, main.src_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.annotate,
+                                                main.src_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'concatenate':
@@ -101,10 +101,8 @@ if tool_name == 'count':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Counting sets of related values in {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.count, main.src_coll_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.count,
+                                                main.src_coll_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'create':
@@ -118,10 +116,8 @@ if tool_name == 'create':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Replenishment and indexing {main.trg_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.create_collection, main.src_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.create_collection,
+                                                main.src_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'dock':
@@ -135,10 +131,8 @@ if tool_name == 'dock':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Annotation by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.dock, main.src_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.dock,
+                                                main.src_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'ljoin':
@@ -151,12 +145,10 @@ if tool_name == 'ljoin':
                 main = ljoin.Main(inp, version)
                 proc_quan = main.proc_quan
                 with st.spinner(f'{main.action.capitalize()}ing collections of {main.src_db_name} DB'):
-                        st.text(f'quantity of parallel processes: {proc_quan}')
                         st.text(f'coverage: {main.coverage}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.intersect_subtract, main.left_coll_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        st.text(f'quantity of parallel processes: {proc_quan}')
+                        exec_time = parallelize(proc_quan, main.intersect_subtract,
+                                                main.left_coll_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'query':
@@ -170,10 +162,8 @@ if tool_name == 'query':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Queriing by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.search, main.src_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.search,
+                                                main.src_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'reindex':
@@ -192,10 +182,8 @@ if tool_name == 'reindex':
                         proc_quan = main.proc_quan
                         with st.spinner(f'Indexing {src_db_name} DB'):
                                 st.text(f'quantity of parallel processes: {proc_quan}')
-                                with Pool(proc_quan) as pool_obj:
-                                        exec_time_start = datetime.datetime.now()
-                                        pool_obj.map(main.add_indices, main.src_coll_names)
-                                        exec_time = datetime.datetime.now() - exec_time_start
+                                exec_time = parallelize(proc_quan, main.add_indices,
+                                                        main.src_coll_names)
                         st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'split':
@@ -209,10 +197,8 @@ if tool_name == 'split':
                 proc_quan = main.proc_quan
                 with st.spinner(f'Splitting collections of {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.split, main.src_coll_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.split,
+                                                main.src_coll_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'revitalize_id_column':
@@ -226,10 +212,8 @@ if tool_name == 'revitalize_id_column':
                 proc_quan = main.proc_quan
                 with st.spinner(f'ID column reconstruction by {main.src_db_name} DB'):
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.revitalize, main.src_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.revitalize,
+                                                main.src_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
 if tool_name == 'count_lines':
@@ -258,9 +242,7 @@ if tool_name == 'gen_test_files':
                 with st.spinner(f'Generating test files based on {main.src_file_name}'):
                         st.text(f'rigidity: {main.thinning_lvl}')
                         st.text(f'quantity of parallel processes: {proc_quan}')
-                        with Pool(proc_quan) as pool_obj:
-                                exec_time_start = datetime.datetime.now()
-                                pool_obj.map(main.thin, main.trg_file_names)
-                                exec_time = datetime.datetime.now() - exec_time_start
+                        exec_time = parallelize(proc_quan, main.thin,
+                                                main.trg_file_names)
                 st.success(f'parallel computation time: {exec_time}')
                 st.balloons()
