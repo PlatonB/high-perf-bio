@@ -1,4 +1,4 @@
-__version__ = 'v5.5'
+__version__ = 'v5.6'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, os, copy, gzip
@@ -7,7 +7,7 @@ from cli.split_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
+from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.doc_to_line import restore_line
@@ -75,23 +75,21 @@ class Main():
                                 self.spl_field_path = 'chrom'
                         else:
                                 self.spl_field_path = src_field_paths[1]
-                elif args.spl_field_path not in src_field_paths:
-                        raise NoSuchFieldError(args.spl_field_path)
                 else:
+                        if args.spl_field_path not in src_field_paths:
+                                NoSuchFieldWarning(args.spl_field_path)
                         self.spl_field_path = args.spl_field_path
                 self.mongo_aggr_draft = [{'$match': {self.spl_field_path: None}}]
                 if args.srt_field_group not in [None, '']:
-                        self.srt_field_group = args.srt_field_group.split('+')
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':
                                 srt_order = ASCENDING
                         elif args.srt_order == 'desc':
                                 srt_order = DESCENDING
-                        for srt_field_path in self.srt_field_group:
+                        for srt_field_path in args.srt_field_group.split('+'):
                                 if srt_field_path not in src_field_paths:
-                                        raise NoSuchFieldError(srt_field_path)
-                                else:
-                                        mongo_sort[srt_field_path] = srt_order
+                                        NoSuchFieldWarning(srt_field_path)
+                                mongo_sort[srt_field_path] = srt_order
                         self.mongo_aggr_draft.append({'$sort': mongo_sort})
                         self.trg_file_fmt = 'tsv'
                 if args.proj_field_names in [None, '']:
@@ -101,9 +99,8 @@ class Main():
                         mongo_project = {}
                         for proj_field_name in proj_field_names:
                                 if proj_field_name not in src_field_paths:
-                                        raise NoSuchFieldError(proj_field_name)
-                                else:
-                                        mongo_project[proj_field_name] = 1
+                                        NoSuchFieldWarning(proj_field_name)
+                                mongo_project[proj_field_name] = 1
                         self.mongo_aggr_draft.append({'$project': mongo_project})
                         self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
                         self.trg_file_fmt = 'tsv'
@@ -137,9 +134,8 @@ class Main():
                                 index_tups = []
                                 for ind_field_path in ind_field_group.split('+'):
                                         if ind_field_path not in src_field_paths:
-                                                raise NoSuchFieldError(ind_field_path)
-                                        else:
-                                                index_tups.append((ind_field_path, ASCENDING))
+                                                NoSuchFieldWarning(ind_field_path)
+                                        index_tups.append((ind_field_path, ASCENDING))
                                 self.index_models.append(IndexModel(index_tups))
                 self.version = version
                 client.close()

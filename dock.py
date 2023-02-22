@@ -1,11 +1,11 @@
-__version__ = 'v2.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2023']
+__version__ = 'v2.4'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, locale, os, gzip, copy
 sys.dont_write_bytecode = True
 from cli.dock_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
-from backend.common_errors import DifFmtsError, FormatIsNotSupportedError, NoSuchFieldError
+from backend.common_errors import DifFmtsError, FormatIsNotSupportedError, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
@@ -94,9 +94,9 @@ class Main():
                                         self.ann_field_path = 'name'
                                 else:
                                         self.ann_field_path = src_field_paths[1]
-                        elif args.ann_field_path not in src_field_paths:
-                                raise NoSuchFieldError(args.ann_field_path)
                         else:
+                                if args.ann_field_path not in src_field_paths:
+                                        NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
                 self.mongo_aggr_draft = [{'$match': None}, {'$addFields': None}]
                 self.mongo_project = {}

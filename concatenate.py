@@ -1,11 +1,11 @@
-__version__ = 'v4.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2022']
+__version__ = 'v4.4'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, datetime, copy, os
 sys.dont_write_bytecode = True
 from cli.concatenate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
+from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 
 class Main():
@@ -53,16 +53,15 @@ class Main():
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
+                mongo_project = {'_id': 0}
                 if args.proj_field_names in [None, '']:
-                        mongo_project = {'_id': 0}
                         self.trg_coll_ext = src_coll_ext
                 else:
                         proj_field_names = args.proj_field_names.split(',')
                         for proj_field_name in proj_field_names:
                                 if proj_field_name not in src_field_paths:
-                                        raise NoSuchFieldError(proj_field_name)
-                        mongo_project = {proj_field_name: 1 for proj_field_name in proj_field_names}
-                        mongo_project['_id'] = 0
+                                        NoSuchFieldWarning(proj_field_name)
+                                mongo_project[proj_field_name] = 1
                         self.trg_coll_ext = 'tsv'
                 if not args.del_copies:
                         self.mongo_on = '_id'
@@ -99,9 +98,8 @@ class Main():
                                 index_tups = []
                                 for ind_field_path in ind_field_group.split('+'):
                                         if ind_field_path not in src_field_paths:
-                                                raise NoSuchFieldError(ind_field_path)
-                                        else:
-                                                index_tups.append((ind_field_path, ASCENDING))
+                                                NoSuchFieldWarning(ind_field_path)
+                                        index_tups.append((ind_field_path, ASCENDING))
                                 self.index_models.append(IndexModel(index_tups))
                 self.version = version
                 client.close()

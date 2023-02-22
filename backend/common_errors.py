@@ -1,4 +1,6 @@
-__version__ = 'v4.0'
+__version__ = 'v5.0'
+
+import warnings
 
 class DifFmtsError(Exception):
         '''
@@ -42,25 +44,11 @@ class FormatIsNotSupportedError(Exception):
                 err_msg = f"\n'{arg}' argument doesn't applicable to {src_fmt} format"
                 super().__init__(err_msg)
                 
-#DEPRECATED.
-class ByLocTsvError(Exception):
+class NoSuchFieldWarning():
         '''
-        В исследуемом TSV или основанной на TSV
-        коллекции может не быть геномных координат.
-        Ну или бывает, когда координатные столбцы
-        располагаются, где попало. Поэтому нельзя,
-        чтобы при пересечении по локации хоть в одном
-        из этих двух мест витал вольноформатный дух.
-        '''
-        def __init__(self):
-                err_msg = '\nIntersection by location is not possible for src-TSV or src-db-TSV'
-                super().__init__(err_msg)
-                
-class NoSuchFieldError(Exception):
-        '''
-        Если исследователь, допустим, опечатавшись,
-        указал поле, которого нет в коллекциях.
+        Указанного исследователем поля,
+        возможно, нет в коллекциях.
         '''
         def __init__(self, field_path):
-                err_msg = f'\nThe field {field_path} does not exist'
-                super().__init__(err_msg)
+                print('')
+                warnings.warn(f'\nThe field {field_path} probably does not exist')

@@ -1,11 +1,11 @@
-__version__ = 'v7.3'
+__version__ = 'v7.4'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, os, copy, gzip
 sys.dont_write_bytecode = True
 from cli.count_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldError
+from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from bson.decimal128 import Decimal128
@@ -86,7 +86,7 @@ class Main():
                         cnt_field_paths = args.cnt_field_paths.split(',')
                         for cnt_field_path in cnt_field_paths:
                                 if cnt_field_path not in src_field_paths:
-                                        raise NoSuchFieldError(cnt_field_path)
+                                        NoSuchFieldWarning(cnt_field_path)
                 self.mongo_aggr_draft = [{'$match': mongo_exclude_meta}]
                 if not args.not_unfold_arrays:
                         for cnt_field_path in cnt_field_paths:
