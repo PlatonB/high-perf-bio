@@ -1,10 +1,12 @@
-__version__ = 'v5.6'
+__version__ = 'v6.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os
 sys.dont_write_bytecode = True
 from cli.reindex_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, IndexModel, ASCENDING
+from backend.get_field_paths import parse_nested_objs
+from backend.common_errors import NoSuchFieldWarning
 from backend.parallelize import parallelize
 
 class Main():
@@ -30,10 +32,8 @@ class Main():
                 '''
                 client = MongoClient()
                 self.src_db_name = args.src_db_name
-                self.src_coll_names = client[self.src_db_name].list_collection_names()
-                self.proc_quan = min(args.max_proc_quan,
-                                     len(self.src_coll_names),
-                                     os.cpu_count())
+                src_db_obj = client[self.src_db_name]
+                self.src_coll_names = src_db_obj.list_collection_names()
                 if args.del_ind_names in [None, '']:
                         self.del_ind_names = args.del_ind_names
                 else:
@@ -41,8 +41,20 @@ class Main():
                 if args.ind_field_groups in [None, '']:
                         self.index_models = args.ind_field_groups
                 else:
-                        self.index_models = [IndexModel([(ind_field_path, ASCENDING) for ind_field_path in ind_field_group.split('+')]) \
-                                             for ind_field_group in args.ind_field_groups.split(',')]
+                        self.proc_quan = min(args.max_proc_quan,
+                                             len(self.src_coll_names),
+                                             os.cpu_count())
+                        src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one({'meta':
+                                                                                                         {'$exists':
+                                                                                                          False}}))
+                        self.index_models = []
+                        for ind_field_group in args.ind_field_groups.split(','):
+                                index_tups = []
+                                for ind_field_path in ind_field_group.split('+'):
+                                        if ind_field_path not in src_field_paths:
+                                                NoSuchFieldWarning(ind_field_path)
+                                        index_tups.append((ind_field_path, ASCENDING))
+                                self.index_models.append(IndexModel(index_tups))
                 client.close()
                 
         def del_indices(self):
@@ -52,10 +64,9 @@ class Main():
                 индексов всех коллекций.
                 '''
                 client = MongoClient()
-                src_db_obj = client[self.src_db_name]
                 for src_coll_name in self.src_coll_names:
                         for del_ind_name in self.del_ind_names:
-                                src_db_obj[src_coll_name].drop_index(del_ind_name)
+                                client[self.src_db_name][src_coll_name].drop_index(del_ind_name)
                 client.close()
                 
         def add_indices(self, src_coll_name):
