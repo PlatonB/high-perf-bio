@@ -1,4 +1,4 @@
-__version__ = 'v9.4'
+__version__ = 'v10.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, gzip, copy
@@ -31,13 +31,16 @@ class Main():
                 не должны будут потом в параллельных процессах изменяться. Немного о наиболее
                 значимых атрибутах. Расширение исходных таблиц и квази-расширение коллекций
                 нужны, как минимум, для выбора формат-ориентированного пересекательного запроса
-                и определения правил форматирования конечных файлов. Умолчания по столбцам и полям
-                выбраны на основе здравого смысла: к примеру, аннотировать src-VCF по src-db-VCF
-                или src-db-BED логично, пересекая столбец и поле, оба из которых с идентификаторами
-                вариантов. Сортировка. Если задан кастомный порядок сортировки src-db-VCF/src-db-BED,
-                то результат будет уже не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля
-                src-db-VCF я, скрепя сердце, позволил отбирать, но документы со вложенными объектами,
-                как, например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
+                и определения правил форматирования конечных файлов. Пользовательский запрос.
+                Его ключи, совпадающие с ключами встроенного запроса, пропадут. Исследователь
+                может обойти эту проблему, упрятав своё выражение вовнутрь фиктивного $and.
+                Умолчания по столбцам и полям. Они выбраны на основе здравого смысла: к примеру,
+                аннотировать src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец
+                и поле, оба из которых с идентификаторами вариантов. Сортировка. Если задан
+                кастомный порядок сортировки src-db-VCF/src-db-BED, то результат будет уже
+                не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля src-db-VCF я,
+                скрепя сердце, позволил отбирать, но документы со вложенными объектами, как,
+                например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
                 Что касается и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей,
                 невозможно гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
@@ -68,6 +71,10 @@ class Main():
                                      len(self.src_file_names),
                                      os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
+                if args.extra_query in ['{}', '']:
+                        self.extra_query = {}
+                else:
+                        self.extra_query = eval(args.extra_query)
                 self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
@@ -78,7 +85,7 @@ class Main():
                         elif self.src_coll_ext not in ['vcf', 'bed']:
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
-                        self.mongo_aggr_draft = [{'$match': {'$or': []}}]
+                        self.mongo_aggr_draft = [{'$match': self.extra_query | {'$or': []}}]
                 elif self.preset == 'by_alleles':
                         if self.src_file_fmt != 'vcf':
                                 raise FormatIsNotSupportedError('preset',
@@ -86,7 +93,7 @@ class Main():
                         elif self.src_coll_ext != 'vcf':
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
-                        self.mongo_aggr_draft = [{'$match': {'$or': []}}]
+                        self.mongo_aggr_draft = [{'$match': self.extra_query | {'$or': []}}]
                 else:
                         if args.ann_col_num in [None, 0]:
                                 if self.src_file_fmt == 'vcf':
@@ -108,7 +115,8 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
-                        self.mongo_aggr_draft = [{'$match': {self.ann_field_path: {'$in': []}}}]
+                        self.mongo_aggr_draft = [{'$match': self.extra_query |
+                                                  {self.ann_field_path: {'$in': []}}}]
                 if args.srt_field_group not in [None, '']:
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':

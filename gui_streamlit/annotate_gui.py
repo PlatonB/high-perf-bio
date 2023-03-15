@@ -1,4 +1,4 @@
-__version__ = 'v4.1'
+__version__ = 'v5.0'
 
 import streamlit as st
 from descriptions.annotate_descr import AnnotateDescr
@@ -27,6 +27,10 @@ class AddWidgetsRu():
                                                                help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED, src-TSV: включите шапку)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='''Дополнительный запрос ко всем коллекциям БД (синтаксис PyMongo;
+{"$and": [ваш_запрос]} при необходимости экранирования имени запрашиваемого поля или оператора $or;
+примеры указания типа данных: "any_str", Decimal128("any_str"))''')
                         self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
                                                help='''Аннотировать, пересекая по геномной локации (экспериментальная фича; src-TSV, src-db-TSV: не применяется).
 Аннотировать ID по ID, уточняя по аллелям совпадения ID (экспериментальная фича; src-TSV/BED, src-db-TSV/BED: не применяется)''')
@@ -69,6 +73,10 @@ class AddWidgetsEn():
                                                                help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
                         self.meta_lines_quan = st.number_input(label='meta-lines-quan', min_value=0, format='%d',
                                                                help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED, src-TSV: include a header)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='''Additional query to all DB collections (PyMongo syntax;
+{"$and": [your_query]} if necessary to shield the queried field name or $or operator;
+examples of specifying data type: "any_str", Decimal128("any_str"))''')
                         self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
                                                help='''Annotate via intersection by genomic location (experimental feature; src-TSV, src-db-TSV: not applicable).
 Annotate ID by ID, verifying by alleles ID matches (experimental feature; src-TSV/BED, src-db-TSV/BED: not applicable)''')
