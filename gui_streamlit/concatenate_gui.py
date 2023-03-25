@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v3.0'
 
 import streamlit as st
 from descriptions.concatenate_descr import ConcatenateDescr
@@ -22,6 +22,8 @@ class AddWidgetsRu():
                         st.subheader(body='Необязательные аргументы')
                         self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
                                                                help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='Дополнительный запрос ко всем коллекциям БД (синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
                         self.proj_field_names = st.text_input(label='proj-field-names',
                                                               help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-db-TSV)')
                         self.del_copies = st.checkbox(label='del-copies',
@@ -48,6 +50,8 @@ class AddWidgetsEn():
                         st.subheader(body='Optional widgets')
                         self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
                                                                help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='Additional query to all DB collections (PyMongo syntax; examples of specifying data type: "any_str", Decimal128("any_str"))')
                         self.proj_field_names = st.text_input(label='proj-field-names',
                                                               help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-db-TSV)')
                         self.del_copies = st.checkbox(label='del-copies',

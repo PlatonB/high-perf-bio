@@ -1,4 +1,4 @@
-__version__ = 'v2.4'
+__version__ = 'v3.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, locale, os, gzip, copy
@@ -28,16 +28,18 @@ class Main():
                 многопроцессового запуска таковой. Первые из перечисленных ни в коем случае
                 не должны будут потом в параллельных процессах изменяться. Немного о наиболее
                 значимых атрибутах. Расширение исходных таблиц и квази-расширение коллекций
-                нужны, как минимум, для выбора формат-ориентированного пересекательного
-                запроса, и определения правил форматирования конечных файлов. Умолчания по
-                столбцам и полям выбраны на основе здравого смысла: к примеру, аннотировать
-                src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец и поле,
-                оба из которых с идентификаторами вариантов. Сортировка программой никак
+                нужны, как минимум, для выбора формат-ориентированного пересекательного запроса,
+                и определения правил форматирования конечных файлов. Пользовательский запрос:
+                его ключи, совпадающие с ключами встроенного запроса, пропадут. Исследователь
+                может обойти эту проблему, упрятав своё выражение вовнутрь фиктивного $and.
+                Умолчания по столбцам и полям выбраны на основе здравого смысла: к примеру,
+                аннотировать src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец
+                и поле, оба из которых с идентификаторами вариантов. Сортировка программой никак
                 не предусмотрена. Причина - в том, что конечные данные получаются не единым
                 запросом (как в annotate), а множественными: сколько строк исходной таблицы,
                 столько и запросов. Важные замечания по проджекшену. Поля src-db-VCF я,
                 скрепя сердце, позволил отбирать, но документы со вложенными объектами,
-                как, например, в INFO, не сконвертируются в обычные строки, а сериализуются
+                как, например, в INFO, не сконвертируются в обычные строки, а выведутся
                 как есть. В этой программе, в отличие от других компонентов high-perf-bio,
                 отбор полей src-db-VCF и src-db-BED не влияет на конечный формат. Получающиеся
                 на выходе таблицы, независимо от применения/неприменения проджекшена - бесформатные
@@ -60,6 +62,10 @@ class Main():
                                      len(self.src_file_names),
                                      os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
+                if args.extra_query in ['{}', '']:
+                        self.extra_query = {}
+                else:
+                        self.extra_query = eval(args.extra_query)
                 self.preset = args.preset
                 self.mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(self.mongo_exclude_meta))
@@ -98,7 +104,8 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
-                self.mongo_aggr_draft = [{'$match': None}, {'$addFields': None}]
+                self.mongo_aggr_draft = [{'$match': self.extra_query},
+                                         {'$addFields': None}]
                 self.mongo_project = {}
                 if args.proj_field_names not in [None, '']:
                         proj_field_names = args.proj_field_names.split(',')
@@ -200,29 +207,29 @@ class Main():
                                                         if self.src_file_fmt == 'vcf':
                                                                 src_chrom, src_pos = def_data_type(src_row[0].replace('chr', '')), int(src_row[1])
                                                                 if self.src_coll_ext == 'vcf':
-                                                                        mongo_aggr_arg[0]['$match'] = {'#CHROM': src_chrom,
-                                                                                                       'POS': src_pos}
+                                                                        mongo_aggr_arg[0]['$match'] |= {'#CHROM': src_chrom,
+                                                                                                        'POS': src_pos}
                                                                 elif self.src_coll_ext == 'bed':
-                                                                        mongo_aggr_arg[0]['$match'] = {'chrom': src_chrom,
-                                                                                                       'start': {'$lt': src_pos},
-                                                                                                       'end': {'$gte': src_pos}}
+                                                                        mongo_aggr_arg[0]['$match'] |= {'chrom': src_chrom,
+                                                                                                        'start': {'$lt': src_pos},
+                                                                                                        'end': {'$gte': src_pos}}
                                                         elif self.src_file_fmt == 'bed':
                                                                 src_chrom, src_start, src_end = def_data_type(src_row[0].replace('chr', '')), int(src_row[1]), int(src_row[2])
                                                                 if self.src_coll_ext == 'vcf':
-                                                                        mongo_aggr_arg[0]['$match'] = {'#CHROM': src_chrom,
-                                                                                                       'POS': {'$gt': src_start,
-                                                                                                               '$lte': src_end}}
+                                                                        mongo_aggr_arg[0]['$match'] |= {'#CHROM': src_chrom,
+                                                                                                        'POS': {'$gt': src_start,
+                                                                                                                '$lte': src_end}}
                                                                 elif self.src_coll_ext == 'bed':
-                                                                        mongo_aggr_arg[0]['$match'] = {'chrom': src_chrom,
-                                                                                                       'start': {'$lt': src_end},
-                                                                                                       'end': {'$gt': src_start}}
+                                                                        mongo_aggr_arg[0]['$match'] |= {'chrom': src_chrom,
+                                                                                                        'start': {'$lt': src_end},
+                                                                                                        'end': {'$gt': src_start}}
                                                 elif self.preset == 'by_alleles':
                                                         src_id, src_ref, src_alt = src_row[2], src_row[3], src_row[4]
-                                                        mongo_aggr_arg[0]['$match'] = {'ID': src_id,
-                                                                                       'REF': src_ref,
-                                                                                       'ALT': src_alt}
+                                                        mongo_aggr_arg[0]['$match'] |= {'ID': src_id,
+                                                                                        'REF': src_ref,
+                                                                                        'ALT': src_alt}
                                                 else:
-                                                        mongo_aggr_arg[0]['$match'] = {self.ann_field_path: def_data_type(src_row[self.ann_col_index])}
+                                                        mongo_aggr_arg[0]['$match'] |= {self.ann_field_path: def_data_type(src_row[self.ann_col_index])}
                                                 mongo_aggr_arg[1]['$addFields'] = dict(zip(src_col_names, src_row))
                                                 curs_obj = src_coll_obj.aggregate(mongo_aggr_arg)
                                                 for doc in curs_obj:

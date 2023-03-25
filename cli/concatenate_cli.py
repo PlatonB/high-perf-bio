@@ -1,4 +1,4 @@
-__version__ = 'v5.1'
+__version__ = 'v6.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.concatenate_descr import ConcatenateDescr
@@ -21,6 +21,8 @@ def add_args_ru(version, authors):
         opt_grp = arg_parser.add_argument_group('Необязательные аргументы')
         opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
                              help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='Дополнительный запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Отбираемые поля верхнего уровня (через запятую без пробела; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',
@@ -48,6 +50,8 @@ def add_args_en(version, authors):
         opt_grp = arg_parser.add_argument_group('Optional arguments')
         opt_grp.add_argument('-e', '--rewrite-existing-db', dest='rewrite_existing_db', action='store_true',
                              help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='Additional query to all DB collections (in single quotes; PyMongo syntax; examples of specifying data type: "any_str", Decimal128("any_str"))')
         opt_grp.add_argument('-k', '--proj-field-names', metavar='[None]', dest='proj_field_names', type=str,
                              help='Selected top level fields (comma separated without spaces; src-db-VCF, src-db-BED: trg-db-TSV)')
         opt_grp.add_argument('-u', '--del-copies', dest='del_copies', action='store_true',

@@ -1,4 +1,4 @@
-__version__ = 'v3.3'
+__version__ = 'v4.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.dock_descr import DockDescr
@@ -25,6 +25,10 @@ def add_args_ru(version, authors):
                              help='Максимальное количество параллельно аннотируемых таблиц')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Количество строк метаинформации аннотируемых таблиц (src-VCF: не применяется; src-BED: включите шапку (если есть); src-TSV: не включайте шапку)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='''Дополнительный запрос ко всем коллекциям БД (в одинарных кавычках; синтаксис PyMongo;
+{"$and": [ваш_запрос]} при необходимости экранирования имени запрашиваемого поля;
+примеры указания типа данных: "any_str", Decimal128("any_str"))''')
         opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Аннотировать, пересекая по геномной локации (src-TSV, src-db-TSV: не применяется).
 Аннотировать ID по ID, уточняя по аллелям совпадения ID (src-TSV/BED, src-db-TSV/BED: не применяется)''')
@@ -61,6 +65,10 @@ def add_args_en(version, authors):
                              help='Maximum quantity of parallel annotated tables')
         opt_grp.add_argument('-m', '--meta-lines-quan', metavar='[0]', default=0, dest='meta_lines_quan', type=int,
                              help='Quantity of metainformation lines of annotated tables (src-VCF: not applicable; src-BED: include a header (if available); src-TSV: do not include a header)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='''Additional query to all DB collections (in single quotes; PyMongo syntax;
+{"$and": [your_query]} if necessary to shield the queried field name;
+examples of specifying data type: "any_str", Decimal128("any_str"))''')
         opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Annotate via intersection by genomic location (src-TSV, src-db-TSV: not applicable).
 Annotate ID by ID, verifying by alleles ID matches (src-TSV/BED, src-db-TSV/BED: not applicable)''')
