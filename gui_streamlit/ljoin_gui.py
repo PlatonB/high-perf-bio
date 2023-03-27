@@ -1,4 +1,4 @@
-__version__ = 'v3.1'
+__version__ = 'v4.0'
 
 import streamlit as st
 from descriptions.ljoin_descr import LjoinDescr
@@ -26,6 +26,8 @@ class AddWidgetsRu():
                                                              help='Максимальное количество параллельно обрабатываемых левых коллекций')
                         self.right_coll_names = st.text_input(label='right-coll-names',
                                                               help='Имена правых коллекций (через запятую без пробела; [[все коллекции]]; правая, совпадающая с текущей левой, проигнорируется)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='Дополнительный запрос к левым коллекциям БД (синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
                         self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
                                                help='''Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется).
 Пересекать или вычитать ID, уточняя по аллелям совпадения ID (экспериментальная фича; src-db-TSV/BED: не применяется)''')
@@ -67,6 +69,8 @@ class AddWidgetsEn():
                                                              help='Maximum quantity of parallel processed left collections')
                         self.right_coll_names = st.text_input(label='right-coll-names',
                                                               help='Right collection names (comma separated without spaces; [[all collections]]; the right one, which matches with current left one, will be ignored)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='Additional query to left DB collections (PyMongo syntax; examples of specifying data type: "any_str", Decimal128("any_str"))')
                         self.preset = st.radio(label='preset', options=['', 'by_location', 'by_alleles'],
                                                help='''Intersect or subtract by genomic location (experimental feature; src-db-TSV: not applicable).
 Intersect or subtract ID, verifying by alleles ID matches (experimental feature; src-db-TSV/BED: not applicable)''')

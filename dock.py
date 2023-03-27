@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, locale, os, gzip, copy
@@ -63,9 +63,9 @@ class Main():
                                      os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
                 if args.extra_query in ['{}', '']:
-                        self.extra_query = {}
+                        extra_query = {}
                 else:
-                        self.extra_query = eval(args.extra_query)
+                        extra_query = eval(args.extra_query)
                 self.preset = args.preset
                 self.mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(self.mongo_exclude_meta))
@@ -104,7 +104,7 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
-                self.mongo_aggr_draft = [{'$match': self.extra_query},
+                self.mongo_aggr_draft = [{'$match': extra_query},
                                          {'$addFields': None}]
                 self.mongo_project = {}
                 if args.proj_field_names not in [None, '']:

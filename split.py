@@ -1,4 +1,4 @@
-__version__ = 'v5.6'
+__version__ = 'v6.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, os, copy, gzip
@@ -31,9 +31,12 @@ class Main():
                 параллельных процессах изменяться. Некоторые неочевидные,
                 но важные детали об атрибутах. Квази-расширение коллекций.
                 Оно нужно, как минимум, для определения правил форматирования
-                конечных файлов. Сортировка. Без вмешательства исследователя
-                она не производится. Я так сделал по той причине, что
-                коллекции квази-форматов src-db-VCF и src-db-BED изначально,
+                конечных файлов. Пользовательский запрос. Его ключи, совпадающие
+                с ключами встроенного запроса, пропадут. Исследователь может
+                обойти эту проблему, упрятав своё выражение вовнутрь фиктивного
+                $and. Сортировка. Без вмешательства исследователя она не
+                производится. Я так сделал по той причине, что коллекции
+                квази-форматов src-db-VCF и src-db-BED изначально,
                 как и положено, отсортированы по координатам, и без
                 добавления этапа $sort отобранные документы поступают
                 в конечные файлы или коллекции в оригинальном порядке.
@@ -41,7 +44,7 @@ class Main():
                 будет уже не trg-(db-)VCF/BED. Проджекшен (отбор полей).
                 Поля src-db-VCF я, скрепя сердце, позволил отбирать, но
                 документы со вложенными объектами, как, например, в INFO,
-                не сконвертируются в обычные строки, а сериализуются как
+                не сконвертируются в обычные строки, а выведутся как
                 есть. Что касается и src-db-VCF, и src-db-BED, когда мы
                 оставляем только часть полей, невозможно гарантировать
                 соблюдение спецификаций соответствующих форматов,
@@ -66,6 +69,10 @@ class Main():
                 self.proc_quan = min(args.max_proc_quan,
                                      len(self.src_coll_names),
                                      os.cpu_count())
+                if args.extra_query in ['{}', '']:
+                        extra_query = {}
+                else:
+                        extra_query = eval(args.extra_query)
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if args.spl_field_path in [None, '']:
@@ -79,7 +86,7 @@ class Main():
                         if args.spl_field_path not in src_field_paths:
                                 NoSuchFieldWarning(args.spl_field_path)
                         self.spl_field_path = args.spl_field_path
-                self.mongo_aggr_draft = [{'$match': {self.spl_field_path: None}}]
+                self.mongo_aggr_draft = [{'$match': extra_query}]
                 if args.srt_field_group not in [None, '']:
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':
@@ -226,17 +233,27 @@ class Main():
                                         #Извлечение из объекта курсора отвечающих запросу
                                         #документов, преобразование их значений в обычные
                                         #строки и прописывание последних в конечный файл.
+                                        #Проверка, вылез ли по запросу хоть один документ.
+                                        empty_res = True
                                         for doc in curs_obj:
                                                 trg_file_opened.write(restore_line(doc,
                                                                                    self.trg_file_fmt,
                                                                                    self.sec_delimiter))
+                                                empty_res = False
                                                 
-                #Та же работа, но с выводом в БД. Опишу некоторые особенности.
-                #При работе с каждым раздельным значением Aggregation-инструкция
-                #обогащается этапом вывода в конечную коллекцию. Метастроки
-                #складываются в список, а он, в свою очередь, встраивается
-                #в первый документ коллекции. Для конечных коллекций
-                #создаются дефолтные или пользовательские индексы.
+                                #Удаление конечного файла, если в
+                                #нём очутились только метастроки.
+                                if empty_res:
+                                        os.remove(trg_file_path)
+                                        
+                #Та же работа, но с выводом в БД. Опишу некоторые
+                #особенности. При работе с каждым раздельным значением
+                #Aggregation-инструкция обогащается этапом вывода в
+                #конечную коллекцию. Метастроки складываются в список,
+                #а он, в свою очередь, встраивается в первый документ
+                #коллекции. Если этот документ так и остаётся в гордом
+                #одиночестве, коллекция удаляется. Для непустых конечных
+                #коллекций создаются дефолтные или пользовательские индексы.
                 elif hasattr(self, 'trg_db_name'):
                         trg_db_obj = client[self.trg_db_name]
                         mongo_aggr_arg.append({'$merge': {'into': {'db': self.trg_db_name,
@@ -261,8 +278,11 @@ class Main():
                                                        allowDiskUse=True,
                                                        collation=Collation(locale='en_US',
                                                                            numericOrdering=True))
-                                trg_coll_obj.create_indexes(self.index_models)
-                                
+                                if trg_coll_obj.count_documents({}) == 1:
+                                        trg_db_obj.drop_collection(trg_coll_name)
+                                else:
+                                        trg_coll_obj.create_indexes(self.index_models)
+                                        
                 #Дисконнект.
                 client.close()
                 

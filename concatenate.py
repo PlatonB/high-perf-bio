@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, datetime, copy, os
@@ -53,10 +53,10 @@ class Main():
                         raise DbAlreadyExistsError()
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 if args.extra_query in ['{}', '']:
-                        self.extra_query = {}
+                        extra_query = {}
                 else:
-                        self.extra_query = eval(args.extra_query)
-                mongo_match = mongo_exclude_meta | self.extra_query
+                        extra_query = eval(args.extra_query)
+                mongo_match = mongo_exclude_meta | extra_query
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 mongo_project = {'_id': 0}
                 if args.proj_field_names in [None, '']:

@@ -1,4 +1,4 @@
-__version__ = 'v5.1'
+__version__ = 'v6.0'
 
 from argparse import ArgumentParser, RawTextHelpFormatter
 from descriptions.ljoin_descr import LjoinDescr
@@ -25,6 +25,8 @@ def add_args_ru(version, authors):
                              help='Максимальное количество параллельно обрабатываемых левых коллекций')
         opt_grp.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                              help='Имена правых коллекций (через запятую без пробела; [[все коллекции]]; правая, совпадающая с текущей левой, проигнорируется)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='Дополнительный запрос к левым коллекциям БД (в одинарных кавычках; синтаксис PyMongo; примеры указания типа данных: "any_str", Decimal128("any_str"))')
         opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Пересекать или вычитать по геномной локации (экспериментальная фича; src-db-TSV: не применяется).
 Пересекать или вычитать ID, уточняя по аллелям совпадения ID (экспериментальная фича; src-db-TSV/BED: не применяется)''')
@@ -67,6 +69,8 @@ def add_args_en(version, authors):
                              help='Maximum quantity of parallel processed left collections')
         opt_grp.add_argument('-r', '--right-coll-names', metavar='[None]', dest='right_coll_names', type=str,
                              help='Right collection names (comma separated without spaces; [[all collections]]; the right one, which matches with current left one, will be ignored)')
+        opt_grp.add_argument('-q', '--extra-query', metavar="['{}']", default='{}', dest='extra_query', type=str,
+                             help='Additional query to left DB collections (in single quotes; PyMongo syntax; examples of specifying data type: "any_str", Decimal128("any_str"))')
         opt_grp.add_argument('-0', '--preset', metavar='[None]', choices=['by_location', 'by_alleles'], dest='preset', type=str,
                              help='''{by_location, by_alleles} Intersect or subtract by genomic location (experimental feature; src-db-TSV: not applicable).
 Intersect or subtract ID, verifying by alleles ID matches (experimental feature; src-db-TSV/BED: not applicable)''')

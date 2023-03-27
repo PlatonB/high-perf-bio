@@ -1,4 +1,4 @@
-__version__ = 'v2.1'
+__version__ = 'v3.0'
 
 import streamlit as st
 from descriptions.split_descr import SplitDescr
@@ -24,6 +24,10 @@ class AddWidgetsRu():
                                                              help='Максимальное количество параллельно делимых коллекций')
                         self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
                                                                help='Разрешить перезаписать существующую БД в случае конфликта имён (исходную БД перезаписывать нельзя)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='''Дополнительный запрос ко всем коллекциям БД (синтаксис PyMongo;
+{"$and": [ваш_запрос]} при необходимости экранирования имени запрашиваемого поля;
+примеры указания типа данных: "any_str", Decimal128("any_str"))''')
                         self.spl_field_path = st.text_input(label='spl-field-path',
                                                             help='Точечный путь к полю, по которому делить (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[первое после _id поле]])')
                         self.srt_field_group = st.text_input(label='srt-field-group',
@@ -58,6 +62,10 @@ class AddWidgetsEn():
                                                              help='Maximum quantity of collections splitted in parallel')
                         self.rewrite_existing_db = st.checkbox(label='rewrite-existing-db',
                                                                help='Allow overwriting an existing DB in case of names conflict (the source DB cannot be overwritten)')
+                        self.extra_query = st.text_input(label='extra-query', value='{}',
+                                                         help='''Additional query to all DB collections (PyMongo syntax;
+{"$and": [your_query]} if necessary to shield the queried field name;
+examples of specifying data type: "any_str", Decimal128("any_str"))''')
                         self.spl_field_path = st.text_input(label='spl-field-path',
                                                             help='Dot path to the field by which to split (src-db-VCF: [[#CHROM]]; src-db-BED: [[chrom]]; src-db-TSV: [[first field after _id]])')
                         self.srt_field_group = st.text_input(label='srt-field-group',

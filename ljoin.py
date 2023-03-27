@@ -1,4 +1,4 @@
-__version__ = 'v11.3'
+__version__ = 'v12.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, copy, gzip
@@ -85,8 +85,13 @@ class Main():
                 else:
                         self.right_coll_names = set(args.right_coll_names.split(','))
                 right_colls_quan = len(self.right_coll_names)
-                self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
+                if args.extra_query in ['{}', '']:
+                        extra_query = {}
+                else:
+                        extra_query = eval(args.extra_query)
+                mongo_match = mongo_exclude_meta | extra_query
+                self.preset = args.preset
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
                 if self.preset == 'by_location':
                         if self.src_coll_ext not in ['vcf', 'bed']:
@@ -115,7 +120,7 @@ class Main():
                 if len(self.right_coll_names & self.left_coll_names) > 0 \
                    and 1 < self.coverage == right_colls_quan:
                         self.coverage -= 1
-                self.mongo_aggr_draft = [{'$match': mongo_exclude_meta}]
+                self.mongo_aggr_draft = [{'$match': mongo_match}]
                 if args.srt_field_group not in [None, '']:
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':

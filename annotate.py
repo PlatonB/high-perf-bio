@@ -1,4 +1,4 @@
-__version__ = 'v10.0'
+__version__ = 'v10.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, gzip, copy
@@ -72,9 +72,9 @@ class Main():
                                      os.cpu_count())
                 self.meta_lines_quan = args.meta_lines_quan
                 if args.extra_query in ['{}', '']:
-                        self.extra_query = {}
+                        extra_query = {}
                 else:
-                        self.extra_query = eval(args.extra_query)
+                        extra_query = eval(args.extra_query)
                 self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
@@ -85,7 +85,7 @@ class Main():
                         elif self.src_coll_ext not in ['vcf', 'bed']:
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
-                        self.mongo_aggr_draft = [{'$match': self.extra_query | {'$or': []}}]
+                        self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
                 elif self.preset == 'by_alleles':
                         if self.src_file_fmt != 'vcf':
                                 raise FormatIsNotSupportedError('preset',
@@ -93,7 +93,7 @@ class Main():
                         elif self.src_coll_ext != 'vcf':
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
-                        self.mongo_aggr_draft = [{'$match': self.extra_query | {'$or': []}}]
+                        self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
                 else:
                         if args.ann_col_num in [None, 0]:
                                 if self.src_file_fmt == 'vcf':
@@ -115,7 +115,7 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
-                        self.mongo_aggr_draft = [{'$match': self.extra_query |
+                        self.mongo_aggr_draft = [{'$match': extra_query |
                                                   {self.ann_field_path: {'$in': []}}}]
                 if args.srt_field_group not in [None, '']:
                         mongo_sort = SON([])
