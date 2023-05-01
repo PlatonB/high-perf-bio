@@ -1,4 +1,4 @@
-__version__ = 'v9.2'
+__version__ = 'v9.3'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, re, gzip
@@ -253,7 +253,8 @@ class Main():
                         #Создание коллекции. Для оптимального соотношения
                         #скорости записи/извлечения с объёмом хранимых данных,
                         #я выбрал в качестве алгоритма сжатия Zstandard.
-                        trg_coll_obj = trg_db_obj.create_collection(src_file_name[:-3],
+                        trg_coll_name = src_file_name.rsplit('.', maxsplit=1)[0]
+                        trg_coll_obj = trg_db_obj.create_collection(trg_coll_name,
                                                                     storageEngine={'wiredTiger':
                                                                                    {'configString':
                                                                                     'block_compressor=zstd'}})
