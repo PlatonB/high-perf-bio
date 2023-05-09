@@ -1,4 +1,4 @@
-__version__ = 'v6.0'
+__version__ = 'v6.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 import sys, locale, os, copy, gzip
@@ -7,7 +7,8 @@ from cli.split_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
+from backend.common_errors import DbAlreadyExistsError, \
+     QueryKeysOverlapWarning, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.doc_to_line import restore_line
@@ -86,6 +87,8 @@ class Main():
                         if args.spl_field_path not in src_field_paths:
                                 NoSuchFieldWarning(args.spl_field_path)
                         self.spl_field_path = args.spl_field_path
+                if self.spl_field_path in extra_query.keys():
+                        QueryKeysOverlapWarning(self.spl_field_path)
                 self.mongo_aggr_draft = [{'$match': extra_query}]
                 if args.srt_field_group not in [None, '']:
                         mongo_sort = SON([])

@@ -1,4 +1,4 @@
-__version__ = 'v5.0'
+__version__ = 'v6.0'
 
 import warnings
 
@@ -43,6 +43,17 @@ class FormatIsNotSupportedError(Exception):
         def __init__(self, arg, src_fmt):
                 err_msg = f"\n'{arg}' argument doesn't applicable to {src_fmt} format"
                 super().__init__(err_msg)
+                
+class QueryKeysOverlapWarning():
+        '''
+        В запросе исследователя тот же ключ,
+        что и во встроенном запросе. Непорядок.
+        '''
+        def __init__(self, query_key):
+                print('')
+                warnings.warn(f'''\nThe field name ({query_key}) from
+the arbitrary query matches the
+field name from the built-in query''')
                 
 class NoSuchFieldWarning():
         '''

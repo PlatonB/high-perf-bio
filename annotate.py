@@ -1,4 +1,4 @@
-__version__ = 'v10.1'
+__version__ = 'v10.2'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, gzip, copy
@@ -7,7 +7,8 @@ from cli.annotate_cli import add_args_ru, add_args_en
 from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
 from pymongo.collation import Collation
 from bson.son import SON
-from backend.common_errors import DifFmtsError, DbAlreadyExistsError, FormatIsNotSupportedError, NoSuchFieldWarning
+from backend.common_errors import DifFmtsError, DbAlreadyExistsError, \
+     FormatIsNotSupportedError, QueryKeysOverlapWarning, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
@@ -40,7 +41,7 @@ class Main():
                 кастомный порядок сортировки src-db-VCF/src-db-BED, то результат будет уже
                 не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля src-db-VCF я,
                 скрепя сердце, позволил отбирать, но документы со вложенными объектами, как,
-                например, в INFO, не сконвертируются в обычные строки, а сериализуются как есть.
+                например, в INFO, не сконвертируются в обычные строки, а выведутся как есть.
                 Что касается и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей,
                 невозможно гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
@@ -85,6 +86,8 @@ class Main():
                         elif self.src_coll_ext not in ['vcf', 'bed']:
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
+                        if '$or' in extra_query.keys():
+                                QueryKeysOverlapWarning('$or')
                         self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
                 elif self.preset == 'by_alleles':
                         if self.src_file_fmt != 'vcf':
@@ -93,6 +96,8 @@ class Main():
                         elif self.src_coll_ext != 'vcf':
                                 raise FormatIsNotSupportedError('preset',
                                                                 self.src_coll_ext)
+                        if '$or' in extra_query.keys():
+                                QueryKeysOverlapWarning('$or')
                         self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
                 else:
                         if args.ann_col_num in [None, 0]:
@@ -115,6 +120,8 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
+                        if self.ann_field_path in extra_query.keys():
+                                QueryKeysOverlapWarning(self.ann_field_path)
                         self.mongo_aggr_draft = [{'$match': extra_query |
                                                   {self.ann_field_path: {'$in': []}}}]
                 if args.srt_field_group not in [None, '']:

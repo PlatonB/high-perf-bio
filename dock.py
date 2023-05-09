@@ -1,11 +1,12 @@
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 import sys, locale, os, gzip, copy
 sys.dont_write_bytecode = True
 from cli.dock_cli import add_args_ru, add_args_en
 from pymongo import MongoClient
-from backend.common_errors import DifFmtsError, FormatIsNotSupportedError, NoSuchFieldWarning
+from backend.common_errors import DifFmtsError, FormatIsNotSupportedError, \
+     QueryKeysOverlapWarning, NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
@@ -104,6 +105,32 @@ class Main():
                                 if args.ann_field_path not in src_field_paths:
                                         NoSuchFieldWarning(args.ann_field_path)
                                 self.ann_field_path = args.ann_field_path
+                if self.preset == 'by_location':
+                        if self.src_file_fmt == 'vcf':
+                                if self.src_coll_ext == 'vcf':
+                                        for extra_query_key in extra_query.keys():
+                                                if extra_query_key in ['#CHROM', 'POS']:
+                                                        QueryKeysOverlapWarning(extra_query_key)
+                                elif self.src_coll_ext == 'bed':
+                                        for extra_query_key in extra_query.keys():
+                                                if extra_query_key in ['chrom', 'start', 'end']:
+                                                        QueryKeysOverlapWarning(extra_query_key)
+                        elif self.src_file_fmt == 'bed':
+                                if self.src_coll_ext == 'vcf':
+                                        for extra_query_key in extra_query.keys():
+                                                if extra_query_key in ['#CHROM', 'POS']:
+                                                        QueryKeysOverlapWarning(extra_query_key)
+                                elif self.src_coll_ext == 'bed':
+                                        for extra_query_key in extra_query.keys():
+                                                if extra_query_key in ['chrom', 'start', 'end']:
+                                                        QueryKeysOverlapWarning(extra_query_key)
+                elif self.preset == 'by_alleles':
+                        for extra_query_key in extra_query.keys():
+                                if extra_query_key in ['ID', 'REF', 'ALT']:
+                                        QueryKeysOverlapWarning(extra_query_key)
+                else:
+                        if self.ann_field_path in extra_query.keys():
+                                QueryKeysOverlapWarning(self.ann_field_path)
                 self.mongo_aggr_draft = [{'$match': extra_query},
                                          {'$addFields': None}]
                 self.mongo_project = {}
