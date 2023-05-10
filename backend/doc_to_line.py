@@ -1,4 +1,4 @@
-__version__ = 'v2.0'
+__version__ = 'v3.0'
 
 def restore_info_cell(info_obj):
         '''
@@ -52,7 +52,13 @@ def restore_line(doc, trg_file_format, sec_delimiter):
         но могу дать разъяснения в Issues. Восстановление TSV осуществляется
         проще всего: вложенные списки схлопываются по заданному исследователем
         символу, а все элементы верхнего уровня - по табуляции, при этом не
-        являющиеся списком элементы любой глубины приобретают строковый тип данных.
+        являющиеся списком элементы любой глубины приобретают строковый тип
+        данных. Для TSV есть одно исключение: если попадается список, а имя
+        соответствующего поля - INFO, и, к тому же, первым элементом списка
+        оказывается словарь, то такой список принимается за VCF-INFO и
+        склеивается подходящим алгоритмом. INFO в TSV-объекте может встретиться,
+        если TSV происходит от src-db-VCF. Такое возможно, если src-db-VCF
+        подвергся отбору полей или нестандартной для формата сортировке.
         '''
         try:
                 del doc['_id']
@@ -88,8 +94,11 @@ def restore_line(doc, trg_file_format, sec_delimiter):
         else:
                 for field_name in field_names:
                         if type(doc[field_name]) is list:
-                                doc[field_name] = sec_delimiter.join(map(str,
-                                                                         doc[field_name]))
+                                if field_name == 'INFO' and type(doc[field_name][0]) is dict:
+                                        doc[field_name] = restore_info_cell(doc[field_name])
+                                else:
+                                        doc[field_name] = sec_delimiter.join(map(str,
+                                                                                 doc[field_name]))
                         else:
                                 doc[field_name] = str(doc[field_name])
                 line = '\t'.join(doc.values()) + '\n'
