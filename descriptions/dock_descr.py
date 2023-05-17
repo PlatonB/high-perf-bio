@@ -1,4 +1,4 @@
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 class DockDescr():
         def __init__(self, version, authors):
@@ -47,7 +47,7 @@ TSV        |  Обязательно     |  Не прибавляйте 1
 Каждая аннотируемая таблица обязана быть сжатой с помощью GZIP.
 
 Источником характеристик должна быть БД, созданная с
-помощью create_db или других инструментов high-perf-bio.
+помощью create или других инструментов high-perf-bio.
 
 Чтобы программа работала быстро, нужны индексы вовлечённых в запрос полей.
 
@@ -106,7 +106,7 @@ by coordinates. All 4 combinations of VCF and BED are supported.
 Each annotated table must be compressed using GZIP.
 
 The source of the characteristics must be the DB
-produced by "create_db" or other high-perf-bio tools.
+produced by "create" or other high-perf-bio tools.
 
 For the program to work fast, it needs
 indexes of the fields involved in the query.
