@@ -1,18 +1,40 @@
-__version__ = 'v10.2'
+__version__ = 'v11.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 import sys, locale, os, gzip, copy
 sys.dont_write_bytecode = True
-from cli.annotate_cli import add_args_ru, add_args_en
-from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
+from cli.annotate_cli import (add_args_ru,
+                              add_args_en)
+from pymongo import (MongoClient,
+                     ASCENDING,
+                     DESCENDING,
+                     IndexModel)
 from pymongo.collation import Collation
 from bson.son import SON
-from backend.common_errors import DifFmtsError, DbAlreadyExistsError, \
-     FormatIsNotSupportedError, QueryKeysOverlapWarning, NoSuchFieldWarning
+from backend.common_errors import (DifFmtsError,
+                                   DbAlreadyExistsError,
+                                   FormatIsNotSupportedError,
+                                   QueryKeysOverlapWarning,
+                                   NoSuchFieldWarning)
 from backend.get_field_paths import parse_nested_objs
 from backend.parallelize import parallelize
 from backend.def_data_type import def_data_type
 from backend.doc_to_line import restore_line
+
+def create_mongo_aggr_meta(mongo_aggr_arg, preset, ann_field_path):
+        '''
+        Создание метастроки с запросом. Если аннотирование было
+        более, чем пяти значений/координат, в метастроку пойдут только
+        первые пять. Без такого ограничения она может неимоверно распухнуть.
+        '''
+        mongo_aggr_meta = copy.deepcopy(mongo_aggr_arg)
+        if preset:
+                if len(mongo_aggr_arg[0]['$match']['$or']) > 5:
+                        mongo_aggr_meta[0]['$match']['$or'] = mongo_aggr_arg[0]['$match']['$or'][:5] + ['...']
+        elif ann_field_path:
+                if len(mongo_aggr_arg[0]['$match'][ann_field_path]['$in']) > 5:
+                        mongo_aggr_meta[0]['$match'][ann_field_path]['$in'] = mongo_aggr_arg[0]['$match'][ann_field_path]['$in'][:5] + ['...']
+        return mongo_aggr_meta
 
 class Main():
         '''
@@ -38,10 +60,13 @@ class Main():
                 Умолчания по столбцам и полям. Они выбраны на основе здравого смысла: к примеру,
                 аннотировать src-VCF по src-db-VCF или src-db-BED логично, пересекая столбец
                 и поле, оба из которых с идентификаторами вариантов. Сортировка. Если задан
-                кастомный порядок сортировки src-db-VCF/src-db-BED, то результат будет уже
-                не trg-(db-)VCF/BED. Важные замечания по проджекшену. Поля src-db-VCF я,
-                скрепя сердце, позволил отбирать, но документы со вложенными объектами, как,
-                например, в INFO, не сконвертируются в обычные строки, а выведутся как есть.
+                кастомный порядок сортировки src-db-VCF/src-db-BED, то результат будет уже не
+                trg-(db-)VCF/BED. Важные замечания по проджекшену + хорошая новость. В мае-2023
+                появилась возможность выковыривать из src-db-VCF как INFO, так и его отдельные
+                элементы! Отсутствие в каком-либо документе значения проджектируемого INFO-подполя
+                не разрушит форматирование конечной таблицы. К примеру, если из всего INFO выводить
+                лишь INFO.GnomAD, а GnomAD-данных для текущего варианта нет, то в trg-TSV на место
+                GnomAD=vals сместится ближайшая табуляция. Почему я только что написал trg-TSV?
                 Что касается и src-db-VCF, и src-db-BED, когда мы оставляем только часть полей,
                 невозможно гарантировать соблюдение спецификаций соответствующих форматов, поэтому
                 вывод будет формироваться не более, чем просто табулированным (trg-(db-)TSV).
@@ -49,7 +74,8 @@ class Main():
                 client = MongoClient()
                 self.src_dir_path = os.path.normpath(args.src_dir_path)
                 self.src_file_names = os.listdir(self.src_dir_path)
-                src_file_fmts = set(map(lambda src_file_name: src_file_name.rsplit('.', maxsplit=2)[1],
+                src_file_fmts = set(map(lambda src_file_name:
+                                        src_file_name.rsplit('.', maxsplit=2)[1],
                                         self.src_file_names))
                 if len(src_file_fmts) > 1:
                         raise DifFmtsError(src_file_fmts)
@@ -76,31 +102,31 @@ class Main():
                         extra_query = {}
                 else:
                         extra_query = eval(args.extra_query)
+                self.mongo_aggr_draft = [{'$match': extra_query}]
                 self.preset = args.preset
                 mongo_exclude_meta = {'meta': {'$exists': False}}
                 src_field_paths = parse_nested_objs(src_db_obj[self.src_coll_names[0]].find_one(mongo_exclude_meta))
-                if self.preset == 'by_location':
-                        if self.src_file_fmt not in ['vcf', 'bed']:
-                                raise FormatIsNotSupportedError('preset',
-                                                                self.src_file_fmt)
-                        elif self.src_coll_ext not in ['vcf', 'bed']:
-                                raise FormatIsNotSupportedError('preset',
-                                                                self.src_coll_ext)
+                if self.preset:
+                        if self.preset == 'by_location':
+                                if self.src_file_fmt not in ['vcf', 'bed']:
+                                        raise FormatIsNotSupportedError('preset',
+                                                                        self.src_file_fmt)
+                                elif self.src_coll_ext not in ['vcf', 'bed']:
+                                        raise FormatIsNotSupportedError('preset',
+                                                                        self.src_coll_ext)
+                        elif self.preset == 'by_alleles':
+                                if self.src_file_fmt != 'vcf':
+                                        raise FormatIsNotSupportedError('preset',
+                                                                        self.src_file_fmt)
+                                elif self.src_coll_ext != 'vcf':
+                                        raise FormatIsNotSupportedError('preset',
+                                                                        self.src_coll_ext)
+                        self.ann_field_path = None
                         if '$or' in extra_query.keys():
                                 QueryKeysOverlapWarning('$or')
-                        self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
-                elif self.preset == 'by_alleles':
-                        if self.src_file_fmt != 'vcf':
-                                raise FormatIsNotSupportedError('preset',
-                                                                self.src_file_fmt)
-                        elif self.src_coll_ext != 'vcf':
-                                raise FormatIsNotSupportedError('preset',
-                                                                self.src_coll_ext)
-                        if '$or' in extra_query.keys():
-                                QueryKeysOverlapWarning('$or')
-                        self.mongo_aggr_draft = [{'$match': extra_query | {'$or': []}}]
+                        self.mongo_aggr_draft[0]['$match'] |= {'$or': []}
                 else:
-                        if args.ann_col_num in [None, 0]:
+                        if not args.ann_col_num:
                                 if self.src_file_fmt == 'vcf':
                                         self.ann_col_index = 2
                                 elif self.src_file_fmt == 'bed':
@@ -109,7 +135,7 @@ class Main():
                                         self.ann_col_index = 0
                         else:
                                 self.ann_col_index = args.ann_col_num - 1
-                        if args.ann_field_path in [None, '']:
+                        if not args.ann_field_path:
                                 if self.src_coll_ext == 'vcf':
                                         self.ann_field_path = 'ID'
                                 elif self.src_coll_ext == 'bed':
@@ -122,9 +148,9 @@ class Main():
                                 self.ann_field_path = args.ann_field_path
                         if self.ann_field_path in extra_query.keys():
                                 QueryKeysOverlapWarning(self.ann_field_path)
-                        self.mongo_aggr_draft = [{'$match': extra_query |
-                                                  {self.ann_field_path: {'$in': []}}}]
-                if args.srt_field_group not in [None, '']:
+                        self.mongo_aggr_draft[0]['$match'] |= {self.ann_field_path:
+                                                               {'$in': []}}
+                if args.srt_field_group:
                         mongo_sort = SON([])
                         if args.srt_order == 'asc':
                                 srt_order = ASCENDING
@@ -136,7 +162,7 @@ class Main():
                                 mongo_sort[srt_field_path] = srt_order
                         self.mongo_aggr_draft.append({'$sort': mongo_sort})
                         self.trg_file_fmt = 'tsv'
-                if args.proj_field_names in [None, '']:
+                if not args.proj_field_names:
                         self.mongo_findone_args = [mongo_exclude_meta, None]
                 else:
                         proj_field_names = args.proj_field_names.split(',')
@@ -145,8 +171,10 @@ class Main():
                                 if proj_field_name not in src_field_paths:
                                         NoSuchFieldWarning(proj_field_name)
                                 mongo_project[proj_field_name] = 1
-                        self.mongo_aggr_draft.append({'$project': mongo_project})
-                        self.mongo_findone_args = [mongo_exclude_meta, mongo_project]
+                        self.mongo_aggr_draft.append({'$project':
+                                                      mongo_project})
+                        self.mongo_findone_args = [mongo_exclude_meta,
+                                                   mongo_project]
                         self.trg_file_fmt = 'tsv'
                 if args.sec_delimiter == 'colon':
                         self.sec_delimiter = ':'
@@ -158,7 +186,7 @@ class Main():
                         self.sec_delimiter = '|'
                 elif args.sec_delimiter == 'semicolon':
                         self.sec_delimiter = ';'
-                if args.ind_field_groups in [None, '']:
+                if not args.ind_field_groups:
                         if self.trg_file_fmt == 'vcf':
                                 self.index_models = [IndexModel([('#CHROM', ASCENDING),
                                                                  ('POS', ASCENDING)]),
@@ -168,7 +196,7 @@ class Main():
                                                                  ('start', ASCENDING),
                                                                  ('end', ASCENDING)]),
                                                      IndexModel([('name', ASCENDING)])]
-                        elif args.proj_field_names in [None, '']:
+                        elif not args.proj_field_names:
                                 self.index_models = [IndexModel([(src_field_paths[1], ASCENDING)])]
                         else:
                                 self.index_models = [IndexModel([(proj_field_names[0], ASCENDING)])]
@@ -223,31 +251,37 @@ class Main():
                                 src_row = src_line.rstrip().split('\t')
                                 if self.preset == 'by_location':
                                         if self.src_file_fmt == 'vcf':
-                                                src_chrom, src_pos = def_data_type(src_row[0].replace('chr', '')), int(src_row[1])
+                                                src_chrom_val = def_data_type(src_row[0].replace('chr', ''))
+                                                src_pos_val = int(src_row[1])
                                                 if self.src_coll_ext == 'vcf':
-                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
-                                                                                                   'POS': src_pos})
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom_val,
+                                                                                                   'POS': src_pos_val})
                                                 elif self.src_coll_ext == 'bed':
-                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom,
-                                                                                                   'start': {'$lt': src_pos},
-                                                                                                   'end': {'$gte': src_pos}})
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom_val,
+                                                                                                   'start': {'$lt': src_pos_val},
+                                                                                                   'end': {'$gte': src_pos_val}})
                                         elif self.src_file_fmt == 'bed':
-                                                src_chrom, src_start, src_end = def_data_type(src_row[0].replace('chr', '')), int(src_row[1]), int(src_row[2])
+                                                src_chrom_val = def_data_type(src_row[0].replace('chr', ''))
+                                                src_start_val = int(src_row[1])
+                                                src_end_val = int(src_row[2])
                                                 if self.src_coll_ext == 'vcf':
-                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom,
-                                                                                                   'POS': {'$gt': src_start,
-                                                                                                           '$lte': src_end}})
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'#CHROM': src_chrom_val,
+                                                                                                   'POS': {'$gt': src_start_val,
+                                                                                                           '$lte': src_end_val}})
                                                 elif self.src_coll_ext == 'bed':
-                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom,
-                                                                                                   'start': {'$lt': src_end},
-                                                                                                   'end': {'$gt': src_start}})
+                                                        mongo_aggr_arg[0]['$match']['$or'].append({'chrom': src_chrom_val,
+                                                                                                   'start': {'$lt': src_end_val},
+                                                                                                   'end': {'$gt': src_start_val}})
                                 elif self.preset == 'by_alleles':
-                                        src_id, src_ref, src_alt = src_row[2], src_row[3], src_row[4]
-                                        mongo_aggr_arg[0]['$match']['$or'].append({'ID': src_id,
-                                                                                   'REF': src_ref,
-                                                                                   'ALT': src_alt})
+                                        src_id_val = src_row[2]
+                                        src_ref_val = src_row[3]
+                                        src_alt_val = src_row[4]
+                                        mongo_aggr_arg[0]['$match']['$or'].append({'ID': src_id_val,
+                                                                                   'REF': src_ref_val,
+                                                                                   'ALT': src_alt_val})
                                 else:
-                                        mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'].append(def_data_type(src_row[self.ann_col_index]))
+                                        src_val = def_data_type(src_row[self.ann_col_index])
+                                        mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'].append(src_val)
                                         
                 #Название исходной коллекции (без квазирасширения) потом
                 #пригодится для построения имени конечного файла или коллекции.
@@ -302,13 +336,10 @@ class Main():
                                         trg_file_opened.write(f'##src_file_name={src_file_name}\n')
                                         trg_file_opened.write(f'##src_db_name={self.src_db_name}\n')
                                         trg_file_opened.write(f'##src_coll_name={src_coll_name}\n')
-                                        if '$or' in mongo_aggr_arg[0]['$match']:
-                                                if len(mongo_aggr_arg[0]['$match']['$or']) > 5:
-                                                        mongo_aggr_arg[0]['$match']['$or'] = mongo_aggr_arg[0]['$match']['$or'][:5] + ['...']
-                                        elif self.ann_field_path in mongo_aggr_arg[0]['$match']:
-                                                if len(mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in']) > 5:
-                                                        mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'] = mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'][:5] + ['...']
-                                        trg_file_opened.write(f'##mongo_aggr={mongo_aggr_arg}\n')
+                                        mongo_aggr_meta = create_mongo_aggr_meta(mongo_aggr_arg,
+                                                                                 self.preset,
+                                                                                 self.ann_field_path)
+                                        trg_file_opened.write(f'##mongo_aggr={mongo_aggr_meta}\n')
                                         if self.trg_file_fmt == 'bed':
                                                 trg_file_opened.write(f'##trg_col_names=<{",".join(trg_col_names)}>\n')
                                         else:
@@ -360,13 +391,9 @@ class Main():
                                 meta_lines['meta'].append(f'##src_file_name={src_file_name}')
                                 meta_lines['meta'].append(f'##src_db_name={self.src_db_name}')
                                 meta_lines['meta'].append(f'##src_coll_name={src_coll_name}')
-                                mongo_aggr_meta = copy.deepcopy(mongo_aggr_arg)
-                                if '$or' in mongo_aggr_arg[0]['$match']:
-                                        if len(mongo_aggr_arg[0]['$match']['$or']) > 5:
-                                                mongo_aggr_meta[0]['$match']['$or'] = mongo_aggr_arg[0]['$match']['$or'][:5] + ['...']
-                                elif self.ann_field_path in mongo_aggr_arg[0]['$match']:
-                                        if len(mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in']) > 5:
-                                                mongo_aggr_meta[0]['$match'][self.ann_field_path]['$in'] = mongo_aggr_arg[0]['$match'][self.ann_field_path]['$in'][:5] + ['...']
+                                mongo_aggr_meta = create_mongo_aggr_meta(mongo_aggr_arg,
+                                                                         self.preset,
+                                                                         self.ann_field_path)
                                 meta_lines['meta'].append(f'##mongo_aggr={mongo_aggr_meta}')
                                 trg_coll_obj.insert_one(meta_lines)
                                 src_coll_obj.aggregate(mongo_aggr_arg,
