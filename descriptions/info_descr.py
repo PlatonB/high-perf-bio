@@ -1,8 +1,9 @@
 __version__ = 'v1.2'
 
+
 class InfoDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, позволяющая вывести имена всех баз
 данных или ключевую информацию об определённой БД.
 
@@ -24,7 +25,7 @@ python3 info.py -d DB_name > path/to/DB_info.txt
 [значение по умолчанию на этапе парсинга аргументов];
 [[конкретизированное значение по умолчанию]].
 '''
-                self.en = f'''
+        self.en = f'''
 A program that allows to print the names of
 all DBs or key information about a certain DB.
 

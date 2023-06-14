@@ -1,8 +1,9 @@
 __version__ = 'v1.2'
 
+
 class CountDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, считающая количество и, опционально, частоту каждого
 набора соответствующих значений заданных полей в пределах коллекции.
 
@@ -30,7 +31,7 @@ field_1.field_2.(...).field_N
 [[конкретизированное значение по умолчанию]];
 {{допустимые значения}}.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that counts the quantity and, optionally, the frequency of
 each set of corresponding values of given fields within collection.
 

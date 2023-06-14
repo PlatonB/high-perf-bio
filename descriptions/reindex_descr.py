@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class ReindexDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, способная удалять имеющиеся индексы MongoDB-базы и добавлять новые.
 
 Версия: {version}
@@ -23,7 +24,7 @@ class ReindexDescr():
 Условные обозначения в справке по CLI:
 [значение по умолчанию]
 '''
-                self.en = f'''
+        self.en = f'''
 A program that can delete existing indexes of MongoDB database and add new ones.
 
 Version: {version}

@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class AnnotateDescr():
-        def __init__(self, version, authors):
-                self.ru=f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, получающая характеристики
 элементов выбранного столбца по MongoDB-базе.
 
@@ -42,7 +43,7 @@ trg-FMT - конечные таблицы определённого форма�
 f1+f2+f3 - сортируемые поля, а также поля,
 для которых создавать составной индекс.
 '''
-                self.en=f'''
+        self.en = f'''
 A program that retrieves the characteristics of
 elements of the chosen column from MongoDB database.
 

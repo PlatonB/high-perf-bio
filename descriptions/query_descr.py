@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class QueryDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, выполняющая наборы запросов по всем коллекциям MongoDB-базы.
 
 Версия: {version}
@@ -53,7 +54,7 @@ trg-FMT - конечные таблицы определённого форма�
 f1+f2+f3 - сортируемые поля, а также поля,
 для которых создавать составной индекс.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that runs query sets to all collections of MongoDB database.
 
 Version: {version}
