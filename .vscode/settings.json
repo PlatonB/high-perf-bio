@@ -1,0 +1,13 @@
+{
+    "autopep8.args": [
+        "--max-line-length=1000"
+    ],
+    "editor.autoClosingBrackets": "never",
+    "editor.autoClosingDelete": "never",
+    "editor.autoClosingOvertype": "never",
+    "editor.autoClosingQuotes": "never",
+    "editor.fontSize": 16,
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "python.formatting.provider": "autopep8"
+}
