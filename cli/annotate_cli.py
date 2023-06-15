@@ -1,7 +1,8 @@
-__version__ = 'v8.0'
-
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 from descriptions.annotate_descr import AnnotateDescr
+
+__version__ = 'v8.0'
 
 
 def add_args_ru(version, authors):

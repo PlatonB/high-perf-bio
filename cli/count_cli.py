@@ -1,7 +1,8 @@
-__version__ = 'v9.1'
-
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 from descriptions.count_descr import CountDescr
+
+__version__ = 'v9.1'
 
 
 def add_args_ru(version, authors):

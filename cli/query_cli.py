@@ -1,7 +1,8 @@
-__version__ = 'v7.1'
-
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 from descriptions.query_descr import QueryDescr
+
+__version__ = 'v7.1'
 
 
 def add_args_ru(version, authors):

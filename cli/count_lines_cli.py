@@ -1,12 +1,13 @@
 from count_lines_descr import CountLinesDescr
-from argparse import ArgumentParser, RawTextHelpFormatter
-__version__ = 'v1.1'
-
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 import sys
 import os
 sys.dont_write_bytecode = True
 sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
                              'descriptions'))
+
+__version__ = 'v1.1'
 
 
 def add_args_ru(version, authors):

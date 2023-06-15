@@ -1,7 +1,8 @@
-__version__ = 'v4.0'
-
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 from descriptions.dock_descr import DockDescr
+
+__version__ = 'v4.0'
 
 
 def add_args_ru(version, authors):

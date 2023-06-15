@@ -1,7 +1,8 @@
-__version__ = 'v6.0'
-
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
 from descriptions.concatenate_descr import ConcatenateDescr
+
+__version__ = 'v6.0'
 
 
 def add_args_ru(version, authors):
