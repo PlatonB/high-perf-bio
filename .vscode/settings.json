@@ -1,4 +1,7 @@
 {
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.autopep8"
+    },
     "autopep8.args": [
         "--max-line-length=1000"
     ],
@@ -8,6 +11,5 @@
     "editor.autoClosingQuotes": "never",
     "editor.fontSize": 16,
     "editor.formatOnSave": true,
-    "editor.tabSize": 4,
-    "python.formatting.provider": "autopep8"
+    "editor.tabSize": 4
 }
