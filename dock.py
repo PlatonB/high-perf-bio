@@ -1,3 +1,11 @@
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
+import locale
+import os
+import gzip
+import copy
+from pymongo import MongoClient
 from backend.doc_to_line import restore_line
 from backend.def_data_type import def_data_type
 from backend.parallelize import parallelize
@@ -6,18 +14,11 @@ from backend.common_errors import (DifFmtsError,
                                    FormatIsNotSupportedError,
                                    QueryKeysOverlapWarning,
                                    NoSuchFieldWarning)
-from pymongo import MongoClient
 from cli.dock_cli import (add_args_ru,
                           add_args_en)
+
 __version__ = 'v4.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
-
-import sys
-import locale
-import os
-import gzip
-import copy
-sys.dont_write_bytecode = True
 
 
 class Main():

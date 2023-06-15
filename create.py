@@ -1,17 +1,22 @@
-from backend.def_data_type import def_data_type
-from backend.parallelize import parallelize
-from backend.common_errors import DifFmtsError, DbAlreadyExistsError
-from pymongo import MongoClient, ASCENDING, IndexModel
-from cli.create_cli import add_args_ru, add_args_en
-__version__ = 'v9.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
-
-import sys
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
 import locale
 import os
 import re
 import gzip
-sys.dont_write_bytecode = True
+from pymongo import (MongoClient,
+                     ASCENDING,
+                     IndexModel)
+from backend.def_data_type import def_data_type
+from backend.parallelize import parallelize
+from backend.common_errors import (DifFmtsError,
+                                   DbAlreadyExistsError)
+from cli.create_cli import (add_args_ru,
+                            add_args_en)
+
+__version__ = 'v9.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 
 class NoDataToUploadError(Exception):

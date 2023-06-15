@@ -1,15 +1,19 @@
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
+import locale
+import os
+from pymongo import (MongoClient,
+                     IndexModel,
+                     ASCENDING)
 from backend.parallelize import parallelize
 from backend.common_errors import NoSuchFieldWarning
 from backend.get_field_paths import parse_nested_objs
-from pymongo import MongoClient, IndexModel, ASCENDING
-from cli.reindex_cli import add_args_ru, add_args_en
+from cli.reindex_cli import (add_args_ru,
+                             add_args_en)
+
 __version__ = 'v6.0'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
-
-import sys
-import locale
-import os
-sys.dont_write_bytecode = True
 
 
 class Main():

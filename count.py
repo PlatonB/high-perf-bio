@@ -1,19 +1,25 @@
-from bson.son import SON
-from bson.decimal128 import Decimal128
-from backend.parallelize import parallelize
-from backend.get_field_paths import parse_nested_objs
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
-from pymongo import MongoClient, ASCENDING, DESCENDING, IndexModel
-from cli.count_cli import add_args_ru, add_args_en
-__version__ = 'v7.4'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
-
-import sys
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
 import locale
 import os
 import copy
 import gzip
-sys.dont_write_bytecode = True
+from bson.son import SON
+from bson.decimal128 import Decimal128
+from pymongo import (MongoClient,
+                     ASCENDING,
+                     DESCENDING,
+                     IndexModel)
+from backend.parallelize import parallelize
+from backend.get_field_paths import parse_nested_objs
+from backend.common_errors import (DbAlreadyExistsError,
+                                   NoSuchFieldWarning)
+from cli.count_cli import (add_args_ru,
+                           add_args_en)
+
+__version__ = 'v7.4'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 
 class CombFiltersError(Exception):

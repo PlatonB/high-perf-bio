@@ -1,20 +1,24 @@
-from backend.doc_to_line import restore_line
-from backend.parallelize import parallelize
-from backend.common_errors import FormatIsNotSupportedError, NoSuchFieldWarning
-from backend.get_field_paths import parse_nested_objs
-from bson.son import SON
-from pymongo.collation import Collation
-from pymongo import MongoClient, ASCENDING, DESCENDING
-from cli.ljoin_cli import add_args_ru
-__version__ = 'v12.0'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
-
-import sys
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
 import locale
 import os
 import copy
 import gzip
-sys.dont_write_bytecode = True
+from bson.son import SON
+from pymongo.collation import Collation
+from pymongo import (MongoClient,
+                     ASCENDING,
+                     DESCENDING)
+from backend.doc_to_line import restore_line
+from backend.parallelize import parallelize
+from backend.common_errors import (FormatIsNotSupportedError,
+                                   NoSuchFieldWarning)
+from backend.get_field_paths import parse_nested_objs
+from cli.ljoin_cli import add_args_ru
+
+__version__ = 'v12.0'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 
 class NotEnoughCollsError(Exception):

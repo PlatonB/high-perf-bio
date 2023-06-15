@@ -1,12 +1,14 @@
-from backend.get_field_paths import parse_nested_objs
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
+import locale
 from pymongo import MongoClient
-from cli.info_cli import add_args_ru, add_args_en
+from backend.get_field_paths import parse_nested_objs
+from cli.info_cli import (add_args_ru,
+                          add_args_en)
+
 __version__ = 'v5.5'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2022']
-
-import sys
-import locale
-sys.dont_write_bytecode = True
 
 
 def conv_data_measure(size):

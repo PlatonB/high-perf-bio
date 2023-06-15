@@ -1,16 +1,21 @@
-from backend.get_field_paths import parse_nested_objs
-from backend.common_errors import DbAlreadyExistsError, NoSuchFieldWarning
-from pymongo import MongoClient, IndexModel, ASCENDING
-from cli.concatenate_cli import add_args_ru, add_args_en
-__version__ = 'v5.1'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
-
-import sys
+# autopep8: off
+import sys; sys.dont_write_bytecode = True
+# autopep8: on
 import locale
 import datetime
 import copy
 import os
-sys.dont_write_bytecode = True
+from pymongo import (MongoClient,
+                     IndexModel,
+                     ASCENDING)
+from backend.get_field_paths import parse_nested_objs
+from backend.common_errors import (DbAlreadyExistsError,
+                                   NoSuchFieldWarning)
+from cli.concatenate_cli import (add_args_ru,
+                                 add_args_en)
+
+__version__ = 'v5.1'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 
 class Main():
