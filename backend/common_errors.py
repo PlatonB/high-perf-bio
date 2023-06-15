@@ -1,6 +1,6 @@
-__version__ = 'v6.0'
-
 import warnings
+
+__version__ = 'v6.0'
 
 
 class DifFmtsError(Exception):

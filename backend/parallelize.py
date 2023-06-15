@@ -1,7 +1,7 @@
-__version__ = 'v1.0'
-
 import multiprocessing
 import datetime
+
+__version__ = 'v1.0'
 
 
 def parallelize(proc_quan, main_func, storage_unit_names):
