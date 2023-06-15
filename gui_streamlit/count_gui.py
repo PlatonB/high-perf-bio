@@ -1,8 +1,8 @@
-__version__ = 'v4.1'
-
 import streamlit as st
-from descriptions.count_descr import CountDescr
 from pymongo import MongoClient
+from descriptions.count_descr import CountDescr
+
+__version__ = 'v4.1'
 
 
 class AddWidgetsRu():

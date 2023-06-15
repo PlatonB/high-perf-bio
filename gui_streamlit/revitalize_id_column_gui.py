@@ -1,8 +1,8 @@
-__version__ = 'v2.1'
-
 import streamlit as st
-from descriptions.revitalize_id_column_descr import RevitalizeIdColumnDescr
 from pymongo import MongoClient
+from descriptions.revitalize_id_column_descr import RevitalizeIdColumnDescr
+
+__version__ = 'v2.1'
 
 
 class AddWidgetsRu():

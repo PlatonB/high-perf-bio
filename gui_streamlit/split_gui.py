@@ -1,8 +1,8 @@
-__version__ = 'v3.0'
-
 import streamlit as st
-from descriptions.split_descr import SplitDescr
 from pymongo import MongoClient
+from descriptions.split_descr import SplitDescr
+
+__version__ = 'v3.0'
 
 
 class AddWidgetsRu():

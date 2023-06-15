@@ -1,7 +1,7 @@
-__version__ = 'v1.1'
-
 import streamlit as st
 from descriptions.gen_test_files_descr import GenTestFilesDescr
+
+__version__ = 'v1.1'
 
 
 class AddWidgetsRu():
