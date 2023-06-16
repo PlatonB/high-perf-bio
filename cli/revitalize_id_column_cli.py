@@ -1,11 +1,14 @@
-from revitalize_id_column_descr import RevitalizeIdColumnDescr
-from argparse import (ArgumentParser,
-                      RawTextHelpFormatter)
+# autopep8: off
 import sys
+import pathlib
 import os
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                             'descriptions'))
+hpb_dir_path = pathlib.Path(__file__).parent.parent
+sys.path.append(hpb_dir_path.joinpath('descriptions').as_posix())
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
+from revitalize_id_column_descr import RevitalizeIdColumnDescr
+# autopep8: on
 
 __version__ = 'v3.1'
 

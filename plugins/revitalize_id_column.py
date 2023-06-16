@@ -1,24 +1,24 @@
-from def_data_type import def_data_type
-from parallelize import parallelize
-from common_errors import DifFmtsError
-from pymongo import MongoClient, ASCENDING
-__version__ = 'v3.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
-
+# autopep8: off
 import sys
+import pathlib
 import os
 import locale
 import gzip
 sys.dont_write_bytecode = True
-if __name__ == '__main__':
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'cli'))
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'backend'))
-    from revitalize_id_column_cli import add_args_ru, add_args_en
-else:
-    sys.path.append(os.path.join(os.getcwd(),
-                                 'backend'))
+hpb_dir_path = pathlib.Path(__file__).parent.parent
+sys.path.append(hpb_dir_path.joinpath('cli').as_posix())
+sys.path.append(hpb_dir_path.joinpath('backend').as_posix())
+from pymongo import (MongoClient,
+                     ASCENDING)
+from revitalize_id_column_cli import (add_args_ru,
+                                      add_args_en)
+from parallelize import parallelize
+from def_data_type import def_data_type
+from common_errors import DifFmtsError
+# autopep8: on
+
+__version__ = 'v3.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 
 class NotVcfError(Exception):

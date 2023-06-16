@@ -1,23 +1,22 @@
-from common_errors import DifFmtsError
-__version__ = 'v1.1'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022']
-
+# autopep8: off
 import sys
+import pathlib
 import os
 import locale
 import datetime
 import gzip
 import json
 sys.dont_write_bytecode = True
-if __name__ == '__main__':
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'cli'))
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'backend'))
-    from count_lines_cli import add_args_ru, add_args_en
-else:
-    sys.path.append(os.path.join(os.getcwd(),
-                                 'backend'))
+hpb_dir_path = pathlib.Path(__file__).parent.parent
+sys.path.append(hpb_dir_path.joinpath('cli').as_posix())
+sys.path.append(hpb_dir_path.joinpath('backend').as_posix())
+from count_lines_cli import (add_args_ru,
+                             add_args_en)
+from common_errors import DifFmtsError
+# autopep8: on
+
+__version__ = 'v1.1'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022']
 
 
 class Main():

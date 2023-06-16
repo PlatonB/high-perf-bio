@@ -1,11 +1,14 @@
-from gen_test_files_descr import GenTestFilesDescr
-from argparse import (ArgumentParser,
-                      RawTextHelpFormatter)
+# autopep8: off
 import sys
+import pathlib
 import os
 sys.dont_write_bytecode = True
-sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                             'descriptions'))
+hpb_dir_path = pathlib.Path(__file__).parent.parent
+sys.path.append(hpb_dir_path.joinpath('descriptions').as_posix())
+from argparse import (ArgumentParser,
+                      RawTextHelpFormatter)
+from gen_test_files_descr import GenTestFilesDescr
+# autopep8: on
 
 __version__ = 'v3.1'
 

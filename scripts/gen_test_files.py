@@ -1,22 +1,21 @@
-from parallelize import parallelize
-__version__ = 'v4.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
-
+# autopep8: off
 import sys
+import pathlib
 import os
 import locale
 import random
 import gzip
 sys.dont_write_bytecode = True
-if __name__ == '__main__':
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'cli'))
-    sys.path.append(os.path.join(os.path.dirname(os.getcwd()),
-                                 'backend'))
-    from gen_test_files_cli import add_args_ru, add_args_en
-else:
-    sys.path.append(os.path.join(os.getcwd(),
-                                 'backend'))
+hpb_dir_path = pathlib.Path(__file__).parent.parent
+sys.path.append(hpb_dir_path.joinpath('cli').as_posix())
+sys.path.append(hpb_dir_path.joinpath('backend').as_posix())
+from gen_test_files_cli import (add_args_ru,
+                                add_args_en)
+from parallelize import parallelize
+# autopep8: on
+
+__version__ = 'v4.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 
 class Main():
