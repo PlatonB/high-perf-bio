@@ -1,33 +1,45 @@
-import create
-import \
-    dock_gui, ljoin_gui, query_gui, reindex_gui, split_gui, \
-    revitalize_id_column_gui, count_lines_gui, gen_test_files_gui
-import create_gui
-import count
-import count_gui
-import concatenate
-import concatenate_gui
-import annotate
-import annotate_gui
-from parallelize import parallelize
-import streamlit as st
-__version__ = 'v2.3'
-__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
-
+# autopep8: off
 import sys
+import pathlib
 import os
 import locale
 import datetime
 sys.dont_write_bytecode = True
-hpb_dir_path = os.getcwd()
-sys.path.append(os.path.join(hpb_dir_path,
-                             'gui_streamlit'))
-sys.path.append(os.path.join(hpb_dir_path,
-                             'plugins'))
-sys.path.append(os.path.join(hpb_dir_path,
-                             'scripts'))
-sys.path.append(os.path.join(hpb_dir_path,
-                             'backend'))
+hpb_dir_path = pathlib.Path(__file__).parent
+sys.path.append(hpb_dir_path.joinpath('gui_streamlit').as_posix())
+sys.path.append(hpb_dir_path.joinpath('plugins').as_posix())
+sys.path.append(hpb_dir_path.joinpath('scripts').as_posix())
+sys.path.append(hpb_dir_path.joinpath('backend').as_posix())
+import streamlit as st
+import annotate_gui
+import concatenate_gui
+import count_gui
+import create_gui
+import dock_gui
+import ljoin_gui
+import query_gui
+import reindex_gui
+import split_gui
+import revitalize_id_column_gui
+import count_lines_gui
+import gen_test_files_gui
+import annotate
+import concatenate
+import count
+import create
+import dock
+import ljoin
+import query
+import reindex
+import split
+import revitalize_id_column
+import count_lines
+import gen_test_files
+from parallelize import parallelize
+# autopep8: on
+
+__version__ = 'v2.3'
+__authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 # Кастомизируем заголовок окна
 # браузера и 3 пункта гамбургер-меню.
