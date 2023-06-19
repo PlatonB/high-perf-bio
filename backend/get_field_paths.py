@@ -47,22 +47,25 @@ def parse_nested_objs(obj, parent_field_path=None, all_field_paths=None):
                                   all_field_paths=all_field_paths)
     return all_field_paths
 
-# Тест.
-# print(parse_nested_objs({'q': 1,
-# 'w': {},
-# 'e': {'a': 10,
-# 'b': 11,
-# 'c': {'d': -11,
-# 'e': -10,
-# 'f': -9}},
-# 'r': '.',
-# 't': [],
-# 'y': [100,
-# 101,
-# {'l': 0.01,
-# 'm': 0.02,
-# 'n': 0.03},
-# [{'h': 0,
-# 'z': 0},
-# {'m': 0,
-# 'z': 0}]]}))
+
+'''
+Тест.
+print(parse_nested_objs({'q': 1,
+                         'w': {},
+                         'e': {'a': 10,
+                               'b': 11,
+                               'c': {'d': -11,
+                                     'e': -10,
+                                     'f': -9}},
+                         'r': '.',
+                         't': [],
+                         'y': [100,
+                               101,
+                               {'l': 0.01,
+                                'm': 0.02,
+                                'n': 0.03},
+                               [{'h': 0,
+                                 'z': 0},
+                                   {'m': 0,
+                                    'z': 0}]]}))
+'''
