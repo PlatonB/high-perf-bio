@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class ConcatenateDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, объединяющая все коллекции
 одной MongoDB-базы с выводом в другую.
 
@@ -27,7 +28,7 @@ scr/trg-db-FMT - коллекции исходной/конечной БД,
 аргумент проигнорируется или вызовет ошибку;
 f1+f2+f3 - поля, для которых создавать составной индекс.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that merges all collections of
 one MongoDB database with output to another.
 

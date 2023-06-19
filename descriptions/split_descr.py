@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class SplitDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, позволяющая разбить каждую
 коллекцию MongoDB-базы по заданному полю.
 
@@ -35,7 +36,7 @@ trg-FMT - конечные таблицы определённого форма�
 f1+f2+f3 - сортируемые поля, а также поля,
 для которых создавать составной индекс.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that allows to split each collection
 of the MongoDB database by specified field.
 

@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class GenTestFilesDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, создающая наборы тестировочных файлов из случайных строк исходного.
 
 Версия: {version}
@@ -25,7 +26,7 @@ src-FMT - разреживаемая таблица определённого �
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that creates sets of test files from random strings of the source file.
 
 Version: {version}

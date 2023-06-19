@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class LjoinDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, выполняющая пересечение
 или вычитание коллекций по выбранному
 полю или по геномным координатам.
@@ -85,7 +86,7 @@ trg-FMT - конечные таблицы определённого форма�
 аргумент проигнорируется или вызовет ошибку;
 f1+f2+f3 - сортируемые поля.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that performs intersection or subtraction of
 collections by chosen field or by genomic coordinates.
 

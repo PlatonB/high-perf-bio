@@ -1,8 +1,9 @@
 __version__ = 'v2.0'
 
+
 class CreateDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, создающая MongoDB-базу данных
 по VCF, BED или любым другим таблицам.
 
@@ -51,7 +52,7 @@ trg-db-FMT - коллекции конечной БД, соответствую�
 аргумент проигнорируется или вызовет ошибку;
 f1+f2+f3 - поля, для которых создавать составной индекс.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that creates a MongoDB database
 from VCF, BED or any other tables.
 

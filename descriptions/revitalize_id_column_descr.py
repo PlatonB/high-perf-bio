@@ -1,8 +1,9 @@
 __version__ = 'v1.1'
 
+
 class RevitalizeIdColumnDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, добавляющая rsIDs в столбец ID VCF-файлов.
 
 Версия: {version}
@@ -25,7 +26,7 @@ src-FMT - модифицируемые таблицы определённого
 src-db-FMT - коллекции исходной БД, соответствующие
 по структуре таблицам определённого формата.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that adds rsIDs into ID column of VCF files.
 
 Version: {version}

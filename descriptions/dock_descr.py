@@ -1,8 +1,9 @@
 __version__ = 'v1.2'
 
+
 class DockDescr():
-        def __init__(self, version, authors):
-                self.ru = f'''
+    def __init__(self, version, authors):
+        self.ru = f'''
 Программа, получающая характеристики элементов
 выбранного табличного столбца по MongoDB-базе
 с сохранением исходных характеристик.
@@ -61,7 +62,7 @@ src-db-FMT - коллекции исходной БД, соответствую�
 не применяется - при обозначенных условиях
 аргумент проигнорируется или вызовет ошибку.
 '''
-                self.en = f'''
+        self.en = f'''
 A program that retrieves the characteristics of
 elements from chosen table's column by MongoDB
 database with keeping the original characteristics.
