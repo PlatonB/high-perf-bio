@@ -15,7 +15,7 @@ from backend.common_errors import (DifFmtsError,
 from cli.create_cli import (add_args_ru,
                             add_args_en)
 
-__version__ = 'v9.3'
+__version__ = 'v9.4'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

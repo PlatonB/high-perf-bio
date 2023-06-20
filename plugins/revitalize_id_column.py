@@ -17,7 +17,7 @@ from def_data_type import def_data_type
 from common_errors import DifFmtsError
 # autopep8: on
 
-__version__ = 'v3.3'
+__version__ = 'v3.4'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 

@@ -18,7 +18,7 @@ from backend.common_errors import (DbAlreadyExistsError,
 from cli.count_cli import (add_args_ru,
                            add_args_en)
 
-__version__ = 'v7.4'
+__version__ = 'v7.5'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2021-2023']
 
 

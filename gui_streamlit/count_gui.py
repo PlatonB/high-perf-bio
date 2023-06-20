@@ -2,7 +2,7 @@ import streamlit as st
 from pymongo import MongoClient
 from descriptions.count_descr import CountDescr
 
-__version__ = 'v4.1'
+__version__ = 'v4.2'
 
 
 class AddWidgetsRu():

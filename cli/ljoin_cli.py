@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.ljoin_descr import LjoinDescr
 
-__version__ = 'v6.0'
+__version__ = 'v6.1'
 
 
 def add_args_ru(version, authors):

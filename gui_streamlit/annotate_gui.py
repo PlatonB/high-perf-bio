@@ -2,7 +2,7 @@ import streamlit as st
 from pymongo import MongoClient
 from descriptions.annotate_descr import AnnotateDescr
 
-__version__ = 'v5.0'
+__version__ = 'v5.1'
 
 
 class AddWidgetsRu():

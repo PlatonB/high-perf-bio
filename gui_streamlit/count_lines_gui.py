@@ -1,7 +1,7 @@
 import streamlit as st
 from descriptions.count_lines_descr import CountLinesDescr
 
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 
 class AddWidgetsRu():

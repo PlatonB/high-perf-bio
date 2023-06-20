@@ -38,7 +38,7 @@ import gen_test_files
 from parallelize import parallelize
 # autopep8: on
 
-__version__ = 'v2.3'
+__version__ = 'v2.4'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022-2023']
 
 # Кастомизируем заголовок окна

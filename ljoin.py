@@ -17,7 +17,7 @@ from backend.common_errors import (FormatIsNotSupportedError,
 from backend.get_field_paths import parse_nested_objs
 from cli.ljoin_cli import add_args_ru
 
-__version__ = 'v12.0'
+__version__ = 'v12.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.create_descr import CreateDescr
 
-__version__ = 'v7.0'
+__version__ = 'v7.1'
 
 
 def add_args_ru(version, authors):

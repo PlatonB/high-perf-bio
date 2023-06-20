@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.reindex_descr import ReindexDescr
 
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 
 def add_args_ru(version, authors):

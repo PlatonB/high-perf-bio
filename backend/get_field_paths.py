@@ -1,7 +1,7 @@
 import copy
 import re
 
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 
 def parse_nested_objs(obj, parent_field_path=None, all_field_paths=None):
