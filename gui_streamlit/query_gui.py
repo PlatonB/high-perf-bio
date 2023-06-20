@@ -2,7 +2,7 @@ import streamlit as st
 from pymongo import MongoClient
 from descriptions.query_descr import QueryDescr
 
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 
 class AddWidgetsRu():

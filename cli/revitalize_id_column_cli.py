@@ -10,7 +10,7 @@ from argparse import (ArgumentParser,
 from revitalize_id_column_descr import RevitalizeIdColumnDescr
 # autopep8: on
 
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 
 def add_args_ru(version, authors):

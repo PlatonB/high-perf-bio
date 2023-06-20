@@ -2,7 +2,7 @@ import streamlit as st
 from pymongo import MongoClient
 from descriptions.revitalize_id_column_descr import RevitalizeIdColumnDescr
 
-__version__ = 'v2.1'
+__version__ = 'v2.2'
 
 
 class AddWidgetsRu():

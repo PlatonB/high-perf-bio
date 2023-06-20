@@ -1,7 +1,7 @@
 from decimal import InvalidOperation
 from bson.decimal128 import Decimal128
 
-__version__ = 'V1.0'
+__version__ = 'V1.1'
 
 
 def def_data_type(string):

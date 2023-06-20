@@ -1,7 +1,7 @@
 import streamlit as st
 from descriptions.create_descr import CreateDescr
 
-__version__ = 'v4.0'
+__version__ = 'v4.1'
 
 
 class AddWidgetsRu():

@@ -15,7 +15,7 @@ from count_lines_cli import (add_args_ru,
 from common_errors import DifFmtsError
 # autopep8: on
 
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2022']
 
 

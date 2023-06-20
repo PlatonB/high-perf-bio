@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.split_descr import SplitDescr
 
-__version__ = 'v8.0'
+__version__ = 'v8.1'
 
 
 def add_args_ru(version, authors):

@@ -10,7 +10,7 @@ from argparse import (ArgumentParser,
 from gen_test_files_descr import GenTestFilesDescr
 # autopep8: on
 
-__version__ = 'v3.1'
+__version__ = 'v3.2'
 
 
 def add_args_ru(version, authors):

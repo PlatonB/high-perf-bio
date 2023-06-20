@@ -23,7 +23,7 @@ from backend.common_errors import (DifFmtsError,
 from cli.annotate_cli import (add_args_ru,
                               add_args_en)
 
-__version__ = 'v11.0'
+__version__ = 'v11.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

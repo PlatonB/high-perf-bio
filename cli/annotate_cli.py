@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.annotate_descr import AnnotateDescr
 
-__version__ = 'v8.0'
+__version__ = 'v8.1'
 
 
 def add_args_ru(version, authors):

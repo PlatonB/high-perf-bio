@@ -2,7 +2,7 @@ from argparse import (ArgumentParser,
                       RawTextHelpFormatter)
 from descriptions.query_descr import QueryDescr
 
-__version__ = 'v7.1'
+__version__ = 'v7.2'
 
 
 def add_args_ru(version, authors):

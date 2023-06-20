@@ -2,7 +2,7 @@ import streamlit as st
 from pymongo import MongoClient
 from descriptions.split_descr import SplitDescr
 
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 
 class AddWidgetsRu():

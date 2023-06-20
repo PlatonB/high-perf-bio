@@ -20,7 +20,7 @@ from backend.get_field_paths import parse_nested_objs
 from cli.query_cli import (add_args_ru,
                            add_args_en)
 
-__version__ = 'v8.7'
+__version__ = 'v8.8'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

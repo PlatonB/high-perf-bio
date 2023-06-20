@@ -1,4 +1,4 @@
-__version__ = 'v3.0'
+__version__ = 'v3.1'
 
 
 def restore_info_cell(info_obj):

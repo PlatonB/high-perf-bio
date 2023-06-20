@@ -12,7 +12,7 @@ from backend.get_field_paths import parse_nested_objs
 from cli.reindex_cli import (add_args_ru,
                              add_args_en)
 
-__version__ = 'v6.0'
+__version__ = 'v6.1'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

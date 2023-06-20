@@ -14,7 +14,7 @@ from gen_test_files_cli import (add_args_ru,
 from parallelize import parallelize
 # autopep8: on
 
-__version__ = 'v4.3'
+__version__ = 'v4.4'
 __authors__ = ['Platon Bykadorov (platon.work@gmail.com), 2020-2023']
 
 

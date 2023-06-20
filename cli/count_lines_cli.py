@@ -10,7 +10,7 @@ from argparse import (ArgumentParser,
 from count_lines_descr import CountLinesDescr
 # autopep8: on
 
-__version__ = 'v1.1'
+__version__ = 'v1.2'
 
 
 def add_args_ru(version, authors):
